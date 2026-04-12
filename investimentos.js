@@ -30,6 +30,22 @@ const AI_KNOWLEDGE = [
     { ticker: 'SOL', name: 'Solana', type: 'Crypto', focus: 'Speed', rationale: 'Blockchain de alto desempenho para aplicações de escala global.', recommended: false }
 ];
 
+// Universo Alargado para o Motor de Descoberta (Scanner)
+const SCANNER_UNIVERSE = [
+    { ticker: 'AMZN', name: 'Amazon.com Inc', type: 'Stock' },
+    { ticker: 'META', name: 'Meta Platforms Inc', type: 'Stock' },
+    { ticker: 'ASML', name: 'ASML Holding', type: 'Stock' },
+    { ticker: 'V', name: 'Visa Inc', type: 'Stock' },
+    { ticker: 'MA', name: 'Mastercard Inc', type: 'Stock' },
+    { ticker: 'AMT', name: 'American Tower', type: 'REIT' },
+    { ticker: 'DLR', name: 'Digital Realty Trust', type: 'REIT' },
+    { ticker: 'SCHD', name: 'Schwab US Dividend Equity', type: 'ETF' },
+    { ticker: 'VOO', name: 'Vanguard S&P 500', type: 'ETF' },
+    { ticker: 'ADA', name: 'Cardano', type: 'Crypto' },
+    { ticker: 'DOT', name: 'Polkadot', type: 'Crypto' },
+    { ticker: 'LINK', name: 'Chainlink', type: 'Crypto' }
+];
+
 // Funções expostas globalmente para os botões do HTML funcionarem
 window.openAssetModal = function() {
     const modal = document.getElementById('assetModal');
@@ -138,27 +154,33 @@ window.viewFullStudy = async function(ticker) {
             </div>
 
             <!-- Quadrante 2: Técnico e Momentum -->
-            <div class="report-section" style="background: #fff; padding: 20px; border-radius: 16px; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-sm);">
-                <header style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px; color: var(--accent);">
-                    <span style="font-size: 1.2rem;">🚀</span> <strong style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Técnico & Momentum</strong>
+            <!-- Quadrante 2: Solidez e Crescimento -->
+            <div class="report-section" style="background: rgba(255,255,255,0.03); padding: 25px; border-radius: 16px; border: 1px solid var(--border-subtle);">
+                <header style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
+                    <span style="font-size: 1.3rem;">📊</span> <strong style="font-size: 0.75rem; text-transform: uppercase; color: var(--trading-blue); letter-spacing: 0.05em;">Solidez e Performance</strong>
                 </header>
-                <div style="padding: 15px; background: var(--panel-strong); border-radius: 12px; text-align: center; border: 1px solid var(--border-subtle);">
-                    <div style="font-size: 0.65rem; opacity: 0.6; text-transform: uppercase; font-weight: 800; margin-bottom: 8px;">Sinal de Momentum</div>
-                    <div style="font-weight: 900; font-size: 1.4rem; color: ${techSignal.color}; text-transform: uppercase;">${techSignal.text}</div>
-                    
-                    <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.05);">
+                <div class="study-grid-kpi">
+                    <div class="kpi-box">
+                        <small style="display: block; opacity: 0.6; font-size: 0.65rem; margin-bottom: 4px;">Dívida / Capital</small>
+                        <strong style="font-size: 1.1rem; color: ${metrics?.debtEquity > 100 ? 'var(--trading-red)' : 'var(--trading-green)'}">${metrics?.debtEquity ? metrics.debtEquity.toFixed(1) + '%' : 'Baixa'}</strong>
+                    </div>
+                    <div class="kpi-box">
+                        <small style="display: block; opacity: 0.6; font-size: 0.65rem; margin-bottom: 4px;">Crescimento Rec.</small>
+                        <strong style="font-size: 1.1rem; color: var(--trading-green)">+${metrics?.revenueGrowth ? metrics.revenueGrowth.toFixed(1) + '%' : 'N/A'}</strong>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 25px;">
+                    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border-left: 4px solid var(--trading-blue);">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <small style="opacity: 0.6;">Preço vs Máximos</small>
+                            <small style="opacity: 0.6;">Preço vs Máximos (52 Sems)</small>
                             <strong style="color: ${metrics?.vsHigh < -15 ? 'var(--trading-green)' : 'inherit'}">${metrics?.vsHigh ? metrics.vsHigh.toFixed(2) + '%' : 'N/A'}</strong>
                         </div>
-                        <div style="width: 100%; height: 6px; background: #eee; border-radius: 3px; overflow: hidden;">
-                            <div style="width: ${100 + (metrics?.vsHigh || -100)}%; height: 100%; background: var(--trading-blue);"></div>
+                        <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                            <div style="width: ${Math.min(100, Math.max(0, 100 + (metrics?.vsHigh || -100)))}%; height: 100%; background: var(--trading-blue);"></div>
                         </div>
                     </div>
                 </div>
-                <p style="font-size: 0.75rem; margin-top: 15px; color: var(--text-muted); text-align: center; line-height: 1.4;">
-                    Este ativo encontra-se ${Math.abs(metrics?.vsHigh || 0).toFixed(1)}% abaixo do seu máximo de 52 semanas.
-                </p>
             </div>
 
             <!-- Quadrante 3: Inteligência Global (Macro) -->
@@ -208,6 +230,9 @@ async function fetchFinancialMetrics(ticker) {
                 roi: m.roiTTM || m.roeTTM || 0,
                 beta: m.beta || 1,
                 epsGrowth: m.epsGrowth5Y || m.epsGrowthTTM || 0,
+                debtEquity: m.totalDebtToTotalEquityTTM || 0,
+                revenueGrowth: m.revenueGrowth5Y || 0,
+                fcf: m.freeCashFlowTTM || 0,
                 high52: m['52WeekHigh'],
                 low52: m['52WeekLow'],
                 currPrice: window.state.priceCache[ticker.toUpperCase()] || m['52WeekHigh'] * 0.9,
@@ -225,11 +250,21 @@ async function fetchFinancialMetrics(ticker) {
 async function fetchMarketNews() {
     if (!window.state.finnhubApiKey) return [];
     try {
+        console.log("A solicitar notícias à Finnhub...");
         const response = await fetch(`https://finnhub.io/api/v1/news?category=general&token=${window.state.finnhubApiKey}`);
-        return await response.json();
+        if (!response.ok) throw new Error("Falha na API Finnhub");
+        const data = await response.json();
+        console.log(`Recebidas ${data.length} notícias.`);
+        return data;
     } catch (e) {
         console.error("Erro ao obter notícias:", e);
-        return [];
+        // Fallback: Tentar categoria Forex se General falhar
+        try {
+            const fb = await fetch(`https://finnhub.io/api/v1/news?category=forex&token=${window.state.finnhubApiKey}`);
+            return await fb.json();
+        } catch(e2) {
+            return [];
+        }
     }
 }
 
@@ -640,6 +675,12 @@ function generateAiOpportunities() {
         });
         container.appendChild(section);
     });
+
+    // Indicar que o Scanner está ativo
+    const status = document.createElement('div');
+    status.style.cssText = 'font-size: 0.65rem; text-align: center; opacity: 0.5; margin-top: 20px;';
+    status.textContent = 'IA Scanner: Ativo (Varrimento Global em tempo real)';
+    container.appendChild(status);
 }
 
 function updateAllocationTargets() {
