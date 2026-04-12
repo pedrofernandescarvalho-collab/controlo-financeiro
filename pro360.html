@@ -24,96 +24,129 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <style>
-    /* Estilos Terminais Pro - FOCO EM LEGIBILIDADE E IMPACTO (Sharp Design) */
+    /* Harmonização Pro 360 com Tema Premium Light */
     :root {
-      --terminal-bg: #000000;
-      --panel-strong: #0a0a0a;
-      --trading-green: #00ff88;
-      --trading-red: #ff3366;
-      --trading-blue: #00e5ff;
-      --accent: #bf77ff;
-      --text-main: #ffffff;
-      --border-strong: #ffffff; /* Bordas brancas nítidas */
-      --font-display: 'Space Grotesk', sans-serif;
+      --trading-green: #10b981;
+      --trading-red: #f43f5e;
+      --trading-blue: #0d9488; /* Usando o Teal como base técnica */
+      --terminal-accent: #7c3aed;
     }
 
     body {
-      background-color: var(--terminal-bg);
-      color: var(--text-main);
-      font-family: 'Inter', system-ui, sans-serif;
-      font-size: 18px;
-      line-height: 1.5;
-      margin: 0;
+      background-attachment: fixed;
     }
 
-    /* Remover todos os cantos arredondados e sombras suaves */
-    * { border-radius: 0 !important; box-shadow: none !important; }
-
     .terminal-header {
-      background: #000;
-      padding: 50px 40px;
-      border: 3px solid var(--border-strong);
-      margin-bottom: 40px;
+      background: var(--panel-strong);
+      padding: 32px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 24px;
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-sm);
     }
 
     .invest-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 40px;
+      grid-template-columns: 1.6fr 1fr;
+      gap: 24px;
     }
 
-    @media (max-width: 1200px) {
+    @media (max-width: 1100px) {
       .invest-grid { grid-template-columns: 1fr; }
     }
 
     .portfolio-card, .ai-radar {
-      background: var(--panel-strong);
-      padding: 35px;
-      border: 2px solid var(--border-strong);
+      background: var(--panel-bg);
+      padding: 24px;
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--border-subtle);
+      backdrop-filter: blur(16px);
+      box-shadow: var(--shadow-sm);
     }
 
     .ticker-badge {
-      font-family: var(--font-display);
-      padding: 8px 16px;
-      background: #fff;
-      color: #000;
-      font-weight: 900;
-      border: none;
-      font-size: 1.1rem;
+      font-family: 'Space Grotesk', sans-serif;
+      padding: 6px 12px;
+      background: var(--text-main);
+      color: #fff;
+      font-weight: 700;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      letter-spacing: 0.05em;
     }
 
     .ai-suggestion-card {
-      background: #000;
-      padding: 24px;
-      border: 2px solid rgba(255,255,255,0.2);
-      margin-bottom: 20px;
+      background: #fff;
+      padding: 20px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-subtle);
+      margin-bottom: 16px;
+      transition: var(--transition);
     }
 
     .ai-suggestion-card:hover {
+      transform: translateY(-4px);
       border-color: var(--trading-blue);
-      background: #0a0a0a;
+      box-shadow: var(--shadow-lg);
     }
 
     .btn-analyze {
-      background: #fff;
-      color: #000;
-      border: 2px solid #fff;
-      padding: 16px 40px;
+      background: var(--text-main);
+      color: #fff;
+      border: none;
+      padding: 12px 24px;
+      border-radius: var(--radius-sm);
       cursor: pointer;
-      font-weight: 900;
-      font-family: var(--font-display);
-      font-size: 1.2rem;
-      text-transform: uppercase;
+      font-weight: 700;
+      transition: var(--transition);
     }
 
-    h1 { font-size: 3.5rem; font-weight: 900; text-transform: uppercase; margin: 0; }
-    h2 { font-size: 2.2rem; border-bottom: 4px solid #fff; padding-bottom: 10px; margin-bottom: 30px; text-transform: uppercase; }
-    h3 { font-size: 1.6rem; margin-bottom: 20px; color: var(--trading-blue); text-transform: uppercase; }
+    .btn-analyze:hover {
+      background: #000;
+      transform: translateY(-2px);
+    }
+
+    h1 { font-size: 2.5rem; font-weight: 700; color: var(--text-main); letter-spacing: -0.02em; }
+    h2 { font-size: 1.5rem; font-weight: 700; color: var(--text-main); margin-bottom: 20px; }
+    h3 { font-size: 1.1rem; color: var(--trading-blue); font-weight: 700; }
 
     .kpi-box {
-        background: #000;
-        padding: 20px;
-        border: 2px solid #fff;
+        background: rgba(0,0,0,0.02);
+        padding: 16px;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--border-subtle);
+    }
+
+    /* Utilitários de Lista */
+    .asset-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 16px;
+        background: #fff;
+        border-radius: var(--radius-md);
+        border: 1px solid var(--border-subtle);
+        margin-bottom: 12px;
+        transition: var(--transition);
+    }
+    .asset-item:hover {
+        border-color: var(--trading-blue);
+        transform: translateX(4px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .value-up { color: var(--trading-green); font-weight: 700; }
+    .value-down { color: var(--trading-red); font-weight: 700; }
+
+    .type-pill {
+        font-size: 0.65rem;
+        background: rgba(0,0,0,0.05);
+        padding: 4px 10px;
+        border-radius: 99px;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: var(--text-muted);
     }
   </style>
 </head>
@@ -134,17 +167,17 @@
     <header class="terminal-header">
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
         <div>
-          <p class="eyebrow" style="color: var(--trading-blue);">Inteligência de Ativos Real-Time</p>
-          <h1 style="color: #fff; margin: 0; font-size: 2.2rem;">Terminal de Investimentos</h1>
-          <div style="margin-top: 8px; font-size: 0.75rem; color: rgba(255,255,255,0.4); display: flex; align-items: center; gap: 6px;">
+          <p class="eyebrow">Inteligência de Ativos Real-Time</p>
+          <h1 style="margin: 0;">Terminal de Investimentos</h1>
+          <div style="margin-top: 8px; font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
             <span id="syncStatusIcon" style="color: var(--trading-green);">●</span> 
             <span id="lastSyncTime">Sincronização inativa</span>
-            <button class="text-btn" style="color: var(--trading-blue); font-size: 0.75rem; padding: 0;" onclick="window.refreshAllPrices()">[Atualizar Agora]</button>
+            <button class="text-btn" style="font-size: 0.75rem; padding: 0;" onclick="window.refreshAllPrices()">[Atualizar Agora]</button>
           </div>
         </div>
         <div style="text-align: right;">
-          <p style="margin: 0; opacity: 0.6; color: #fff; font-size: 0.8rem; text-transform: uppercase;">Saldo em Conta XTB</p>
-          <strong id="xtbAccountBalance" style="font-size: 2.2rem; color: #fff;">0,00 EUR</strong>
+          <p style="margin: 0; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; font-weight: 700;">Saldo em Conta XTB</p>
+          <strong id="xtbAccountBalance" style="font-size: 2.2rem; color: var(--text-main);">0,00 EUR</strong>
         </div>
       </div>
     </header>
@@ -189,10 +222,10 @@
             <!-- Sugestões da IA aqui -->
           </div>
 
-          <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
-            <h4 style="font-size: 0.75rem; text-transform: uppercase; margin-bottom: 12px; opacity: 0.7; letter-spacing: 0.05em;">Estudar Novo Ticker</h4>
+          <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border-subtle);">
+            <h4 style="font-size: 0.75rem; text-transform: uppercase; margin-bottom: 12px; color: var(--text-muted); letter-spacing: 0.05em;">Estudar Novo Ticker</h4>
             <div style="display: flex; gap: 8px;">
-              <input id="tickerInput" type="text" placeholder="Ex: VUAA, O, BTC" style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; padding: 12px 16px; border-radius: 12px; flex: 1; outline: none; transition: var(--transition);">
+              <input id="tickerInput" type="text" placeholder="Ex: VUAA, O, BTC">
               <button class="btn-analyze" onclick="analyzeTicker()">Analisar</button>
             </div>
           </div>

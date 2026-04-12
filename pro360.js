@@ -171,12 +171,12 @@ window.viewFullStudy = async function(ticker) {
                 </div>
                 
                 <div style="margin-top: 25px;">
-                    <div style="background: rgba(0,0,0,0.3); padding: 15px; border-radius: 12px; border-left: 4px solid var(--trading-blue);">
+                    <div style="background: rgba(13, 148, 136, 0.05); padding: 15px; border-radius: 12px; border-left: 4px solid var(--trading-blue);">
                         <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <small style="opacity: 0.6;">Preço vs Máximos (52 Sems)</small>
-                            <strong style="color: ${metrics?.vsHigh < -15 ? 'var(--trading-green)' : 'inherit'}">${metrics?.vsHigh ? metrics.vsHigh.toFixed(2) + '%' : 'N/A'}</strong>
+                            <small style="opacity: 0.6; color: var(--text-muted);">Preço vs Máximos (52 Sems)</small>
+                            <strong style="color: ${metrics?.vsHigh < -15 ? 'var(--trading-green)' : 'var(--text-main)'}">${metrics?.vsHigh ? metrics.vsHigh.toFixed(2) + '%' : 'N/A'}</strong>
                         </div>
-                        <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; overflow: hidden;">
+                        <div style="width: 100%; height: 6px; background: rgba(0,0,0,0.05); border-radius: 3px; overflow: hidden;">
                             <div style="width: ${Math.min(100, Math.max(0, 100 + (metrics?.vsHigh || -100)))}%; height: 100%; background: var(--trading-blue);"></div>
                         </div>
                     </div>
@@ -198,13 +198,13 @@ window.viewFullStudy = async function(ticker) {
             </div>
         </div>
 
-        <div style="background: var(--panel-strong); padding: 25px; border-radius: 16px; border-left: 6px solid ${score.color}; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);">
+        <div style="background: #fff; padding: 25px; border-radius: 16px; border-left: 6px solid ${score.color}; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-sm);">
             <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                 <strong style="color: ${score.color}; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.05em;">Veredito Final da IA</strong>
-                <span style="font-size: 0.75rem; opacity: 0.6;">Horizonte: Longo Prazo</span>
+                <span style="font-size: 0.75rem; color: var(--text-muted);">Horizonte: Longo Prazo</span>
             </header>
-            <p style="font-size: 1.05rem; line-height: 1.6; color: #fff; margin-bottom: 25px;">${score.action}</p>
-            <button class="primary-btn" style="width: 100%; padding: 18px; font-size: 1.1rem; font-weight: 700; letter-spacing: 0.02em; border-radius: 12px;" onclick="window.fillAssetForm('${asset.ticker}', '${asset.name}', '${asset.type === 'REIT' ? 'reit' : (asset.type === 'ETF' ? 'dividends' : 'growth')}')">
+            <p style="font-size: 1.05rem; line-height: 1.6; color: var(--text-main); margin-bottom: 25px;">${score.action}</p>
+            <button class="primary-btn" style="width: 100%; padding: 18px; font-size: 1.1rem; font-weight: 700; border-radius: 12px;" onclick="window.fillAssetForm('${asset.ticker}', '${asset.name}', '${asset.type === 'REIT' ? 'reit' : (asset.type === 'ETF' ? 'dividends' : 'growth')}')">
                 Executar Decisão: Registar Ativo no Portfólio
             </button>
         </div>
@@ -455,7 +455,7 @@ async function renderMarketPulse() {
             <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
                 <span style="font-size: 0.6rem; color: var(--trading-blue); font-weight: 800; text-transform: uppercase;">${item.source} • ${date}</span>
             </div>
-            <strong style="display: block; line-height: 1.4; margin-bottom: 8px; font-family: 'Space Grotesk', sans-serif; color: var(--terminal-bg);">${item.headline}</strong>
+            <strong style="display: block; line-height: 1.4; margin-bottom: 8px; font-family: 'Space Grotesk', sans-serif; color: var(--text-main);">${item.headline}</strong>
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <a href="${item.url}" target="_blank" style="font-size: 0.72rem; color: var(--accent); text-decoration: none; font-weight: 700;">Ler Racional →</a>
                 <span style="font-size: 10px; opacity: 0.4;">Estudo IA disponível</span>
@@ -632,18 +632,18 @@ function generateAiOpportunities() {
     const categories = ['Stock', 'REIT', 'ETF', 'Crypto'];
     
     container.innerHTML = `
-        <div style="background: rgba(0,229,255,0.05); border: 2px solid var(--trading-blue); padding: 25px; margin-bottom: 40px;">
-            <h3 style="margin-top:0; border-bottom: 2px solid var(--trading-blue); display: inline-block;">📍 Destaques de Hoje</h3>
+        <div style="background: linear-gradient(135deg, rgba(13, 148, 136, 0.05), rgba(124, 58, 237, 0.05)); border: 1px solid var(--border-subtle); padding: 25px; margin-bottom: 40px; border-radius: var(--radius-lg); backdrop-filter: blur(10px);">
+            <h3 style="margin-top:0; border-bottom: 2px solid var(--trading-blue); display: inline-block; padding-bottom: 5px;">📍 Destaques de Hoje</h3>
             <div class="periodic-highlights" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top:20px;">
-                <div class="highlight-box" style="border: 2px solid var(--trading-blue); padding:15px; background:#000;">
-                    <span style="font-size: 0.7rem; color: var(--trading-blue); font-weight: 800; text-transform: uppercase;">⚡ Sugestão do Dia</span>
-                    <strong style="display: block; font-size: 1.3rem; margin: 10px 0;">${highlights.dia.ticker}</strong>
-                    <button class="primary-btn" style="width:100%; font-size: 0.8rem;" onclick="window.viewFullStudy('${highlights.dia.ticker}')">Análise Analista →</button>
+                <div class="highlight-box" style="border: 1px solid var(--border-subtle); padding:20px; background:rgba(255,255,255,0.7); border-radius: var(--radius-md);">
+                    <span style="font-size: 0.7rem; color: var(--trading-blue); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">⚡ Sugestão do Dia</span>
+                    <strong style="display: block; font-size: 1.5rem; margin: 10px 0; color: var(--text-main);">${highlights.dia.ticker}</strong>
+                    <button class="primary-btn" style="width:100%; font-size: 0.8rem; border-radius: 8px;" onclick="window.viewFullStudy('${highlights.dia.ticker}')">Análise Analista →</button>
                 </div>
-                <div class="highlight-box" style="border: 2px solid var(--trading-green); padding:15px; background:#000;">
-                    <span style="font-size: 0.7rem; color: var(--trading-green); font-weight: 800; text-transform: uppercase;">🔥 Da Semana</span>
-                    <strong style="display: block; font-size: 1.3rem; margin: 10px 0;">${highlights.semana.ticker}</strong>
-                    <button class="primary-btn" style="width:100%; font-size: 0.8rem; background: var(--trading-green); border-color: var(--trading-green);" onclick="window.viewFullStudy('${highlights.semana.ticker}')">Análise Analista →</button>
+                <div class="highlight-box" style="border: 1px solid var(--border-subtle); padding:20px; background:rgba(255,255,255,0.7); border-radius: var(--radius-md);">
+                    <span style="font-size: 0.7rem; color: var(--trading-green); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">🔥 Da Semana</span>
+                    <strong style="display: block; font-size: 1.5rem; margin: 10px 0; color: var(--text-main);">${highlights.semana.ticker}</strong>
+                    <button class="primary-btn" style="width:100%; font-size: 0.8rem; background: var(--trading-green); border-radius: 8px;" onclick="window.viewFullStudy('${highlights.semana.ticker}')">Análise Analista →</button>
                 </div>
             </div>
         </div>
@@ -690,7 +690,7 @@ function generateAiOpportunities() {
 
     // Indicar que o Scanner está ativo
     const status = document.createElement('div');
-    status.style.cssText = 'font-size: 0.65rem; text-align: center; opacity: 0.5; margin-top: 20px;';
+    status.style.cssText = 'font-size: 0.65rem; text-align: center; color: var(--text-muted); margin-top: 20px; font-weight: 600;';
     status.textContent = 'IA Scanner: Ativo (Varrimento Global em tempo real)';
     container.appendChild(status);
 }
