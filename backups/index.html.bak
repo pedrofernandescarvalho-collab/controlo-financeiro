@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Controlo Financeiro — Registos</title>
+  <meta name="description" content="Regista snapshots de saldo, despesas, ganhos extra e transferências para o teu controlo financeiro pessoal.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <nav class="top-nav">
+      <a class="nav-link active" href="index.html">Registos</a>
+      <a class="nav-link" href="dashboard.html">Dashboards</a>
+      <a class="nav-link" href="configuracao.html">Configuração</a>
+    </nav>
+
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Acompanhamento financeiro contínuo</p>
+        <h1>Registos e análise do período</h1>
+        <p class="hero-copy">
+          Regista os teus saldos reais para comparação, despesas variáveis e ganhos extra.
+          Seleciona o período de análise abaixo para filtrar os dados.
+        </p>
+        <!-- Seletor de período -->
+        <div class="period-selector" id="periodSelector" role="group" aria-label="Filtro de período">
+          <button class="period-btn active" data-period="month" id="periodMonth">📅 Mês Atual</button>
+          <button class="period-btn" data-period="quarter" id="periodQuarter">📊 Últimos 3 Meses</button>
+          <button class="period-btn" data-period="all" id="periodAll">🗂 Todo o Histórico</button>
+        </div>
+      </div>
+      <div class="hero-card accent strong-card">
+        <p>Património Líquido Global</p>
+        <strong id="globalNetWorthDisplay">A calcular...</strong>
+      </div>
+    </header>
+
+    <main class="dashboard-layout">
+      <!-- Coluna Esquerda: Inputs / Registos -->
+      <div class="dashboard-col">
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Novo Registo de Saldo</h2>
+            <p>Guarda os saldos reais de todas as contas numa data específica para análise e reconciliação.</p>
+          </div>
+
+          <div class="subsection-card">
+            <div class="panel-heading compact-heading">
+              <h3>Fotografia global de saldos</h3>
+              <p>Este registo será comparado com o anterior para detetar fugas de capital.</p>
+            </div>
+
+            <form id="snapshot-form" class="inline-form inline-form-2">
+              <label class="field-block">
+                Data do registo global
+                <input id="snapshotDate" type="date" required>
+              </label>
+              
+              <div id="snapshotAccountsInputs" style="grid-column: 1 / -1; display: grid; gap: 12px; margin-top: 10px;">
+                 <!-- JS injeta contas aqui -->
+              </div>
+
+              <button type="submit" class="primary-btn action-cell" style="grid-column: 1 / -1; margin-top: 16px;">Arquivar Registo Simultâneo das Contas</button>
+            </form>
+          </div>
+
+          <p class="goal-label">Sempre que quiseres atualizar a análise, guarda aqui os teus saldos reais.</p>
+          <p id="snapshotStatus" class="goal-label">Os registos guardados aparecem abaixo e podem ser apagados.</p>
+
+          <div id="snapshotList" class="item-list empty-state">
+            Ainda não existem registos guardados.
+          </div>
+
+          <div class="summary-grid">
+            <article class="summary-card">
+              <span>Banco na entrada anterior</span>
+              <strong id="bankStartBalance">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Banco na entrada atual</span>
+              <strong id="bankCurrentBalance">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Carteira na entrada anterior</span>
+              <strong id="cashStartBalance">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Carteira na entrada atual</span>
+              <strong id="cashCurrentBalance">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Diferença total entre entradas</span>
+              <strong id="bankDifference">0,00 EUR</strong>
+            </article>
+            <article class="summary-card accent">
+              <span>Diferença por justificar</span>
+              <strong id="bankUnexplained">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Saldo atual total</span>
+              <strong id="currentTotalBalance">0,00 EUR</strong>
+            </article>
+            <article class="summary-card accent">
+              <span>Saldo atual já líquido</span>
+              <strong id="netCurrentBalance">0,00 EUR</strong>
+            </article>
+          </div>
+
+          <div class="allocation compact-allocation">
+            <div class="allocation-row">
+              <span>Despesas entre entradas</span>
+              <strong id="bankExpenseTotal">0,00 EUR</strong>
+            </div>
+            <div class="allocation-row">
+              <span>Depósitos entre entradas</span>
+              <strong id="bankTransferTotal">0,00 EUR</strong>
+            </div>
+            <div class="allocation-row">
+              <span>Total reconciliado</span>
+              <strong id="bankReconciledTotal">0,00 EUR</strong>
+            </div>
+          </div>
+
+          <div class="subsection-card">
+            <div class="panel-heading compact-heading">
+              <h3>Histórico entre registos</h3>
+              <p>Cada intervalo mostra o que aconteceu entre dois registos consecutivos.</p>
+            </div>
+            <div id="reconciliationHistoryList" class="item-list empty-state">
+              Ainda não existem intervalos suficientes para reconciliar.
+            </div>
+          </div>
+
+          <p id="bankStatus" class="goal-label">
+            Regista o saldo inicial do mês em Configuração. Depois, cada nova análise compara o último registo com o atual.
+          </p>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Entradas Avulsas (Ganhos Extra)</h2>
+            <p>Regista dinheiro recebido que não seja o teu salário base. Aumenta imediatamente o orçamento disponível.</p>
+          </div>
+
+          <form id="income-form" class="inline-form inline-form-4">
+            <input id="incomeName" type="text" maxlength="50" placeholder="Motivo / Origem" required>
+            <input id="incomeAmount" type="number" min="0" step="0.01" placeholder="Valor recebido" required>
+            <input id="incomeDate" type="date" required>
+            <button type="submit" class="secondary-btn">Guardar ganho</button>
+          </form>
+
+          <p id="incomeStatus" class="goal-label">Ganhos registados aqui aumentam a tua margem de uso no mês.</p>
+
+          <p class="period-label" id="incomePeriodLabel">A mostrar: <strong>Mês Atual</strong></p>
+          <div id="incomesList" class="item-list empty-state">
+            Ainda não existem ganhos extra registados.
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Despesas do período</h2>
+            <p>Classifica as despesas para separar os custos fixos do gasto variável.</p>
+          </div>
+
+            <form id="expense-form" class="inline-form inline-form-4">
+              <input id="expenseName" type="text" maxlength="50" placeholder="Despesa" required>
+              <input id="expenseAmount" type="number" min="0" step="0.01" placeholder="Valor" required>
+              <select id="expenseCategory" required></select>
+              <select id="expenseKind" required>
+                <option value="variable" selected>Variável</option>
+                <option value="fixed">Mensal fixa</option>
+              </select>
+              <input id="expenseDate" type="date" required>
+              <button type="submit" class="secondary-btn">Adicionar despesa</button>
+            </form>
+
+          <div class="summary-grid">
+            <article class="summary-card">
+              <span>Despesas fixas do mês</span>
+              <strong id="fixedExpenseTotal">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Despesas variáveis registadas</span>
+              <strong id="variableExpenseTotal">0,00 EUR</strong>
+            </article>
+          </div>
+
+          <p id="expenseStatus" class="goal-label">Cada despesa variável justifica os saldos extraídos do Banco.</p>
+          <p class="period-label" id="expensePeriodLabel">A mostrar: <strong>Mês Atual</strong></p>
+
+          <div class="subsection-card">
+            <div class="panel-heading compact-heading">
+              <h3>Despesas mensais fixas</h3>
+              <p>Valores recorrentes registados na Configuração.</p>
+            </div>
+            <div id="fixedExpensesList" class="item-list empty-state">
+              Ainda não existem despesas fixas registadas.
+            </div>
+          </div>
+
+          <div class="subsection-card">
+            <div class="panel-heading compact-heading">
+              <h3>Despesas correntes e variáveis</h3>
+              <p>Lista do histórico de compras impulsivas ou não-recorrentes.</p>
+            </div>
+            <div id="expensesList" class="item-list empty-state">
+              Ainda não existem despesas variáveis registadas.
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Depósitos para outras contas</h2>
+            <p>Regista os valores que saíram do banco para Revolut, XTB ou outra conta.</p>
+          </div>
+
+          <form id="transfer-form" class="inline-form">
+            <input id="transferName" type="text" maxlength="50" placeholder="Destino / descrição" required>
+            <select id="transferAccountId" required></select>
+            <input id="transferAmount" type="number" min="0" step="0.01" placeholder="Valor" required>
+            <input id="transferDate" type="date" required>
+            <button type="submit" class="secondary-btn">Adicionar depósito</button>
+          </form>
+
+          <p class="goal-label">Usa esta lista apenas para movimentos do banco para Revolut, XTB ou outra conta.</p>
+          <p id="transferStatus" class="goal-label">Os transferidos para poupança saem do orçamento disponível.</p>
+          <p class="period-label" id="transferPeriodLabel">A mostrar: <strong>Mês Atual</strong></p>
+
+          <div id="transfersList" class="item-list empty-state">
+            Ainda não existem depósitos registados.
+          </div>
+        </section>
+      </div>
+
+      <!-- Coluna Direita: Análise -->
+      <div class="dashboard-col">
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Resumo do mês</h2>
+            <p>Calculado automaticamente para o mês atual.</p>
+          </div>
+
+          <div class="summary-grid" id="summary-cards">
+            <article class="summary-card">
+              <span>Disponível por semana</span>
+              <strong id="weeklyBudget">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Disponível por dia</span>
+              <strong id="dailyBudget">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Excedente do mês</span>
+              <strong id="leftoverAmount">0,00 EUR</strong>
+            </article>
+            <article class="summary-card accent">
+              <span>Juros anuais Revolut a 1,9%</span>
+              <strong id="revolutInterest">0,00 EUR</strong>
+            </article>
+          </div>
+
+          <div class="allocation">
+            <div class="allocation-row">
+              <span>Revolut</span>
+              <strong id="revolutAllocation">0,00 EUR</strong>
+            </div>
+            <div class="allocation-row">
+              <span>XTB</span>
+              <strong id="xtbAllocation">0,00 EUR</strong>
+            </div>
+            <p id="goalLabel" class="goal-label">Conta Revolut pronta para o teu objetivo de poupança.</p>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Análise de hoje</h2>
+            <p>Mostra quanto devias ter gasto desde o dia 1 e quanto ainda podes dividir.</p>
+          </div>
+
+          <div class="summary-grid">
+            <article class="summary-card">
+              <span>Mês identificado</span>
+              <strong id="analysisMonth">-</strong>
+            </article>
+            <article class="summary-card">
+              <span>Dia analisado</span>
+              <strong id="analysisDate">-</strong>
+            </article>
+            <article class="summary-card accent strong-card">
+              <span>Devias ter gasto até hoje</span>
+              <strong id="shouldHaveSpentToday">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Gasto real acumulado</span>
+              <strong id="currentWeek">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Despesas até hoje</span>
+              <strong id="expensesUntilToday">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Depósitos até hoje</span>
+              <strong id="transfersUntilToday">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Resultado do mês</span>
+              <strong id="expectedSpentToday">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>A reportar na próxima semana</span>
+              <strong id="expectedSpentWeek">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Excedente atual</span>
+              <strong id="idealRemaining">0,00 EUR</strong>
+            </article>
+            <article class="summary-card accent">
+              <span>Dívida atual</span>
+              <strong id="availableToSplit">0,00 EUR</strong>
+            </article>
+          </div>
+
+          <div class="allocation compact-allocation">
+            <div class="allocation-row">
+              <span>Para Revolut hoje</span>
+              <strong id="splitNowRevolut">0,00 EUR</strong>
+            </div>
+            <div class="allocation-row">
+              <span>Para XTB hoje</span>
+              <strong id="splitNowXtb">0,00 EUR</strong>
+            </div>
+          </div>
+
+          <p id="analysisHint" class="goal-label">
+            A app usa o último registo guardado para saber em que ponto do mês estás.
+          </p>
+          <p id="depositAdvice" class="goal-label">
+            A sugestão para Revolut e XTB é apenas indicativa.
+          </p>
+          <p id="analysisFormula" class="goal-label">
+            Se o gasto real estiver acima do permitido, o valor fica em falta e deve ser reportado para a semana seguinte.
+          </p>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>As tuas contas</h2>
+            <p>Adiciona saldos e mantém tudo organizado.</p>
+          </div>
+
+          <form id="account-form" class="inline-form">
+            <input id="accountName" type="text" maxlength="40" placeholder="Nome da conta" required>
+            <input id="accountType" type="text" maxlength="30" placeholder="Tipo / banco" required>
+            <input id="accountBalance" type="number" min="0" step="0.01" placeholder="Saldo atual" required>
+            <button type="submit" class="secondary-btn">Adicionar</button>
+          </form>
+
+          <p id="accountStatus" class="goal-label">Podes registar as tuas contas para as acompanhares num único sítio.</p>
+
+          <div id="accountsList" class="item-list empty-state">
+            Ainda não existem contas registadas.
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Dinheiro que me devem</h2>
+            <p>Regista valores em aberto sem os contar no orçamento até serem recebidos.</p>
+          </div>
+
+          <form id="receivable-form" class="inline-form inline-form-4">
+            <input id="receivableName" type="text" maxlength="50" placeholder="Motivo/Pessoal" required>
+            <input id="receivableAmount" type="number" min="0" step="0.01" placeholder="Valor" required>
+            <input id="receivableDate" type="date" required>
+            <select id="receivableStatus" style="display: none;">
+              <option value="pending" selected>Por receber</option>
+              <option value="received">Recebido</option>
+            </select>
+            <button type="submit" class="secondary-btn">Registar</button>
+          </form>
+
+          <div class="summary-grid">
+            <article class="summary-card">
+              <span>Total por receber</span>
+              <strong id="receivablePendingTotal">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Total já recebido</span>
+              <strong id="receivableReceivedTotal">0,00 EUR</strong>
+            </article>
+          </div>
+
+          <p id="receivableStatusText" class="goal-label">Estes valores ficam anotados, mas não entram no orçamento até serem recebidos.</p>
+
+          <div id="receivablesList" class="item-list empty-state">
+            Ainda não existem valores em aberto registados.
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <template id="item-template">
+    <article class="item-card">
+      <div>
+        <strong class="item-title"></strong>
+        <p class="item-subtitle"></p>
+      </div>
+      <div class="item-actions">
+        <span class="item-value"></span>
+        <button type="button" class="ghost-btn">Remover</button>
+      </div>
+    </article>
+  </template>
+
+  <script src="script.js"></script>
+  <script>
+    // ── Seletor de Período ───────────────────────────────────────
+    (function() {
+      const btns = document.querySelectorAll('.period-btn');
+      const labels = {
+        month: 'Mês Atual',
+        quarter: 'Últimos 3 Meses',
+        all: 'Todo o Histórico'
+      };
+
+      function applyPeriod(period) {
+        window.activePeriodFilter = period;
+        btns.forEach(b => b.classList.toggle('active', b.dataset.period === period));
+
+        // Atualizar labels de período nas listas
+        ['expense', 'income', 'transfer'].forEach(type => {
+          const lbl = document.getElementById(type + 'PeriodLabel');
+          if (lbl) lbl.querySelector('strong').textContent = labels[period];
+        });
+
+        // Re-renderizar listas filtradas
+        if (typeof render === 'function') render();
+      }
+
+      btns.forEach(btn => {
+        btn.addEventListener('click', () => applyPeriod(btn.dataset.period));
+      });
+
+      // Inicializar com mês atual
+      window.activePeriodFilter = 'month';
+    })();
+  </script>
+</body>
+</html>

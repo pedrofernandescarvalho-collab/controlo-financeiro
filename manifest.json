@@ -1,0 +1,17 @@
+{
+  "name": "Controlo Financeiro Premium",
+  "short_name": "FinanceApp",
+  "description": "Gestão financeira pessoal com terminal de investimentos e sincronização cloud.",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0d9488",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/2830/2830284.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

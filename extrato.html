@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Extrato Global — Controlo Financeiro</title>
+  <meta name="description" content="Extrato cronológico completo de todos os movimentos financeiros com saldo acumulado.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0d9488">
+  <style>
+    .extract-filters {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    .badge-income { color: var(--primary); font-weight: 700; }
+    .badge-expense { color: #ef4444; font-weight: 700; }
+    .badge-transfer { color: var(--accent); font-weight: 700; }
+    .extract-balance { text-align: right; font-weight: 700; font-size: 1.1rem; }
+    .extract-search {
+      margin-bottom: 20px;
+      width: 100%;
+      padding: 12px 16px;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      background: var(--panel-strong);
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+        <nav class="top-nav">
+        <a href="index.html" class="nav-link">Registos</a>
+        <a href="dashboard.html" class="nav-link">Dashboards</a>
+        <a href="extrato.html" class="nav-link active">Extrato</a>
+        <a href="investimentos.html" class="nav-link">Investimentos</a>
+        <a href="configuracao.html" class="nav-link">Configuração</a>
+        <button id="syncNowBtnNav" class="sync-nav-btn" title="Sincronizar com Google Drive">
+          <span class="sync-icon">🔄</span>
+          <span class="sync-text">Sincronizar</span>
+        </button>
+    </nav>
+
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Análise Cronológica Global</p>
+        <h1>Extrato de Movimentos</h1>
+        <p class="hero-copy">
+          Consulta todos os teus ganhos, despesas e transferências por ordem cronológica com o saldo acumulado total.
+        </p>
+      </div>
+      <div class="hero-card accent strong-card">
+        <p>Património Atual (Banco + Cash + Recebíveis)</p>
+        <strong id="globalNetWorthDisplay">A calcular...</strong>
+        <div id="netWorthDetail" class="mt-10" style="opacity: 0.8; font-size: 0.85rem; color: #94a3b8;">
+           <!-- Detalhes preenchidos pelo script.js -->
+        </div>
+      </div>
+    </header>
+
+    <main class="dashboard-layout">
+      <div class="dashboard-col config-panel span-all" style="padding: 30px;">
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Timeline Completa</h2>
+            <p>Filtra e pesquisa movimentos em todo o teu histórico.</p>
+          </div>
+
+          <div class="extract-filters">
+            <button class="period-btn active" data-filter="all" id="btn-filter-all">Tudo</button>
+            <button class="period-btn" data-filter="income" id="btn-filter-income">Só Entradas</button>
+            <button class="period-btn" data-filter="variable" id="btn-filter-expense">Só Saídas</button>
+            <button class="period-btn" data-filter="transfer" id="btn-filter-transfer">Só Poupanças/Transf.</button>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="analytic-table">
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Descrição</th>
+                  <th>Categoria</th>
+                  <th>Tipo</th>
+                  <th class="text-right">Valor</th>
+                  <th class="text-right">Saldo Acumulado</th>
+                </tr>
+              </thead>
+              <tbody id="extractTableBody">
+                <tr>
+                  <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted); font-style: italic;">
+                    Carregando movimentos...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  
+  <script src="script.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('service-worker.js');
+      });
+    }
+  </script>
+  <script>
+    // Inicializar filtros globais se necessário
+    document.addEventListener('DOMContentLoaded', () => {
+      const filters = document.querySelectorAll('.extract-filters .period-btn');
+      filters.forEach(btn => {
+        btn.addEventListener('click', () => {
+          filters.forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          window.activeExtractFilter = btn.dataset.filter;
+          if (typeof renderGlobalExtract === 'function') renderGlobalExtract();
+        });
+      });
+      
+      // Filtro inicial
+      window.activeExtractFilter = 'all';
+      
+      // Delay curto para carregar o state inicial
+      setTimeout(() => {
+        if (typeof renderGlobalExtract === 'function') renderGlobalExtract();
+        if (typeof renderNetWorth === 'function') renderNetWorth();
+      }, 50);
+    });
+
+    // Botão de Sincronização na Nav
+    
+  </script>
+<script src="google-drive-sync.js"></script>
+</body>
+</html>

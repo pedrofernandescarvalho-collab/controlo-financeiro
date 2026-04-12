@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuração Financeira — Controlo Financeiro</title>
+  <meta name="description" content="Configura o teu salário, metas, despesas recorrentes e gerir backups da app de controlo financeiro.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <nav class="top-nav">
+      <a class="nav-link" href="index.html">Registos</a>
+      <a class="nav-link" href="dashboard.html">Dashboards</a>
+      <a class="nav-link active" href="configuracao.html">Configuração</a>
+    </nav>
+
+    <header class="hero compact-hero">
+      <div>
+        <p class="eyebrow">Gestão e metas</p>
+        <h1>Configuração e administração</h1>
+        <p class="hero-copy">
+          Define o teu rendimento base, despesas fixas mensais recorrentes, categorias e faz a gestão dos teus backups.
+        </p>
+      </div>
+      <div class="hero-card accent strong-card">
+        <p>Património Líquido Global</p>
+        <strong id="globalNetWorthDisplay">A calcular...</strong>
+      </div>
+    </header>
+
+    <main class="grid">
+
+      <!-- ── SALDO INICIAL DO MÊS ─────────────────────────────────── -->
+      <section class="panel config-panel" style="grid-column: 1 / -1;">
+        <div class="panel-heading">
+          <h2>Saldo Inicial do Mês</h2>
+          <p>Regista apenas <strong>uma vez</strong> por mês o saldo do dia 1 de cada conta. Este é o ponto de partida de todos os cálculos de orçamento, autonomia financeira e reconciliação bancária.</p>
+        </div>
+
+        <div class="summary-grid" style="margin-bottom: 20px;">
+          <article class="summary-card accent strong-card">
+            <span>Ponto de partida</span>
+            <strong id="startOfMonthBalanceDisplay">0,00 EUR</strong>
+          </article>
+          <article class="summary-card">
+            <span>Última análise guardada</span>
+            <strong id="latestSnapshotDisplay">Sem registo</strong>
+          </article>
+        </div>
+
+        <!-- Banner auto-preenchimento do mês anterior -->
+        <div id="autofillBanner" style="display:none; margin-bottom: 16px; padding: 14px 18px; background: rgba(13,148,136,0.05); border: 1px solid rgba(13,148,136,0.25); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
+          <div>
+            <strong style="font-size: 0.9rem; color: var(--primary);">✦ Início de Mês Detetado</strong>
+            <p style="margin: 4px 0 0; font-size: 0.82rem; color: var(--text-muted);" id="autofillDesc">Detetei o saldo final do mês anterior. Queres usá-lo como ponto de partida?</p>
+          </div>
+          <button type="button" id="autofillBtn" class="secondary-btn" style="width: auto; white-space: nowrap; min-width: 160px;">
+            Auto-Preencher
+          </button>
+        </div>
+
+        <form id="start-form" class="inline-form inline-form-3">
+          <label class="field-block">
+            Conta analisada
+            <select id="startAccountId" required></select>
+          </label>
+          <label class="field-block">
+            Data inicial
+            <input id="startDate" type="date" required>
+          </label>
+          <label class="field-block">
+            Saldo no banco no dia 1
+            <input id="startBankBalance" type="number" min="0" step="0.01" placeholder="Ex: 1200" required>
+          </label>
+          <label class="field-block">
+            Dinheiro em carteira no dia 1
+            <input id="startCashBalance" type="number" min="0" step="0.01" placeholder="Ex: 80" required>
+          </label>
+          <button type="submit" class="secondary-btn">Guardar saldo inicial</button>
+        </form>
+
+        <p id="bankStatus" class="goal-label">O ponto de partida do mês fica guardado aqui. Regista o dia 1 de cada conta para o sistema funcionar com precisão.</p>
+      </section>
+
+      <!-- ── DESPESAS RECORRENTES FIXAS ────────────────────────────── -->
+      <section class="panel config-panel" style="grid-column: 1 / -1;">
+        <div class="panel-heading">
+          <h2>Despesas Recorrentes Fixas</h2>
+          <p>Define as obrigações mensais fixas (rendas, prestações, subscrições). O algoritmo desconta-as automaticamente no cálculo do orçamento disponível todos os meses.</p>
+        </div>
+
+        <form id="recurring-form" class="inline-form" style="grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));">
+          <label class="field-block">
+            Descrição
+            <input id="recurringName" type="text" maxlength="40" placeholder="Ex: Prestação Casa" required>
+          </label>
+          <label class="field-block">
+            Valor
+            <input id="recurringAmount" type="number" min="0" step="0.01" placeholder="Valor" required>
+          </label>
+          <label class="field-block">
+            Dia (1-31)
+            <input id="recurringDay" type="number" min="1" max="31" placeholder="Dia" required>
+          </label>
+          <label class="field-block">
+            Frequência
+            <select id="recurringFrequency">
+              <option value="monthly" selected>Mensal</option>
+              <option value="semi-annual">Semestral</option>
+              <option value="annual">Anual</option>
+            </select>
+          </label>
+          <label class="field-block" id="startMonthContainer">
+            Mês de pagamento
+            <select id="recurringStartMonth">
+              <option value="1">Janeiro</option>
+              <option value="2">Fevereiro</option>
+              <option value="3">Março</option>
+              <option value="4">Abril</option>
+              <option value="5">Maio</option>
+              <option value="6">Junho</option>
+              <option value="7">Julho</option>
+              <option value="8">Agosto</option>
+              <option value="9">Setembro</option>
+              <option value="10">Outubro</option>
+              <option value="11">Novembro</option>
+              <option value="12">Dezembro</option>
+            </select>
+          </label>
+          <button type="submit" class="secondary-btn" style="align-self: flex-end; height: 44px;">Adicionar</button>
+        </form>
+
+        <p id="recurringStatus" class="goal-label">Estas despesas são descontadas automaticamente ao planear o teu orçamento mensal.</p>
+        <div id="recurringList" class="item-list empty-state">
+          Não há despesas fixas globais configuradas.
+        </div>
+      </section>
+
+      <script>
+        // Lógica para mostrar/esconder o mês de início conforme a frequência
+        (function() {
+          const freqSelect = document.getElementById('recurringFrequency');
+          const monthContainer = document.getElementById('startMonthContainer');
+          
+          if (freqSelect && monthContainer) {
+            const updateVisibility = () => {
+              monthContainer.style.display = freqSelect.value === 'monthly' ? 'none' : 'block';
+            };
+            freqSelect.addEventListener('change', updateVisibility);
+            updateVisibility(); // Estado inicial
+          }
+        })();
+      </script>
+
+      <!-- ── RENDIMENTO FIXO E METAS ───────────────────────────────── -->
+      <section class="panel config-panel">
+        <div class="panel-heading">
+          <h2>Rendimento Fixo e Metas</h2>
+          <p>Configura o teu rendimento base e as regras do teu excedente corrente.</p>
+        </div>
+
+        <form id="settings-form" class="stack">
+
+          <label>
+            Salário líquido mensal
+            <input id="salary" name="salary" type="number" min="0" step="0.01" placeholder="Ex: 1250">
+          </label>
+
+          <label>
+            Percentagem do excedente para Revolut
+            <input id="revolutShare" name="revolutShare" type="number" min="0" max="100" step="0.1" placeholder="Ex: 60">
+          </label>
+
+          <label>
+            Percentagem do excedente para XTB
+            <input id="xtbShare" name="xtbShare" type="number" min="0" max="100" step="0.1" placeholder="Ex: 40">
+          </label>
+
+          <label>
+            Objetivo da conta Revolut
+            <input id="revolutGoal" name="revolutGoal" type="text" maxlength="80" placeholder="Ex: Fundo de emergência / viagem">
+          </label>
+
+          <button type="submit" class="primary-btn">Guardar configuração</button>
+        </form>
+
+        <p id="settingsStatus" class="goal-label">A base do mês usa sempre o saldo do dia 1.</p>
+      </section>
+
+      <!-- ── GESTÃO DE DADOS ────────────────────────────────────────── -->
+      <section class="panel config-panel">
+        <div class="panel-heading">
+          <h2>Gestão de Dados e Backups</h2>
+          <p>Exporta os teus dados para um ficheiro JSON ou restaura um backup anterior para evitar perdas no browser.</p>
+        </div>
+
+        <div class="summary-grid">
+           <button id="exportBackupBtn" class="primary-btn">⬇ Exportar Backup JSON</button>
+           <div style="display: flex; flex-direction: column; gap: 8px;">
+               <input id="importFile" type="file" accept=".json" style="display: none;">
+               <button id="importBackupBtn" class="secondary-btn">⬆ Restaurar de Ficheiro</button>
+           </div>
+        </div>
+        <p id="backupStatus" class="goal-label">Recomendado: Fazer exportação semanal para o teu computador ou OneDrive.</p>
+      </section>
+
+      <!-- ── CATEGORIAS ─────────────────────────────────────────────── -->
+      <section class="panel config-panel">
+        <div class="panel-heading">
+          <h2>Categorias de despesa</h2>
+          <p>Adiciona e gere as categorias usadas nas despesas.</p>
+        </div>
+
+        <form id="category-form" class="inline-form inline-form-3">
+          <input id="categoryName" type="text" maxlength="40" placeholder="Nova categoria" required>
+          <button type="submit" class="secondary-btn">Adicionar categoria</button>
+        </form>
+
+        <p id="categoryStatus" class="goal-label">As categorias criadas aparecem depois no formulário das despesas.</p>
+        <div id="categoryList" class="item-list empty-state">
+          Ainda não existem categorias registadas.
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <template id="item-template">
+    <article class="item-card">
+      <div>
+        <strong class="item-title"></strong>
+        <p class="item-subtitle"></p>
+      </div>
+      <div class="item-actions">
+        <span class="item-value"></span>
+        <button type="button" class="ghost-btn">Remover</button>
+      </div>
+    </article>
+  </template>
+
+  <script src="script.js"></script>
+</body>
+</html>
