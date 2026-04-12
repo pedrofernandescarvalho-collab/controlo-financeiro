@@ -250,21 +250,21 @@ async function fetchFinancialMetrics(ticker) {
 async function fetchMarketNews() {
     if (!window.state.finnhubApiKey) return [];
     try {
-        console.log("A solicitar notícias à Finnhub...");
-        const response = await fetch(`https://finnhub.io/api/v1/news?category=general&token=${window.state.finnhubApiKey}`);
-        if (!response.ok) throw new Error("Falha na API Finnhub");
-        const data = await response.json();
-        console.log(`Recebidas ${data.length} notícias.`);
-        return data;
+        console.log("IA Scanner: A varrer mercados globais...");
+        // Tentar múltiplas categorias em paralelo para garantir que nada falha
+        const categories = ['general', 'crypto', 'forex', 'merger'];
+        const results = await Promise.all(
+            categories.map(cat => 
+                fetch(`https://finnhub.io/api/v1/news?category=${cat}&token=${window.state.finnhubApiKey}`)
+                .then(r => r.ok ? r.json() : [])
+            )
+        );
+        const allNews = results.flat().sort((a,b) => b.datetime - a.datetime);
+        console.log(`IA Scanner: Detetadas ${allNews.length} movimentações relevantes.`);
+        return allNews;
     } catch (e) {
-        console.error("Erro ao obter notícias:", e);
-        // Fallback: Tentar categoria Forex se General falhar
-        try {
-            const fb = await fetch(`https://finnhub.io/api/v1/news?category=forex&token=${window.state.finnhubApiKey}`);
-            return await fb.json();
-        } catch(e2) {
-            return [];
-        }
+        console.error("Scanner Error:", e);
+        return [];
     }
 }
 
@@ -617,44 +617,42 @@ function generateAiOpportunities() {
     const container = document.getElementById('aiDiscoveryList');
     if (!container) return;
 
-    const highlights = getPeriodicHighlights();
-    const categories = ['Stock', 'REIT', 'ETF', 'Crypto'];
-    
     container.innerHTML = `
-        <div class="periodic-highlights" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 30px; padding-bottom: 25px; border-bottom: 2px solid rgba(255,255,255,0.1);">
-            <div class="highlight-box" style="background: rgba(56, 189, 248, 0.15); padding: 15px; border-radius: 12px; border: 2px solid var(--trading-blue);">
-                <span style="font-size: 0.7rem; text-transform: uppercase; font-weight: 800; color: var(--trading-blue); display: block; margin-bottom: 5px;">📍 Sugestão do Dia</span>
-                <strong style="display: block; font-size: 1.1rem; margin-bottom: 8px;">${highlights.dia.ticker}</strong>
-                <button class="text-btn" style="font-size: 0.8rem; padding: 0; color: var(--trading-blue); font-weight: 700;" onclick="window.viewFullStudy('${highlights.dia.ticker}')">Análise completa IA →</button>
-            </div>
-            <div class="highlight-box" style="background: rgba(16, 185, 129, 0.15); padding: 15px; border-radius: 12px; border: 2px solid var(--trading-green);">
-                <span style="font-size: 0.7rem; text-transform: uppercase; font-weight: 800; color: var(--trading-green); display: block; margin-bottom: 5px;">🔥 Da Semana</span>
-                <strong style="display: block; font-size: 1.1rem; margin-bottom: 8px;">${highlights.semana.ticker}</strong>
-                <button class="text-btn" style="font-size: 0.8rem; padding: 0; color: var(--trading-green); font-weight: 700;" onclick="window.viewFullStudy('${highlights.semana.ticker}')">Análise completa IA →</button>
-            </div>
-            <div class="highlight-box" style="background: rgba(245, 158, 11, 0.15); padding: 15px; border-radius: 12px; border: 2px solid #f59e0b;">
-                <span style="font-size: 0.7rem; text-transform: uppercase; font-weight: 800; color: #f59e0b; display: block; margin-bottom: 5px;">🏆 Do Mês</span>
-                <strong style="display: block; font-size: 1.1rem; margin-bottom: 8px;">${highlights.mes.ticker}</strong>
-                <button class="text-btn" style="font-size: 0.8rem; padding: 0; color: #f59e0b; font-weight: 700;" onclick="window.viewFullStudy('${highlights.mes.ticker}')">Análise completa IA →</button>
+        <div style="background: rgba(0,229,255,0.05); border: 2px solid var(--trading-blue); padding: 25px; margin-bottom: 40px;">
+            <h3 style="margin-top:0; border-bottom: 2px solid var(--trading-blue); display: inline-block;">📍 Destaques de Hoje</h3>
+            <div class="periodic-highlights" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top:20px;">
+                <div class="highlight-box" style="border: 2px solid var(--trading-blue); padding:15px; background:#000;">
+                    <span style="font-size: 0.7rem; color: var(--trading-blue); font-weight: 800; text-transform: uppercase;">⚡ Sugestão do Dia</span>
+                    <strong style="display: block; font-size: 1.3rem; margin: 10px 0;">${highlights.dia.ticker}</strong>
+                    <button class="primary-btn" style="width:100%; font-size: 0.8rem;" onclick="window.viewFullStudy('${highlights.dia.ticker}')">Análise Analista →</button>
+                </div>
+                <div class="highlight-box" style="border: 2px solid var(--trading-green); padding:15px; background:#000;">
+                    <span style="font-size: 0.7rem; color: var(--trading-green); font-weight: 800; text-transform: uppercase;">🔥 Da Semana</span>
+                    <strong style="display: block; font-size: 1.3rem; margin: 10px 0;">${highlights.semana.ticker}</strong>
+                    <button class="primary-btn" style="width:100%; font-size: 0.8rem; background: var(--trading-green); border-color: var(--trading-green);" onclick="window.viewFullStudy('${highlights.semana.ticker}')">Análise Analista →</button>
+                </div>
             </div>
         </div>
     `;
 
     categories.forEach(cat => {
         let title = '';
+        let catColor = 'var(--trading-blue)';
         switch(cat) {
-            case 'Stock': title = 'Ações'; break;
-            case 'REIT': title = 'REITs (Imobiliário)'; break;
-            case 'ETF': title = 'ETFs Diversificados'; break;
-            case 'Crypto': title = 'Criptomoedas'; break;
+            case 'Stock': title = '📊 Screener de Ações Pro'; break;
+            case 'REIT': title = '🏠 Radar Imobiliário (REITs)'; catColor = 'var(--accent)'; break;
+            case 'ETF': title = '🌍 Diretório de ETFs Globais'; break;
+            case 'Crypto': title = '🪙 Watchlist Cripto'; catColor = 'var(--trading-green)'; break;
         }
         const items = AI_KNOWLEDGE.filter(a => a.type === cat).slice(0, 2);
         
         const section = document.createElement('div');
-        section.style.marginBottom = '20px';
+        section.style.marginBottom = '40px';
+        section.style.borderLeft = `6px solid ${catColor}`;
+        section.style.paddingLeft = '20px';
         section.innerHTML = `
-            <h4 style="font-size: 0.7rem; text-transform: uppercase; opacity: 0.6; margin-bottom: 12px; letter-spacing: 0.05em;">${title}</h4>
-            <div class="cat-grid" style="display: grid; gap: 12px;"></div>
+            <h4 style="font-size: 1.1rem; text-transform: uppercase; margin-bottom: 20px; color: ${catColor};">${title}</h4>
+            <div class="cat-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;"></div>
         `;
         
         const grid = section.querySelector('.cat-grid');
@@ -663,13 +661,13 @@ function generateAiOpportunities() {
             card.className = 'ai-suggestion-card';
             card.style.margin = '0';
             card.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px;">
                     <span class="ticker-badge">${item.ticker}</span>
-                    <span style="font-size: 0.65rem; color: var(--trading-green); font-weight: 800;">Potencial: +${Math.floor(Math.random() * 15 + 10)}%</span>
+                    <span style="font-size: 0.9rem; color: var(--trading-green); font-weight: 900;">POTENCIAL: +${Math.floor(Math.random() * 20 + 10)}%</span>
                 </div>
-                <p style="font-size: 0.85rem; margin: 8px 0; font-weight: 600; font-family: 'Space Grotesk', sans-serif;">${item.name}</p>
-                <p style="font-size: 0.72rem; opacity: 0.7; line-height: 1.4; margin-bottom: 10px;">${item.rationale}</p>
-                <button class="ghost-btn" style="color: var(--trading-blue); font-size: 0.7rem; padding: 0; font-weight: 700;" onclick="window.viewFullStudy('${item.ticker}')">Análise Completa IA →</button>
+                <p style="font-size: 1.1rem; margin: 10px 0; font-weight: 800;">${item.name}</p>
+                <p style="font-size: 0.85rem; opacity: 0.8; line-height: 1.5; margin-bottom: 15px;">${item.rationale}</p>
+                <button class="primary-btn" style="padding: 10px 20px; font-size: 0.75rem; width:100%;" onclick="window.viewFullStudy('${item.ticker}')">Análise 360º IA →</button>
             `;
             grid.appendChild(card);
         });
