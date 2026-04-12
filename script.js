@@ -1,4 +1,4 @@
-const STORAGE_KEY = "finance-control-app";
+﻿const STORAGE_KEY = "finance-control-app";
 
 function parseFormattedNumber(val) {
   if (typeof val !== 'string') return Number(val) || 0;
@@ -106,10 +106,10 @@ function migrateState(parsed) {
 
   if (parsed.analysisMonth) parsed.analysisMonth = normalizeMonthKey(parsed.analysisMonth);
 
-  // 2. MIGRAÇÁO DE CASH PARA CONTA (Sugestão do Utilizador)
+  // 2. MIGRAÃ‡ÃO DE CASH PARA CONTA (SugestÃ£o do Utilizador)
   if (!parsed.accounts) parsed.accounts = [];
   
-  // Encontrar os últimos balances registados na base de dados para não começar a ZERO
+  // Encontrar os Ãºltimos balances registados na base de dados para nÃ£o comeÃ§ar a ZERO
   const lastStateFromSnaps = {};
   let lastKnownCashTotal = 0;
   
@@ -121,7 +121,7 @@ function migrateState(parsed) {
       });
       
       sortedSnaps.forEach(s => {
-          // Normalização da identidade para evitar duplicação (Legado vs Moderno)
+          // NormalizaÃ§Ã£o da identidade para evitar duplicaÃ§Ã£o (Legado vs Moderno)
           const modernAccount = parsed.accounts.find(acc => acc.id === s.accountId || acc.name === s.accountName);
           const key = modernAccount ? modernAccount.id : (s.accountId || s.accountName || "legacy");
           
@@ -143,14 +143,14 @@ function migrateState(parsed) {
       cashAccount.balance = lastKnownCashTotal;
   }
 
-  // Inicializar saldos de contas bancárias se estiverem a zero mas existir histórico
+  // Inicializar saldos de contas bancÃ¡rias se estiverem a zero mas existir histÃ³rico
   parsed.accounts.forEach(acc => {
       if ((acc.balance === 0 || !acc.balance) && lastStateFromSnaps[acc.id]) {
           acc.balance = lastStateFromSnaps[acc.id];
       }
   });
 
-  // 3. Converter histórico de cashBalance para a conta Dinheiro
+  // 3. Converter histÃ³rico de cashBalance para a conta Dinheiro
   if (cashAccount && Array.isArray(parsed.snapshots)) {
       const newSnapshots = [];
       parsed.snapshots.forEach(s => {
@@ -185,7 +185,7 @@ function migrateState(parsed) {
       });
   }
   
-  // Deduplicação leve de despesas (mesmo dia/nome/valor/categoria)
+  // DeduplicaÃ§Ã£o leve de despesas (mesmo dia/nome/valor/categoria)
   if (Array.isArray(parsed.expenses)) {
       const seen = new Set();
       parsed.expenses = parsed.expenses.filter(e => {
@@ -244,7 +244,7 @@ function isActiveMonthCurrent() {
 }
 
 function getActiveMonthKey() {
-  // Suporte ao navegador de mês do dashboard (window.dashboardMonthKey)
+  // Suporte ao navegador de mÃªs do dashboard (window.dashboardMonthKey)
   if (typeof window !== 'undefined' && window.dashboardMonthKey) {
     return window.dashboardMonthKey;
   }
@@ -283,7 +283,7 @@ function formatCurrency(value) {
 function sumExpensesUntil(day) {
   const monthKey = getMonthKey();
   
-  // Total bruto de despesas variáveis até ao dia
+  // Total bruto de despesas variÃ¡veis atÃ© ao dia
   const total = state.expenses
     .filter((expense) =>
       getItemMonthKey(expense) === monthKey &&
@@ -292,7 +292,7 @@ function sumExpensesUntil(day) {
     )
     .reduce((total, expense) => total + getNetExpenseAmount(expense), 0);
 
-  // Somar todos os recebíveis vinculados a despesas deste mês até ao dia (splits)
+  // Somar todos os recebÃ­veis vinculados a despesas deste mÃªs atÃ© ao dia (splits)
   const splits = state.receivables
     .filter(r => 
       r.linkedExpenseId && 
@@ -335,14 +335,14 @@ function getMonthlyProvisionForFixedExpenses() {
 }
 
 /**
- * Calcula o status das obrigações do mês atual.
- * Compara a provisão teórica com os pagamentos fixos reais já registados.
+ * Calcula o status das obrigaÃ§Ãµes do mÃªs atual.
+ * Compara a provisÃ£o teÃ³rica com os pagamentos fixos reais jÃ¡ registados.
  */
 function calculateObligationsStatus() {
     const monthKey = getMonthKey();
     const totalProvision = getMonthlyProvisionForFixedExpenses();
     
-    // Somar o que já foi registado como despesa fixa NESTE mês
+    // Somar o que jÃ¡ foi registado como despesa fixa NESTE mÃªs
     const paidAmount = state.expenses
         .filter(e => getItemMonthKey(e) === monthKey && e.kind === 'fixed')
         .reduce((sum, e) => sum + Number(e.amount || 0), 0);
@@ -361,12 +361,12 @@ function calculateObligationsStatus() {
 function sumVariableExpenses() {
   const monthKey = getMonthKey();
   
-  // Soma total das despesas variáveis do mês
+  // Soma total das despesas variÃ¡veis do mÃªs
   const totalVariable = state.expenses
     .filter(e => e.kind !== "fixed" && getItemMonthKey(e) === monthKey)
     .reduce((total, expense) => total + getNetExpenseAmount(expense), 0);
 
-  // Somar todos os recebíveis vinculados a despesas deste mês
+  // Somar todos os recebÃ­veis vinculados a despesas deste mÃªs
   const totalSplits = state.receivables
     .filter(r => r.linkedExpenseId && getItemMonthKey(r) === monthKey)
     .reduce((total, split) => total + Number(split.amount || 0), 0);
@@ -385,7 +385,7 @@ function sumIncomes(excludeReimbursements = false) {
     .filter((income) => {
       if (getItemMonthKey(income) !== getMonthKey()) return false;
       if (excludeReimbursements && income.linkedReceivableId) {
-        // Verificar se este ganho é um reembolso de despesa partilhada
+        // Verificar se este ganho Ã© um reembolso de despesa partilhada
         const rec = state.receivables.find(r => r.id === income.linkedReceivableId);
         if (rec && rec.linkedExpenseId) return false;
       }
@@ -400,16 +400,16 @@ function calculateBudget() {
 
   const salary = Number(state.salary) || startBalance;
   
-  // Provisionamento: peso médio mensal de todas as despesas (mensal + semestral/6 + anual/12)
+  // Provisionamento: peso mÃ©dio mensal de todas as despesas (mensal + semestral/6 + anual/12)
   const monthlyProvision = getMonthlyProvisionForFixedExpenses();
   
-  // Despesas reais do mês (para análise de leftover corrente)
+  // Despesas reais do mÃªs (para anÃ¡lise de leftover corrente)
   const fixedExpensesReal = sumFixedMonthlyExpenses();
   const variableExpenses = sumVariableExpenses();
   const transferExpenses = sumTransfers();
-  const extraIncomes = sumIncomes(true); // Excluir reembolsos para o orçamento
+  const extraIncomes = sumIncomes(true); // Excluir reembolsos para o orÃ§amento
   
-  // Orçamento base usa o provisionamento para que o disponível diário não varie conforme o mês
+  // OrÃ§amento base usa o provisionamento para que o disponÃ­vel diÃ¡rio nÃ£o varie conforme o mÃªs
   const disposableMonthlyBudget = Math.max(salary + extraIncomes - monthlyProvision, 0);
   const { daysInCycle } = getCycleWindow();
   const weeksInCycle = Math.max(Math.ceil(daysInCycle / 7), 1);
@@ -418,8 +418,8 @@ function calculateBudget() {
   const shareTotal = (Number(state.revolutShare) || 0) + (Number(state.xtbShare) || 0);
   const normalizedRevolutShare = shareTotal > 0 ? (Number(state.revolutShare) || 0) / shareTotal : 0.5;
   
-  // Leftover é o que SOBRA no mês real face ao que foi orçamentado e gasto REAL
-  // Agora utiliza getRealSpentEfficiency() para detetar despesas não registadas automaticamente.
+  // Leftover Ã© o que SOBRA no mÃªs real face ao que foi orÃ§amentado e gasto REAL
+  // Agora utiliza getRealSpentEfficiency() para detetar despesas nÃ£o registadas automaticamente.
   const realFlexSpent = getRealSpentEfficiency();
   const leftover = Math.max(salary + extraIncomes - monthlyProvision - realFlexSpent, 0);
   
@@ -428,8 +428,8 @@ function calculateBudget() {
   const revolutInterest = revolutAllocation * REVOLUT_INTEREST_RATE;
 
   return {
-    fixedExpenses: monthlyProvision, // peso orçamental
-    fixedExpensesReal,               // pagamento real do mês
+    fixedExpenses: monthlyProvision, // peso orÃ§amental
+    fixedExpensesReal,               // pagamento real do mÃªs
     variableExpenses,
     transferExpenses,
     disposableMonthlyBudget,
@@ -483,11 +483,11 @@ function getSnapshotsForMonth() {
   const globalSnapshotDays = {};
   
   allChronological.forEach(s => {
-      // Normalização da identidade para evitar duplicação (Legado vs Moderno)
+      // NormalizaÃ§Ã£o da identidade para evitar duplicaÃ§Ã£o (Legado vs Moderno)
       const modernAccount = state.accounts.find(acc => acc.id === s.accountId || acc.name === s.accountName);
       
-      // NOVA REGRA: Se não tem ID, e o nome é genérico ("Global", "Legado", etc.), 
-      // e já temos contas modernas, ignoramos (é um snapshot consolidado redundante).
+      // NOVA REGRA: Se nÃ£o tem ID, e o nome Ã© genÃ©rico ("Global", "Legado", etc.), 
+      // e jÃ¡ temos contas modernas, ignoramos (Ã© um snapshot consolidado redundante).
       const isGeneric = !s.accountName || s.accountName === "Global" || s.accountName === "Legado" || s.accountName === "Outros";
       if (!s.accountId && state.accounts.length > 0 && isGeneric && !modernAccount) return;
 
@@ -496,7 +496,7 @@ function getSnapshotsForMonth() {
       // Atualizar o saldo conhecido desta conta
       accountBalances[identityKey] = { bank: Number(s.bankBalance)||0, cash: Number(s.cashBalance)||0 };
       
-      // Se este snapshot pertence ao mês que estamos a analisar, somamos TODOS os saldos conhecidos ATÉ ESTE MOMENTO
+      // Se este snapshot pertence ao mÃªs que estamos a analisar, somamos TODOS os saldos conhecidos ATÃ‰ ESTE MOMENTO
       if (s.monthKey === getMonthKey()) {
           let tb = 0; let tc = 0;
           for (let i in accountBalances) {
@@ -569,7 +569,7 @@ function getDayFromDateInput(value) {
   return parsed ? normalizeDay(parsed.day) : null;
 }
 
-// Removido sumExpensesUntil duplicado para evitar inconsistências
+// Removido sumExpensesUntil duplicado para evitar inconsistÃªncias
 
 function sumFixedExpensesUntil(day) {
   const { month } = getActiveMonthParts();
@@ -660,18 +660,18 @@ function getStartingSnapshot() {
   const monthSnaps = getMonthSnapshotsRaw();
   if (!monthSnaps.length) return null;
   
-  // O primeiro snapshot por dia é o "ponto de partida"
+  // O primeiro snapshot por dia Ã© o "ponto de partida"
   // Como o getMonthSnapshotsRaw devolve dados RAW (por conta), 
-  // precisamos de consolidar o dia mínimo para obter o saldo total de início
-  const firstDay = monthSnaps[0].day; // já ordenado por sortSnapshots
+  // precisamos de consolidar o dia mÃ­nimo para obter o saldo total de inÃ­cio
+  const firstDay = monthSnaps[0].day; // jÃ¡ ordenado por sortSnapshots
   const firstDaySnaps = monthSnaps.filter(s => s.day === firstDay);
   
   if (firstDaySnaps.length === 1) {
-    // Apenas uma conta — retornar diretamente
+    // Apenas uma conta â€” retornar diretamente
     return firstDaySnaps[0];
   }
   
-  // Múltiplas contas no dia 1 — consolidar numa entrada virtual
+  // MÃºltiplas contas no dia 1 â€” consolidar numa entrada virtual
   const totalBank = firstDaySnaps.reduce((sum, s) => sum + (Number(s.bankBalance) || 0), 0);
   const totalCash = firstDaySnaps.reduce((sum, s) => sum + (Number(s.cashBalance) || 0), 0);
   return {
@@ -825,7 +825,7 @@ function getCalendarSlices() {
     start = sundayDay + 1;
   });
   
-  // A última fatia vai do dia seguinte ao último domingo até ao fim do mês (se ainda houver dias)
+  // A Ãºltima fatia vai do dia seguinte ao Ãºltimo domingo atÃ© ao fim do mÃªs (se ainda houver dias)
   if (start <= lastDay) {
     slices.push({ start, end: lastDay });
   }
@@ -876,7 +876,7 @@ function getSundayHistory() {
     if (slice.end <= currentDay) {
        milestones.push({
          day: slice.end,
-         label: idx === 3 ? `Fecho do Mês (${slice.end})` : `Domingo ${slice.end}`,
+         label: idx === 3 ? `Fecho do MÃªs (${slice.end})` : `Domingo ${slice.end}`,
          analysis: getCycleAnalysis(slice.end)
        });
     }
@@ -892,7 +892,7 @@ function renderSundayHistory() {
 
   const history = getSundayHistory();
   if (history.length === 0) {
-    container.innerHTML = `<p class="goal-label">Ainda não passaste pelo primeiro domingo do ciclo.</p>`;
+    container.innerHTML = `<p class="goal-label">Ainda nÃ£o passaste pelo primeiro domingo do ciclo.</p>`;
     return;
   }
 
@@ -911,7 +911,7 @@ function renderSundayHistory() {
     valueEl.textContent = isPositive ? `+ ${formatCurrency(analysis.idealRemaining)}` : `- ${formatCurrency(analysis.availableToSplit)}`;
     valueEl.style.color = isPositive ? "var(--success)" : "var(--error)";
     
-    node.querySelector(".ghost-btn").remove(); // Não apagamos histórico individual aqui
+    node.querySelector(".ghost-btn").remove(); // NÃ£o apagamos histÃ³rico individual aqui
     container.appendChild(node);
   });
 }
@@ -1030,7 +1030,7 @@ function renderSnapshotFormInputs() {
 
   // Bank fields
   state.accounts.forEach(acc => {
-    // Procurar o ÚLTIMO snapshot registado PARA ESTA CONTA ESPECÍFICA no histórico
+    // Procurar o ÃšLTIMO snapshot registado PARA ESTA CONTA ESPECÃFICA no histÃ³rico
     const accSnapshots = allChronological.filter(s => s.accountId === acc.id);
     const lastAccSnap = accSnapshots.length > 0 ? accSnapshots[accSnapshots.length - 1] : null;
     const displayBalance = lastAccSnap ? lastAccSnap.bankBalance : acc.balance;
@@ -1039,7 +1039,7 @@ function renderSnapshotFormInputs() {
       <div style="background: rgba(0,0,0,0.02); padding: 10px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.05); color: var(--text-dark);">
          <strong style="display:block; margin-bottom:8px; font-size:14px; text-transform:uppercase; letter-spacing:0.5px;">${acc.name} (${acc.type})</strong>
          <div class="field-block">
-           <label style="font-size:12px; margin:0;">Saldo Bancário Livre</label>
+           <label style="font-size:12px; margin:0;">Saldo BancÃ¡rio Livre</label>
            <input type="number" step="0.01" class="dyn-bank-input" data-acc-id="${acc.id}" value="${Number(displayBalance)||0}" required>
          </div>
       </div>
@@ -1159,7 +1159,7 @@ function renderAnalysis() {
   document.querySelector("#availableToSplit").textContent = formatCurrency(analysis.availableToSplit);
   document.querySelector("#splitNowRevolut").textContent = formatCurrency(analysis.splitNowRevolut);
   document.querySelector("#splitNowXtb").textContent = formatCurrency(analysis.splitNowXtb);
-  // ENCONTRAR O ÚLTIMO DOMINGO PARA REFERÊNCIA DE DEPÓSITOS
+  // ENCONTRAR O ÃšLTIMO DOMINGO PARA REFERÃŠNCIA DE DEPÃ“SITOS
   const today = getToday();
   const currentMonthDay = isActiveMonthCurrent() ? today.getDate() : 31;
   let lastSundayDay = 0;
@@ -1172,22 +1172,22 @@ function renderAnalysis() {
 
   const sundayAnalysis = lastSundayDay > 0 ? getCycleAnalysis(lastSundayDay) : analysis;
   const sundayText = lastSundayDay > 0 
-    ? `Baseado no último domingo (dia ${lastSundayDay}), tinhas um excedente de ${formatCurrency(sundayAnalysis.idealRemaining)}.`
-    : "Ainda não houve um domingo de fecho neste ciclo.";
+    ? `Baseado no Ãºltimo domingo (dia ${lastSundayDay}), tinhas um excedente de ${formatCurrency(sundayAnalysis.idealRemaining)}.`
+    : "Ainda nÃ£o houve um domingo de fecho neste ciclo.";
 
   document.querySelector("#analysisHint").innerHTML =
-    `Ciclo atual: ${formatDate(analysis.cycleStart)} até ${formatDate(analysis.cycleEnd)}. <br>` +
+    `Ciclo atual: ${formatDate(analysis.cycleStart)} atÃ© ${formatDate(analysis.cycleEnd)}. <br>` +
     `Gasto permitido hoje (dia ${analysis.latestDay}): ${formatCurrency(analysis.expectedSpentToday)}. ${balanceReferenceText}`;
   
   document.querySelector("#depositAdvice").innerHTML =
-    `<strong>Sugestão estratégica:</strong> ${sundayText} <br>` +
+    `<strong>SugestÃ£o estratÃ©gica:</strong> ${sundayText} <br>` +
     `Podes dividir ${formatCurrency(sundayAnalysis.idealRemaining)}: ` +
     `${formatCurrency(sundayAnalysis.splitNowRevolut)} para Revolut e ` +
     `${formatCurrency(sundayAnalysis.splitNowXtb)} para XTB.`;
   document.querySelector("#analysisFormula").textContent =
     analysis.availableToSplit > 0
-      ? `Estás acima do permitido em ${formatCurrency(analysis.availableToSplit)}. Este valor fica a reportar para a proxima semana.`
-      : `Estás abaixo do permitido e tens ${formatCurrency(analysis.idealRemaining)} de excedente acumulado.`;
+      ? `EstÃ¡s acima do permitido em ${formatCurrency(analysis.availableToSplit)}. Este valor fica a reportar para a proxima semana.`
+      : `EstÃ¡s abaixo do permitido e tens ${formatCurrency(analysis.idealRemaining)} de excedente acumulado.`;
 
   if (!analysis.hasProgressSnapshot) {
     document.querySelector("#analysisFormula").textContent +=
@@ -1268,7 +1268,7 @@ function getReconciliationHistory() {
     const totalDifference = previousTotal - currentTotal;
     const expenseTotal = sumExpensesBetween(previousSnapshot.day, currentSnapshot.day);
     const transferTotal = sumTransfersBetween(previousSnapshot.day, currentSnapshot.day);
-    const incomeBetweenTotal = sumIncomesBetween(previousSnapshot.day, currentSnapshot.day, false); // Incluir tudo para reconciliação
+    const incomeBetweenTotal = sumIncomesBetween(previousSnapshot.day, currentSnapshot.day, false); // Incluir tudo para reconciliaÃ§Ã£o
     const reconciledTotal = expenseTotal + transferTotal - incomeBetweenTotal;
     const unexplainedDifference = totalDifference - reconciledTotal;
 
@@ -1404,7 +1404,7 @@ function toggleFixedPayment(obligation, isPaid) {
       kind: "fixed",
       linkedObligationId: obligation.id
     });
-    showToast(`Obrigação "${obligation.name}" marcada como paga.`);
+    showToast(`ObrigaÃ§Ã£o "${obligation.name}" marcada como paga.`);
   } else {
     const expenseToRemove = state.expenses.find(e => 
       getItemMonthKey(e) === monthKey && 
@@ -1426,15 +1426,15 @@ function renderRecurring() {
   const monthlyContainer = document.querySelector("#fixedExpensesList");
   
   const { month } = getActiveMonthParts();
-  const monthsNames = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const monthsNames = ["Janeiro","Fevereiro","MarÃ§o","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
   const freqLabels = { monthly: "Mensal", quarterly: "Trimestral", "semi-annual": "Semestral", annual: "Anual" };
 
-  // 1. Renderizar Lista Mestre (Configuração)
+  // 1. Renderizar Lista Mestre (ConfiguraÃ§Ã£o)
   if (masterContainer) {
     masterContainer.innerHTML = "";
     if (state.recurringFixed.length === 0) {
       masterContainer.classList.add("item-list", "empty-state");
-      masterContainer.textContent = "Não há despesas fixas globais configuradas.";
+      masterContainer.textContent = "NÃ£o hÃ¡ despesas fixas globais configuradas.";
     } else {
       masterContainer.classList.remove("empty-state");
     masterContainer.classList.add("item-list");
@@ -1442,9 +1442,9 @@ function renderRecurring() {
         const node = template.content.firstElementChild.cloneNode(true);
         node.querySelector(".item-title").textContent = item.name;
         
-        let subtitle = `Dia ${item.day} · ${freqLabels[item.frequency] || "Mensal"}`;
+        let subtitle = `Dia ${item.day} Â· ${freqLabels[item.frequency] || "Mensal"}`;
         if (item.frequency && item.frequency !== 'monthly') {
-            subtitle += ` · Mês ref: ${monthsNames[(item.startMonth || 1) - 1]}`;
+            subtitle += ` Â· MÃªs ref: ${monthsNames[(item.startMonth || 1) - 1]}`;
         }
         
         node.querySelector(".item-subtitle").textContent = subtitle;
@@ -1459,12 +1459,12 @@ function renderRecurring() {
     }
   }
 
-  // 2. Renderizar Ocorrências Reais (Registos - index.html)
+  // 2. Renderizar OcorrÃªncias Reais (Registos - index.html)
   if (monthlyContainer) {
     const allFixed = state.recurringFixed;
     if (allFixed.length === 0) {
       monthlyContainer.classList.add("item-list", "empty-state");
-      monthlyContainer.innerHTML = "<p style='font-size:0.8rem; opacity:0.6;'>Nenhuma obrigação configurada.</p>";
+      monthlyContainer.innerHTML = "<p style='font-size:0.8rem; opacity:0.6;'>Nenhuma obrigaÃ§Ã£o configurada.</p>";
     } else {
       monthlyContainer.innerHTML = "";
       monthlyContainer.classList.add("item-list");
@@ -1472,9 +1472,9 @@ function renderRecurring() {
       let renderedCount = 0;
       allFixed.forEach((item) => {
         const sm = Number(item.startMonth) || 1;
-        const currentMonth = Number(month); // Mês atual da análise
+        const currentMonth = Number(month); // MÃªs atual da anÃ¡lise
         
-        // Lógica simplificada e robusta para detectar se vence este mês
+        // LÃ³gica simplificada e robusta para detectar se vence este mÃªs
         const isCurrentPayment = (!item.frequency || item.frequency === 'monthly') ||
            (item.frequency === 'quarterly' && (currentMonth - sm + 12) % 3 === 0) ||
            (item.frequency === 'annual' && currentMonth === sm) ||
@@ -1510,10 +1510,10 @@ function renderRecurring() {
           const divisors = { quarterly: 3, "semi-annual": 6, annual: 12 };
           const div = divisors[item.frequency] || 1;
           const prov = item.amount / div;
-          node.querySelector(".item-subtitle").textContent = `Provisão (${freqLabels[item.frequency] || "Variável"})`;
+          node.querySelector(".item-subtitle").textContent = `ProvisÃ£o (${freqLabels[item.frequency] || "VariÃ¡vel"})`;
           node.querySelector(".item-value").textContent = formatCurrency(prov);
           const actionContainer = node.querySelector(".item-actions");
-          if (actionContainer) actionContainer.innerHTML = `<span style="font-size: 0.6rem; opacity: 0.4; font-weight:600;">DILUÍDO</span>`;
+          if (actionContainer) actionContainer.innerHTML = `<span style="font-size: 0.6rem; opacity: 0.4; font-weight:600;">DILUÃDO</span>`;
           node.style.opacity = "0.6";
         }
 
@@ -1523,10 +1523,10 @@ function renderRecurring() {
       });
 
       if (renderedCount === 0) {
-          // Se todas forem diluídas e nenhuma vencer este mês
+          // Se todas forem diluÃ­das e nenhuma vencer este mÃªs
           const msg = document.createElement("p");
           msg.style.cssText = "font-size: 0.75rem; opacity: 0.5; padding: 10px; text-align: center;";
-          msg.textContent = "Nenhuma conta vence este mês.";
+          msg.textContent = "Nenhuma conta vence este mÃªs.";
           monthlyContainer.prepend(msg);
       }
     }
@@ -1572,7 +1572,7 @@ function renderReceivables() {
     
     if (isReceived) {
       node.classList.add("received");
-      node.querySelector(".item-title").innerHTML = receivable.name + ` <span class="badge badge-success">Liquidada ✅</span>`;
+      node.querySelector(".item-title").innerHTML = receivable.name + ` <span class="badge badge-success">Liquidada âœ…</span>`;
     } else {
       node.querySelector(".item-title").textContent = receivable.name;
     }
@@ -1584,17 +1584,17 @@ function renderReceivables() {
     const actionWrap = node.querySelector(".item-actions");
     const removeButton = node.querySelector(".ghost-btn");
     
-    // Botão Recebido (Ação rápida)
+    // BotÃ£o Recebido (AÃ§Ã£o rÃ¡pida)
     if (!isReceived) {
       const receiveBtn = document.createElement("button");
       receiveBtn.type = "button";
       receiveBtn.className = "success-btn";
-      receiveBtn.textContent = "Recebido ✅";
-      receiveBtn.title = "Marcar como recebido e injetar no orçamento";
+      receiveBtn.textContent = "Recebido âœ…";
+      receiveBtn.title = "Marcar como recebido e injetar no orÃ§amento";
       receiveBtn.addEventListener("click", () => {
         receivable.status = "received";
         
-        // Injeção Automática de Rendimento (Anulação de Despesa)
+        // InjeÃ§Ã£o AutomÃ¡tica de Rendimento (AnulaÃ§Ã£o de Despesa)
         const hasIncome = state.incomes.find(i => i.linkedReceivableId === receivable.id);
         if (!hasIncome) {
            const injection = {
@@ -1607,7 +1607,7 @@ function renderReceivables() {
                linkedReceivableId: receivable.id
            };
            state.incomes.push(injection);
-           showToast("Reembolso registado como rendimento extra! O teu orçamento foi atualizado.");
+           showToast("Reembolso registado como rendimento extra! O teu orÃ§amento foi atualizado.");
         }
         
         saveState();
@@ -1632,7 +1632,7 @@ function renderReceivables() {
     
     removeButton.addEventListener("click", () => {
       state.receivables = state.receivables.filter((item) => item.id !== receivable.id);
-      // Limpar injeção se for removido? Geralmente sim se for erro de registo
+      // Limpar injeÃ§Ã£o se for removido? Geralmente sim se for erro de registo
       state.incomes = state.incomes.filter(i => i.linkedReceivableId !== receivable.id);
       saveState();
       render();
@@ -1642,14 +1642,14 @@ function renderReceivables() {
   });
 }
 
-// Retorna um filtro de mês de acordo com o período ativo na UI
+// Retorna um filtro de mÃªs de acordo com o perÃ­odo ativo na UI
 function getPeriodMonthKeys() {
   const today = getToday();
   const period = (typeof window !== 'undefined' && window.activePeriodFilter) || 'month';
   const keys = new Set();
 
   if (period === 'all') {
-    // Devolver todos os monthKeys únicos nos dados
+    // Devolver todos os monthKeys Ãºnicos nos dados
     [...state.expenses, ...state.incomes, ...state.transfers].forEach(item => {
       const mk = getItemMonthKey(item);
       if (mk) keys.add(mk);
@@ -1681,7 +1681,7 @@ function renderExpenses() {
   if (allMonthExpenses.length === 0) {
     if (variableContainer) {
       variableContainer.classList.add("item-list", "empty-state");
-      variableContainer.textContent = "Ainda não existem despesas registadas para este mês.";
+      variableContainer.textContent = "Ainda nÃ£o existem despesas registadas para este mÃªs.";
     }
     return;
   }
@@ -1743,7 +1743,7 @@ function renderExpenses() {
     });
     updateAccountBalance(account.id, Number(document.querySelector("#startBankBalance").value) || 0);
 
-    // Auditoria Ponto 3: Verificar e transitar excedente do mês anterior automaticamente!
+    // Auditoria Ponto 3: Verificar e transitar excedente do mÃªs anterior automaticamente!
     const activeKeyParts = getActiveMonthParts();
     let oldYear = activeKeyParts.year;
     let oldMonth = activeKeyParts.month - 1;
@@ -1777,11 +1777,11 @@ function renderExpenses() {
                  if (!hasRolloverAlready) {
                      state.incomes.push({
                          id: generateUUID(), monthKey: getMonthKey(),
-                         name: `Transição Excedente: ${oldMonthKey}`,
+                         name: `TransiÃ§Ã£o Excedente: ${oldMonthKey}`,
                          amount: oldSurplusToRoll,
                          day: 1, dateLabel: startDate
                      });
-                     showToast(`Atenção: O excedente esquecido de ${formatCurrency(oldSurplusToRoll)} do mês transato foi transferido como bónus!`);
+                     showToast(`AtenÃ§Ã£o: O excedente esquecido de ${formatCurrency(oldSurplusToRoll)} do mÃªs transato foi transferido como bÃ³nus!`);
                  }
              }
         }
@@ -1905,20 +1905,20 @@ if (receivableForm) {
       state.receivables.push(payload);
     }
     
-    // Auditoria Ponto 4: Reintegração Lógica Automática de Empréstimos
+    // Auditoria Ponto 4: ReintegraÃ§Ã£o LÃ³gica AutomÃ¡tica de EmprÃ©stimos
     if (payload.status === "received") {
        const hasIncome = state.incomes.find(i => i.linkedReceivableId === payload.id);
        if (!hasIncome) {
            const injection = {
                id: generateUUID(), monthKey: getMonthKey(),
-               name: `Retorno de Empréstimo: ${payload.name}`,
+               name: `Retorno de EmprÃ©stimo: ${payload.name}`,
                amount: payload.amount,
                day: Math.min(getToday().getDate(), getCycleWindow().daysInCycle),
                dateLabel: getDefaultMonthDate(Math.min(getToday().getDate(), getCycleWindow().daysInCycle)),
                linkedReceivableId: payload.id
            };
            state.incomes.push(injection);
-           showToast("Ganho extra injetado na matemática orçamental graças ao encerramento deste valor por receber!");
+           showToast("Ganho extra injetado na matemÃ¡tica orÃ§amental graÃ§as ao encerramento deste valor por receber!");
        }
     } else {
        state.incomes = state.incomes.filter(i => i.linkedReceivableId !== payload.id);
@@ -1937,7 +1937,7 @@ if (receivableForm) {
 }
 
 if (expenseForm) {
-  // Listener para mostrar/esconder frequência e ajustar layout
+  // Listener para mostrar/esconder frequÃªncia e ajustar layout
   const kindSelect = document.querySelector("#expenseKind");
   const freqSelect = document.querySelector("#expenseFrequency");
   
@@ -1958,7 +1958,7 @@ if (expenseForm) {
       if (freq === "annual") {
         currentVal.setFullYear(currentVal.getFullYear() + 1);
         dateInput.value = currentVal.toISOString().split('T')[0];
-        showToast("Data ajustada para o próximo ano conforme periodicidade anual.");
+        showToast("Data ajustada para o prÃ³ximo ano conforme periodicidade anual.");
       } else if (freq === "semi-annual") {
         currentVal.setMonth(currentVal.getMonth() + 6);
         dateInput.value = currentVal.toISOString().split('T')[0];
@@ -1967,7 +1967,7 @@ if (expenseForm) {
     });
   }
 
-  // Lógica de Partilha Multinível
+  // LÃ³gica de Partilha MultinÃ­vel
   const splitSelect = document.querySelector("#expenseSplit");
   const splitContainer = document.querySelector("#splitContainer");
   const splitList = document.querySelector("#splitList");
@@ -2011,11 +2011,11 @@ if (expenseForm) {
       rows.forEach(row => {
         row.querySelector(".split-amount").value = part;
       });
-      showToast(`Divisão de ${part}€ aplicada a ${personCount} pessoas.`);
+      showToast(`DivisÃ£o de ${part}â‚¬ aplicada a ${personCount} pessoas.`);
     };
   }
 
-  expenseForm.addEventListener("submit", (event) => {
+  if (expenseForm) { expenseForm.addEventListener("submit", (event) => {
     event.preventDefault();
 
     const expenseDate = document.querySelector("#expenseDate").value;
@@ -2023,7 +2023,7 @@ if (expenseForm) {
     const name = document.querySelector("#expenseName").value.trim();
     const amount = parseFormattedNumber(document.querySelector("#expenseAmount").value);
     
-    // Capturar múltiplas partilhas
+    // Capturar mÃºltiplas partilhas
     const isSplit = splitSelect?.value === "yes";
     const splits = [];
     let splitTotalSum = 0;
@@ -2044,14 +2044,14 @@ if (expenseForm) {
         return;
       }
       if (splitTotalSum > amount) {
-        setStatus("#expenseStatus", `ERRO: A soma das partilhas (${splitTotalSum.toFixed(2)}€) é maior que o total (${amount.toFixed(2)}€)!`);
+        setStatus("#expenseStatus", `ERRO: A soma das partilhas (${splitTotalSum.toFixed(2)}â‚¬) Ã© maior que o total (${amount.toFixed(2)}â‚¬)!`);
         return;
       }
     }
 
     const isFutureAllowed = kind === "fixed" && (frequency === "annual" || frequency === "semi-annual");
     if (!isFutureAllowed && !isCurrentMonthDate(expenseDate)) {
-      setStatus("#expenseStatus", "A despesa tem de estar dentro do mês atual ou ser uma obrigação futura (Anual/Semestral).");
+      setStatus("#expenseStatus", "A despesa tem de estar dentro do mÃªs atual ou ser uma obrigaÃ§Ã£o futura (Anual/Semestral).");
       return;
     }
 
@@ -2064,7 +2064,7 @@ if (expenseForm) {
       state.recurringFixed.push({
         id: generateUUID(), name, amount, day, frequency, startMonth
       });
-      setStatus("#expenseStatus", `Obrigação "${name}" (${frequency}) integrada.`);
+      setStatus("#expenseStatus", `ObrigaÃ§Ã£o "${name}" (${frequency}) integrada.`);
       expenseForm.reset();
       if (freqSelect) freqSelect.style.display = "none";
       if (splitContainer) splitContainer.style.display = "none";
@@ -2085,7 +2085,7 @@ if (expenseForm) {
         state.expenses.push(expensePayload);
       }
       
-      // Criar múltiplos recebíveis se houver partilha
+      // Criar mÃºltiplos recebÃ­veis se houver partilha
       if (isSplit && !editingId) {
           splits.forEach(s => {
               state.receivables.push({
@@ -2097,7 +2097,7 @@ if (expenseForm) {
                   linkedExpenseId: expensePayload.id
               });
           });
-          showToast(`Despesa guardada e ${splits.length} dívidas registadas!`);
+          showToast(`Despesa guardada e ${splits.length} dÃ­vidas registadas!`);
       }
 
       expenseForm.reset();
@@ -2107,9 +2107,7 @@ if (expenseForm) {
     }
     
     saveState();
-    render();
-    if (expenseForm) expenseForm.removeAttribute("data-editing-id");
-  });
+    render(); if (expenseForm) expenseForm.removeAttribute('data-editing-id'); }); }
 }
 
 if (incomeForm) {
@@ -2168,7 +2166,7 @@ if (recurringForm) {
     recurringForm.reset();
     saveState();
     render();
-    setStatus("#recurringStatus", `Obrigação "${name}" (${frequency}) integrada no fluxo orçamental.`);
+    setStatus("#recurringStatus", `ObrigaÃ§Ã£o "${name}" (${frequency}) integrada no fluxo orÃ§amental.`);
   });
 }
 
@@ -2198,20 +2196,20 @@ function importState(event) {
   reader.onload = function(e) {
     try {
       const imported = JSON.parse(e.target.result);
-      if (!imported.expenses || !imported.accounts) throw new Error("Formato inválido");
+      if (!imported.expenses || !imported.accounts) throw new Error("Formato invÃ¡lido");
       
-      if (confirm("Isto irá substituir os teus dados atuais e recarregar a página. Continuar?")) {
+      if (confirm("Isto irÃ¡ substituir os teus dados atuais e recarregar a pÃ¡gina. Continuar?")) {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(imported));
         location.reload();
       }
     } catch (err) {
-      alert("Erro ao importar backup: Ficheiro inválido ou corrompido.");
+      alert("Erro ao importar backup: Ficheiro invÃ¡lido ou corrompido.");
     }
   };
   reader.readAsText(file);
 }
 
-// Configuração de botões de Soberania
+// ConfiguraÃ§Ã£o de botÃµes de Soberania
 document.addEventListener('click', (e) => {
     if (e.target.id === 'exportBackupBtn') exportState();
     if (e.target.id === 'importBackupBtn') {
@@ -2224,8 +2222,8 @@ document.addEventListener('change', (e) => {
     if (e.target.id === 'importFile') importState(e);
 });
 
-// ── Auto-Preencher Saldo Inicial ─────────────────────────────────────
-// Definido como função normal — chamado após o state ser inicializado
+// â”€â”€ Auto-Preencher Saldo Inicial â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Definido como funÃ§Ã£o normal â€” chamado apÃ³s o state ser inicializado
 function initAutofillBanner() {
   if (typeof document === 'undefined') return;
   const banner = document.getElementById('autofillBanner');
@@ -2267,7 +2265,7 @@ function initAutofillBanner() {
 function getFlexibleSpentInPeriod(startDay, endDay, targetMonthKey = null) {
   const monthKey = targetMonthKey || getMonthKey();
   
-  // Somar despesas variáveis e transferências no período
+  // Somar despesas variÃ¡veis e transferÃªncias no perÃ­odo
   const expenses = state.expenses
     .filter(e => getItemMonthKey(e) === monthKey && e.day >= startDay && e.day <= endDay && e.kind !== 'fixed')
     .reduce((s, e) => s + getNetExpenseAmount(e), 0);
@@ -2302,8 +2300,8 @@ function getDailySpendingData(targetMonthKey = null) {
   return spending;
 }
 
-// --- SOBERANIA BANCÁRIA: O VALOR GASTO REAL ---
-// Determina o gasto flexível real (Variável + Transf) com base na variação do saldo (Dia 1 vs Hoje)
+// --- SOBERANIA BANCÃRIA: O VALOR GASTO REAL ---
+// Determina o gasto flexÃ­vel real (VariÃ¡vel + Transf) com base na variaÃ§Ã£o do saldo (Dia 1 vs Hoje)
 function getRealSpentEfficiency(targetDay = null) {
   const startSnapshot = getStartingSnapshot();
   const snapshots = getSnapshotsForMonth().slice().sort((a,b) => a.day - b.day);
@@ -2314,45 +2312,45 @@ function getRealSpentEfficiency(targetDay = null) {
   const snapshotsUntilTarget = snapshots.filter(s => s.day <= elapsedDays);
   const latestSnapshot = snapshotsUntilTarget.length ? snapshotsUntilTarget[snapshotsUntilTarget.length - 1] : null;
 
-  // Se não houver snapshots, fallback para o que está registado
+  // Se nÃ£o houver snapshots, fallback para o que estÃ¡ registado
   if (!startSnapshot || !latestSnapshot || latestSnapshot.day <= startSnapshot.day) {
       return sumVariableExpenses() + sumTransfers();
   }
 
-  // CÁLCULO MESTRE: (Saldo 1 + Ganhos) - Saldo Atual = Dinheiro que SUCUMBIU/SAIU
+  // CÃLCULO MESTRE: (Saldo 1 + Ganhos) - Saldo Atual = Dinheiro que SUCUMBIU/SAIU
   const startBal = Number(startSnapshot.bankBalance || 0) + Number(startSnapshot.cashBalance || 0);
   const currentBal = Number(latestSnapshot.bankBalance || 0) + Number(latestSnapshot.cashBalance || 0);
   const incomesUntilSnap = sumIncomesUntil(latestSnapshot.day, true);
   
   const grossOutflow = (startBal - currentBal) + incomesUntilSnap;
   
-  // Subtrair as despesas fixas reais pagas até ao momento do snapshot
+  // Subtrair as despesas fixas reais pagas atÃ© ao momento do snapshot
   const fixedPaidUntilSnap = sumFixedExpensesUntil(latestSnapshot.day);
   
-  // O que resta é o que foi gasto de forma flexível (Variáveis + Transferências + Eventuais Esquecimentos)
+  // O que resta Ã© o que foi gasto de forma flexÃ­vel (VariÃ¡veis + TransferÃªncias + Eventuais Esquecimentos)
   const realFlexibleSpent = Math.max(grossOutflow - fixedPaidUntilSnap, 0);
   
-  // Segurança: se o registado for MAIOR (ex: pagou mas ainda não caiu no banco), usamos o registado.
+  // SeguranÃ§a: se o registado for MAIOR (ex: pagou mas ainda nÃ£o caiu no banco), usamos o registado.
   const recordedFlexibleSpent = sumExpensesUntil(latestSnapshot.day) + sumTransfersUntil(latestSnapshot.day);
   
   return Math.max(realFlexibleSpent, recordedFlexibleSpent);
 }
 
-// KPI: Taxa de Poupança (Savings Rate)
+// KPI: Taxa de PoupanÃ§a (Savings Rate)
 function calculateSavingsRate() {
   const budget = calculateBudget();
   
-  // RENDIMENTO FRESCO: Apenas o que ganhou este mês (Salário + Extras Reais), 
-  // excluindo a "Transição Excedente" de meses passados para não inflacionar o denominador.
+  // RENDIMENTO FRESCO: Apenas o que ganhou este mÃªs (SalÃ¡rio + Extras Reais), 
+  // excluindo a "TransiÃ§Ã£o Excedente" de meses passados para nÃ£o inflacionar o denominador.
   const salary = Number(state.salary) || 0;
   const extraIncomesFresh = state.incomes
-    .filter(i => getItemMonthKey(i) === getMonthKey() && !i.name.includes("Transição Excedente"))
+    .filter(i => getItemMonthKey(i) === getMonthKey() && !i.name.includes("TransiÃ§Ã£o Excedente"))
     .reduce((sum, i) => sum + Number(i.amount || 0), 0);
     
   const incomeTotalFresh = salary + extraIncomesFresh;
   if (incomeTotalFresh <= 0) return 0;
   
-  // ECONOMIA REAL = Rendimento Fresco - Gasto Real (Variação de Saldo + Fixas provisionadas)
+  // ECONOMIA REAL = Rendimento Fresco - Gasto Real (VariaÃ§Ã£o de Saldo + Fixas provisionadas)
   const realFlexSpent = getRealSpentEfficiency();
   const fixedProvision = budget.fixedExpenses || 0;
   
@@ -2378,11 +2376,11 @@ function calculateFinancialRunway() {
     months: netWorth / estimatedMonthlyCost, 
     monthlyCost: estimatedMonthlyCost, 
     netWorth,
-    basedOn: estimatedMonthlyCost === salary ? "Salário (Baseline)" : "Gasto Real Bancário"
+    basedOn: estimatedMonthlyCost === salary ? "SalÃ¡rio (Baseline)" : "Gasto Real BancÃ¡rio"
   };
 }
 
-// KPI: Fundo de Emergência (meta configurável, default 6 meses)
+// KPI: Fundo de EmergÃªncia (meta configurÃ¡vel, default 6 meses)
 function calculateEmergencyFundProgress(targetMonths = 6) {
   const runway = calculateFinancialRunway();
   if (!runway) return { pct: 0, months: 0, target: targetMonths, ok: false };
@@ -2401,7 +2399,7 @@ function getLeakageStatus() {
   return { type: 'info', message: `Excesso Registado: ${formatCurrency(absGap)} a mais face ao saldo.` };
 }
 
-// Auto-preenchimento do Saldo Inicial: vai buscar o último saldo do mês anterior
+// Auto-preenchimento do Saldo Inicial: vai buscar o Ãºltimo saldo do mÃªs anterior
 function getPreviousMonthLastBalance() {
   const parts = getActiveMonthParts();
   let prevYear = parts.year;
@@ -2412,7 +2410,7 @@ function getPreviousMonthLastBalance() {
   const prevSnaps = state.snapshots.filter(s => s.monthKey === prevKey);
   if (!prevSnaps.length) return null;
   
-  // Agrupar por dia para encontrar o último dia do mês que tem registos
+  // Agrupar por dia para encontrar o Ãºltimo dia do mÃªs que tem registos
   const days = prevSnaps.map(s => Number(s.day));
   const lastDay = Math.max(...days);
   const lastSnaps = prevSnaps.filter(s => Number(s.day) === lastDay);
@@ -2422,13 +2420,13 @@ function getPreviousMonthLastBalance() {
   let totalCash = 0;
 
   lastSnaps.forEach(s => {
-    // Normalização da identidade (Legado vs Moderno)
+    // NormalizaÃ§Ã£o da identidade (Legado vs Moderno)
     const modernAccount = state.accounts.find(acc => acc.id === s.accountId || acc.name === s.accountName);
     const id = modernAccount ? modernAccount.id : (s.accountId || s.accountName || 'legacy');
     
     const val = Number(s.bankBalance) || 0;
     
-    // Identificar se esta conta é do tipo "Dinheiro" para preencher o campo de cash no auto-fill
+    // Identificar se esta conta Ã© do tipo "Dinheiro" para preencher o campo de cash no auto-fill
     const acc = modernAccount || state.accounts.find(a => a.id === id);
     if (acc && acc.type === "Dinheiro") {
         totalCash += val;
@@ -2440,9 +2438,9 @@ function getPreviousMonthLastBalance() {
   return { accountTotals, totalCash, day: lastDay, monthKey: prevKey };
 }
 
-// ══════════════════════════════════════════════════════
-// INICIALIZAÇÁO GLOBAL E ARRANQUE DA APLICAÇÁO
-// ══════════════════════════════════════════════════════
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// INICIALIZAÃ‡ÃO GLOBAL E ARRANQUE DA APLICAÃ‡ÃO
+// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
 function renderGlobalExtract() {
   const container = document.querySelector("#extractTableBody");
@@ -2454,17 +2452,17 @@ function renderGlobalExtract() {
   const timeline = [];
   
   state.incomes.forEach(i => timeline.push({ ...i, type: 'income', typeLabel: 'Entrada' }));
-  state.expenses.forEach(e => timeline.push({ ...e, type: e.kind === 'fixed' ? 'fixed' : 'variable', typeLabel: e.kind === 'fixed' ? 'Fixa' : 'Variável' }));
-  state.transfers.forEach(t => timeline.push({ ...t, type: 'transfer', typeLabel: 'Transferência' }));
+  state.expenses.forEach(e => timeline.push({ ...e, type: e.kind === 'fixed' ? 'fixed' : 'variable', typeLabel: e.kind === 'fixed' ? 'Fixa' : 'VariÃ¡vel' }));
+  state.transfers.forEach(t => timeline.push({ ...t, type: 'transfer', typeLabel: 'TransferÃªncia' }));
 
-  // Ordenar cronologicamente ASC para cálculo do saldo
+  // Ordenar cronologicamente ASC para cÃ¡lculo do saldo
   timeline.sort((a, b) => {
     const keyA = (getItemMonthKey(a) || "0000-00") + String(a.day || 0).padStart(2, "0");
     const keyB = (getItemMonthKey(b) || "0000-00") + String(b.day || 0).padStart(2, "0");
     return keyA.localeCompare(keyB);
   });
 
-  // Cálculo de saldo acumulado (Variação líquida acumulada)
+  // CÃ¡lculo de saldo acumulado (VariaÃ§Ã£o lÃ­quida acumulada)
   let runningBalance = 0;
   const processed = timeline.map(item => {
     const amount = Number(item.amount) || 0;
@@ -2508,7 +2506,7 @@ function renderGlobalExtract() {
   });
 }
 
-// getGlobalAccountsTotal removido (duplicado e obsoleto nesta posição)
+// getGlobalAccountsTotal removido (duplicado e obsoleto nesta posiÃ§Ã£o)
 
 const state = loadState();
 
@@ -2529,6 +2527,8 @@ if (typeof window !== 'undefined') {
   window.renderNetWorth = renderNetWorth;
 }
 
+
+
 if (typeof render === 'function' && typeof document !== 'undefined' && document.querySelector) {
   render();
   initAutofillBanner();
@@ -2545,7 +2545,7 @@ function toggleFixedPayment(obligation, isChecked) {
             amount: obligation.amount,
             day: obligation.day,
             dateLabel: getDefaultMonthDate(obligation.day),
-            category: "Obrigações Fixas",
+            category: "ObrigaÃ§Ãµes Fixas",
             kind: "fixed",
             linkedObligationId: obligation.id
         };
@@ -2563,3 +2563,5 @@ function toggleFixedPayment(obligation, isChecked) {
     saveState();
     render();
 }
+
+

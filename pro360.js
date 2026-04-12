@@ -391,9 +391,11 @@ function initInvestments() {
     
     // Garantir que o estado global está pronto
     if (typeof window.state === 'undefined') {
-        setTimeout(initInvestments, 100); // Tentar novamente em breve
+        console.warn("[Pro 360] Estado global (window.state) não detetado. A aguardar motor central...");
+        setTimeout(initInvestments, 150); 
         return;
     }
+    console.log("[Pro 360] Estado detetado com sucesso. Tickers monitorizados:", window.state.investments?.length || 0);
     
     if (!window.state.accounts) window.state.accounts = [];
     if (!window.state.investments) window.state.investments = [];
