@@ -2,12 +2,12 @@ const CACHE_NAME = 'finance-control-v3.0.0';
 const ASSETS = [
   'index.html',
   'dashboard.html',
-  'investimentos.html',
+  'pro360.html',
+  'pro360.js',
   'configuracao.html',
   'extrato.html',
   'style.css',
   'script.js',
-  'investimentos.js',
   'google-drive-sync.js'
 ];
 
@@ -36,3 +36,8 @@ self.addEventListener('fetch', event => {
   );
 });
 
+// REDIRECIONAMENTO NUCLEAR PARA BYPASS DE CACHE
+// Adicionar ao arquivo investimentos.html:
+// <script>
+//   window.location.href = "pro360.html" + window.location.search;
+// </script>
