@@ -250,6 +250,10 @@ async function fetchFinancialMetrics(ticker) {
 async function fetchMarketNews() {
     if (!window.state.finnhubApiKey) return [];
     try {
+        const newsContainer = document.getElementById('marketPulseContent');
+        if (newsContainer) {
+            newsContainer.innerHTML = '<div style="text-align:center; padding:20px; color:var(--trading-blue); font-size:0.8rem;">📡 A varrer mercados globais (Crypto, Forex, Stocks)...</div>';
+        }
         console.log("IA Scanner: A varrer mercados globais...");
         // Tentar múltiplas categorias em paralelo para garantir que nada falha
         const categories = ['general', 'crypto', 'forex', 'merger'];
