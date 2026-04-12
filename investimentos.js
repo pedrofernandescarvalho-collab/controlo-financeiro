@@ -405,7 +405,13 @@ function initInvestments() {
         window.refreshAllPrices();
         renderMarketPulse();
         
-        // Configurar ciclo de atualização 360º (5 em 5 minutos)
+        // Ativar Depurador de Emergência se algo falhar
+        window.onerror = function(msg, url, line) {
+            const errDiv = document.createElement('div');
+            errDiv.style.cssText = 'background:red; color:white; padding:10px; position:fixed; top:0; left:0; z-index:9999; font-size:10px;';
+            errDiv.textContent = `ERRO: ${msg} na linha ${line}`;
+            document.body.appendChild(errDiv);
+        };
         if (window.investmentSuncInterval) clearInterval(window.investmentSuncInterval);
         window.investmentSuncInterval = setInterval(() => {
             console.log("A executar sincronização 360º...");
@@ -617,6 +623,10 @@ function generateAiOpportunities() {
     const container = document.getElementById('aiDiscoveryList');
     if (!container) return;
 
+    // Declarações em falta que causavam erro
+    const highlights = getPeriodicHighlights();
+    const categories = ['Stock', 'REIT', 'ETF', 'Crypto'];
+    
     container.innerHTML = `
         <div style="background: rgba(0,229,255,0.05); border: 2px solid var(--trading-blue); padding: 25px; margin-bottom: 40px;">
             <h3 style="margin-top:0; border-bottom: 2px solid var(--trading-blue); display: inline-block;">📍 Destaques de Hoje</h3>
