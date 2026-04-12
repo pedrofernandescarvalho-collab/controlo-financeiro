@@ -22,8 +22,12 @@ const AI_KNOWLEDGE = [
     { ticker: 'NVDA', name: 'Nvidia Corp', type: 'Stock', focus: 'Growth', rationale: 'Deterrente tecnológico em semicondutores e computação acelerada para IA.', recommended: true },
     { ticker: 'AAPL', name: 'Apple Inc', type: 'Stock', focus: 'Growth', rationale: 'Ecossistema fechado com forte geração de caixa e recompras de ações.', recommended: true },
     { ticker: 'MSFT', name: 'Microsoft Corp', type: 'Stock', focus: 'Growth', rationale: 'Líder em Cloud e integração de IA em software empresarial.', recommended: true },
-    { ticker: 'GOOGL', name: 'Alphabet Inc', type: 'Stock', focus: 'Growth', rationale: 'Domínio em publicidade digital e infraestrutura de dados global.', recommended: false },
-    { ticker: 'TSLA', name: 'Tesla Inc', type: 'Stock', focus: 'Aggressive', rationale: 'Líder em veículos elétricos e autonomia. Alta volatilidade, alto potencial.', recommended: false }
+    { ticker: 'TSLA', name: 'Tesla Inc', type: 'Stock', focus: 'Aggressive', rationale: 'Líder em veículos elétricos e autonomia. Alta volatilidade, alto potencial.', recommended: false },
+
+    // Criptomoedas
+    { ticker: 'BTC', name: 'Bitcoin', type: 'Crypto', focus: 'Store of Value', rationale: 'O "Ouro Digital". Ativo escasso com adoção institucional crescente e halving cíclico.', recommended: true },
+    { ticker: 'ETH', name: 'Ethereum', type: 'Crypto', focus: 'Technology', rationale: 'Líder em contratos inteligentes e infraestrutura para finanças descentralizadas (DeFi).', recommended: true },
+    { ticker: 'SOL', name: 'Solana', type: 'Crypto', focus: 'Speed', rationale: 'Blockchain de alto desempenho para aplicações de escala global.', recommended: false }
 ];
 
 // Funções expostas globalmente para os botões do HTML funcionarem
@@ -579,30 +583,36 @@ function generateAiOpportunities() {
     if (!container) return;
 
     const highlights = getPeriodicHighlights();
-    const categories = ['Stock', 'REIT', 'ETF'];
+    const categories = ['Stock', 'REIT', 'ETF', 'Crypto'];
     
     container.innerHTML = `
-        <div class="periodic-highlights" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid rgba(255,255,255,0.1);">
-            <div class="highlight-box" style="background: rgba(56, 189, 248, 0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(56, 189, 248, 0.3);">
-                <span style="font-size: 0.6rem; text-transform: uppercase; font-weight: 800; color: var(--trading-blue);">Sugestão do Dia</span>
-                <strong style="display: block; font-size: 0.9rem; margin: 4px 0;">${highlights.dia.ticker}</strong>
-                <button class="text-btn" style="font-size: 0.7rem; padding: 0;" onclick="window.viewFullStudy('${highlights.dia.ticker}')">Ver Porquê →</button>
+        <div class="periodic-highlights" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 30px; padding-bottom: 25px; border-bottom: 2px solid rgba(255,255,255,0.1);">
+            <div class="highlight-box" style="background: rgba(56, 189, 248, 0.15); padding: 15px; border-radius: 12px; border: 2px solid var(--trading-blue);">
+                <span style="font-size: 0.7rem; text-transform: uppercase; font-weight: 800; color: var(--trading-blue); display: block; margin-bottom: 5px;">📍 Sugestão do Dia</span>
+                <strong style="display: block; font-size: 1.1rem; margin-bottom: 8px;">${highlights.dia.ticker}</strong>
+                <button class="text-btn" style="font-size: 0.8rem; padding: 0; color: var(--trading-blue); font-weight: 700;" onclick="window.viewFullStudy('${highlights.dia.ticker}')">Análise completa IA →</button>
             </div>
-            <div class="highlight-box" style="background: rgba(16, 185, 129, 0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.3);">
-                <span style="font-size: 0.6rem; text-transform: uppercase; font-weight: 800; color: var(--trading-green);">Da Semana</span>
-                <strong style="display: block; font-size: 0.9rem; margin: 4px 0;">${highlights.semana.ticker}</strong>
-                <button class="text-btn" style="font-size: 0.7rem; padding: 0; color: var(--trading-green);" onclick="window.viewFullStudy('${highlights.semana.ticker}')">Ver Porquê →</button>
+            <div class="highlight-box" style="background: rgba(16, 185, 129, 0.15); padding: 15px; border-radius: 12px; border: 2px solid var(--trading-green);">
+                <span style="font-size: 0.7rem; text-transform: uppercase; font-weight: 800; color: var(--trading-green); display: block; margin-bottom: 5px;">🔥 Da Semana</span>
+                <strong style="display: block; font-size: 1.1rem; margin-bottom: 8px;">${highlights.semana.ticker}</strong>
+                <button class="text-btn" style="font-size: 0.8rem; padding: 0; color: var(--trading-green); font-weight: 700;" onclick="window.viewFullStudy('${highlights.semana.ticker}')">Análise completa IA →</button>
             </div>
-            <div class="highlight-box" style="background: rgba(245, 158, 11, 0.1); padding: 12px; border-radius: 8px; border: 1px solid rgba(245, 158, 11, 0.3);">
-                <span style="font-size: 0.6rem; text-transform: uppercase; font-weight: 800; color: #f59e0b;">Do Mês</span>
-                <strong style="display: block; font-size: 0.9rem; margin: 4px 0;">${highlights.mes.ticker}</strong>
-                <button class="text-btn" style="font-size: 0.7rem; padding: 0; color: #f59e0b;" onclick="window.viewFullStudy('${highlights.mes.ticker}')">Ver Porquê →</button>
+            <div class="highlight-box" style="background: rgba(245, 158, 11, 0.15); padding: 15px; border-radius: 12px; border: 2px solid #f59e0b;">
+                <span style="font-size: 0.7rem; text-transform: uppercase; font-weight: 800; color: #f59e0b; display: block; margin-bottom: 5px;">🏆 Do Mês</span>
+                <strong style="display: block; font-size: 1.1rem; margin-bottom: 8px;">${highlights.mes.ticker}</strong>
+                <button class="text-btn" style="font-size: 0.8rem; padding: 0; color: #f59e0b; font-weight: 700;" onclick="window.viewFullStudy('${highlights.mes.ticker}')">Análise completa IA →</button>
             </div>
         </div>
     `;
 
     categories.forEach(cat => {
-        const title = cat === 'Stock' ? 'Ações Pro' : (cat === 'REIT' ? 'REITs Imobiliário' : 'ETFs Diversificados');
+        let title = '';
+        switch(cat) {
+            case 'Stock': title = 'Ações'; break;
+            case 'REIT': title = 'REITs (Imobiliário)'; break;
+            case 'ETF': title = 'ETFs Diversificados'; break;
+            case 'Crypto': title = 'Criptomoedas'; break;
+        }
         const items = AI_KNOWLEDGE.filter(a => a.type === cat).slice(0, 2);
         
         const section = document.createElement('div');
