@@ -198,6 +198,25 @@ function loadState() {
   }
 }
 
+// Inicialização imediata do estado para o motor Pro 360
+const state = loadState();
+if (typeof window !== 'undefined') {
+  window.state = state;
+  window.getMonthKey = getMonthKey;
+  window.calculateSavingsRate = calculateSavingsRate;
+  window.calculateFinancialRunway = calculateFinancialRunway;
+  window.calculateEmergencyFundProgress = calculateEmergencyFundProgress;
+  window.getLeakageStatus = getLeakageStatus;
+  window.getPreviousMonthLastBalance = getPreviousMonthLastBalance;
+  window.formatCurrency = formatCurrency;
+  window.getItemMonthKey = getItemMonthKey;
+  window.getCycleAnalysis = getCycleAnalysis;
+  window.calculateBudget = calculateBudget;
+  window.getReconciliationHistory = getReconciliationHistory;
+  window.renderGlobalExtract = renderGlobalExtract;
+  window.renderNetWorth = renderNetWorth;
+}
+
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
@@ -2341,28 +2360,7 @@ function getPreviousMonthLastBalance() {
   return { accountTotals, totalCash, day: lastDay, monthKey: prevKey };
 }
 
-// 
-// INICIALIZAÇÃO GLOBAL E ARRANQUE DA APLICAÇÃO
-// 
-
-const state = loadState();
-
-if (typeof window !== 'undefined') {
-  window.state = state;
-  window.getMonthKey = getMonthKey;
-  window.calculateSavingsRate = calculateSavingsRate;
-  window.calculateFinancialRunway = calculateFinancialRunway;
-  window.calculateEmergencyFundProgress = calculateEmergencyFundProgress;
-  window.getLeakageStatus = getLeakageStatus;
-  window.getPreviousMonthLastBalance = getPreviousMonthLastBalance;
-  window.formatCurrency = formatCurrency;
-  window.getItemMonthKey = getItemMonthKey;
-  window.getCycleAnalysis = getCycleAnalysis;
-  window.calculateBudget = calculateBudget;
-  window.getReconciliationHistory = getReconciliationHistory;
-  window.renderGlobalExtract = renderGlobalExtract;
-  window.renderNetWorth = renderNetWorth;
-}
+// A inicialização do estado foi movida para o topo para garantir disponibilidade imediata.
 
 function renderGlobalExtract() {
   const container = document.querySelector("#extractTableBody");
@@ -2435,8 +2433,12 @@ function renderGlobalExtract() {
 
 
 if (typeof render === 'function' && typeof document !== 'undefined' && document.querySelector) {
-  render();
-  initAutofillBanner();
+  try {
+     render();
+     initAutofillBanner();
+  } catch (e) {
+     console.error("[Core] Falha crítica na renderização inicial:", e);
+  }
 }
 
 function toggleFixedPayment(obligation, isChecked) {
