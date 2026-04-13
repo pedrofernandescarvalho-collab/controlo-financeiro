@@ -108,106 +108,150 @@ window.viewFullStudy = async function(ticker) {
     ]);
 
     const sentiment = analyzeGlobalSentiment(globalNews);
-    const score = calculateGrowthScore(metrics, asset.type, sentiment);
-    const techSignal = calculateTechnicalSignal(metrics);
+    const score     = calculateGrowthScore(metrics, asset.type, sentiment);
+
+    const isETF    = metrics?._type === 'ETF'    || asset.type === 'ETF';
+    const isCrypto  = metrics?._type === 'Crypto'  || asset.type === 'Crypto';
+    const isStock   = !isETF && !isCrypto;
+    const noKey     = metrics?._noKey;
+
+    // Helper: formata valor ou mostra placeholder
+    const fmt  = (v, suffix = '', dec = 2) => (v !== null && v !== undefined && v !== 0) ? `${Number(v).toFixed(dec)}${suffix}` : null;
+    const fmtP = (v) => fmt(v, '%');
+    const na   = (label) => `<span style="opacity:0.4; font-size:0.8rem;">${label}</span>`;
+    const kpi  = (label, value, color = '') =>
+        `<div class="kpi-box">
+            <small style="opacity:0.5;font-size:0.65rem;text-transform:uppercase;display:block;margin-bottom:4px;">${label}</small>
+            <div style="font-weight:700;font-size:1.1rem;${color ? 'color:'+color+';' : ''}">${value !== null ? value : na('N/D')}</div>
+         </div>`;
+
+    const changeColor = metrics?.changePercent > 0 ? 'var(--trading-green)' : metrics?.changePercent < 0 ? 'var(--trading-red)' : '';
+    const changeStr   = metrics?.changePercent !== null ? `${metrics.changePercent >= 0 ? '+' : ''}${metrics.changePercent?.toFixed(2)}%` : null;
+
+    // Quadrante 1 — adaptado por tipo
+    let q1Html = '';
+    if (isETF) {
+        q1Html = `
+            ${kpi('Preço Atual', metrics?.currPrice ? `€${metrics.currPrice.toFixed(2)}` : null)}
+            ${kpi('Variação (24h)', changeStr, changeColor)}
+            ${kpi('Dividend Yield (Est.)', fmtP(metrics?.yield), 'var(--trading-green)')}
+            ${kpi('Desv. vs Máx. 52S', fmtP(metrics?.vsHigh), metrics?.vsHigh < -10 ? 'var(--trading-green)' : '')}
+            <div class="kpi-box" style="grid-column:span 2;border-top:1px dashed var(--border-subtle);padding-top:10px;margin-top:5px;">
+                <small style="opacity:0.5;font-size:0.65rem;text-transform:uppercase;display:block;margin-bottom:4px;">Mínimo 52 Semanas</small>
+                <div style="font-weight:700;font-size:1.1rem;">${metrics?.low52 ? `€${metrics.low52.toFixed(2)}` : na('N/D')}</div>
+            </div>`;
+    } else if (isCrypto) {
+        q1Html = `
+            ${kpi('Preço Atual', metrics?.currPrice ? `€${metrics.currPrice.toFixed(2)}` : null)}
+            ${kpi('Variação (24h)', changeStr, changeColor)}
+            ${kpi('Market Cap', metrics?.marketCap ? `€${(metrics.marketCap).toFixed(0)}M` : null)}
+            ${kpi('Volume (24h)', metrics?.volume24h ? `€${(metrics.volume24h / 1e6).toFixed(0)}M` : null)}
+            <div class="kpi-box" style="grid-column:span 2;border-top:1px dashed var(--border-subtle);padding-top:10px;margin-top:5px;">
+                <small style="opacity:0.5;font-size:0.65rem;text-transform:uppercase;display:block;margin-bottom:4px;">Desv. vs ATH Histórico</small>
+                <div style="font-weight:700;font-size:1.1rem;color:${metrics?.vsHigh < -40 ? 'var(--trading-green)' : 'var(--text-main)'}">${fmtP(metrics?.vsHigh) || na('N/D')}</div>
+            </div>`;
+    } else {
+        // Stocks / REITs
+        q1Html = `
+            ${kpi('P/E Ratio (TTM)', fmt(metrics?.pe, '', 1))}
+            ${kpi('P/B Ratio', fmt(metrics?.pb, '', 1))}
+            ${kpi('Dividend Yield', fmtP(metrics?.yield), 'var(--trading-green)')}
+            ${kpi('ROI (TTM)', fmtP(metrics?.roi), 'var(--trading-green)')}
+            <div class="kpi-box" style="grid-column:span 2;border-top:1px dashed var(--border-subtle);padding-top:10px;margin-top:5px;">
+                <small style="opacity:0.5;font-size:0.65rem;text-transform:uppercase;display:block;margin-bottom:4px;">Market Cap</small>
+                <div style="font-weight:700;font-size:1.1rem;">${metrics?.marketCap ? window.formatCurrency(metrics.marketCap * 1e6) : na('N/D')}</div>
+            </div>`;
+    }
+
+    // Quadrante 2 — Solidez e Performance (adaptado)
+    const q2DebtHtml = (!isCrypto && !isETF && metrics?.debtEquity !== null)
+        ? `<div class="kpi-box"><small style="display:block;opacity:0.6;font-size:0.65rem;margin-bottom:4px;">Dívida / Capital</small>
+           <strong style="font-size:1.1rem;color:${(metrics?.debtEquity || 0) > 100 ? 'var(--trading-red)' : 'var(--trading-green)'}">${fmtP(metrics?.debtEquity) || 'Baixa'}</strong></div>`
+        : kpi(isETF ? 'Beta (Risco)' : 'Beta', fmt(metrics?.beta, 'x', 2));
+    const q2GrowthHtml = (!isCrypto)
+        ? `<div class="kpi-box"><small style="display:block;opacity:0.6;font-size:0.65rem;margin-bottom:4px;">${isETF ? 'Perf. vs Máximos' : 'Crescimento Rec.'}</small>
+           <strong style="font-size:1.1rem;color:var(--trading-green)">${isETF ? (fmtP(metrics?.vsHigh) || na('N/D')) : ('+' + (fmtP(metrics?.revenueGrowth) || na('N/D')))}</strong></div>`
+        : kpi('Fornecimento', metrics?.circulatingSupply ? `${(metrics.circulatingSupply / 1e6).toFixed(1)}M` : null);
+
+    // Barra de posição vs máximos
+    const vsHighVal = metrics?.vsHigh ?? -100;
+    const barWidth = Math.min(100, Math.max(0, 100 + vsHighVal));
+    const barLabel = isCrypto ? 'Preço vs ATH Histórico' : 'Preço vs Máximos (52 Sems)';
 
     content.innerHTML = `
-        <p class="eyebrow" style="color: var(--trading-blue); font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.65rem;">Relatório de Inteligência Pro 360º</p>
+        <p class="eyebrow" style="color:var(--trading-blue);font-weight:700;text-transform:uppercase;letter-spacing:.12em;font-size:.65rem;">Relatório de Inteligência Pro 360º</p>
         
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; border-bottom: 2px solid var(--border-subtle); padding-bottom: 15px;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;border-bottom:2px solid var(--border-subtle);padding-bottom:15px;">
             <div>
-                 <h2 style="margin: 0; font-size: 2rem; letter-spacing: -0.02em;">${asset.name} <span style="opacity:0.4;">|</span> <span style="color: var(--trading-blue);">${asset.ticker}</span></h2>
-                 <p style="margin: 8px 0 0; opacity: 0.6; font-size: 0.95rem; line-height: 1.4;">${asset.rationale}</p>
+                <h2 style="margin:0;font-size:2rem;letter-spacing:-0.02em;">${asset.name} <span style="opacity:.4;">|</span> <span style="color:var(--trading-blue);">${asset.ticker}</span></h2>
+                ${metrics?.changePercent !== null ? `<span style="display:inline-block;margin-top:6px;padding:3px 10px;border-radius:99px;background:${changeColor || '#e2e8f0'};color:${changeColor ? '#fff' : 'inherit'};font-size:.8rem;font-weight:700;">${changeStr}</span>` : ''}
+                <p style="margin:8px 0 0;opacity:.6;font-size:.95rem;line-height:1.4;">${asset.rationale}</p>
             </div>
-            <div style="text-align: right;">
-                <div style="background: ${score.color}; color: #fff; padding: 8px 20px; border-radius: 12px; font-weight: 800; font-size: 1.2rem; display: inline-block; box-shadow: 0 4px 12px ${score.color}44;">
+            <div style="text-align:right;">
+                <div style="background:${score.color};color:#fff;padding:8px 20px;border-radius:12px;font-weight:800;font-size:1.2rem;display:inline-block;box-shadow:0 4px 12px ${score.color}44;">
                     Score: ${score.value}/100
                 </div>
+                <div style="font-size:0.7rem;color:var(--text-muted);margin-top:6px;font-weight:600;">${score.verdict}</div>
             </div>
         </div>
+
+        ${noKey ? `<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:12px;padding:16px;margin-bottom:20px;font-size:0.9rem;">⚠️ <strong>Chave API não configurada.</strong> Vá a <a href="/configuracao.html" style="color:var(--trading-blue);">Configurações</a> e introduza a sua Finnhub API Key para métricas reais.</div>` : ''}
         
-        <div class="invest-grid-v2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 30px;">
-            <!-- Quadrante 1: Fundamental Avançado -->
-            <div class="report-section" style="background: #fff; padding: 20px; border-radius: 16px; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-sm);">
-                <header style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px; color: var(--trading-blue);">
-                    <span style="font-size: 1.2rem;">📊</span> <strong style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Saúde Fundamental</strong>
+        <div class="invest-grid-v2" style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:30px;">
+            <div class="report-section" style="background:#fff;padding:20px;border-radius:16px;border:1px solid var(--border-subtle);box-shadow:var(--shadow-sm);">
+                <header style="display:flex;align-items:center;gap:10px;margin-bottom:18px;color:var(--trading-blue);">
+                    <span style="font-size:1.2rem;">${isETF ? '📈' : isCrypto ? '🪙' : '📊'}</span>
+                    <strong style="font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;">${isETF ? 'Performance & Preço' : isCrypto ? 'Dados de Mercado' : 'Saúde Fundamental'}</strong>
                 </header>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div class="kpi-box">
-                        <small style="opacity: 0.5; font-size: 0.65rem; text-transform: uppercase; display: block; margin-bottom: 4px;">P/E Ratio (TTM)</small>
-                        <div style="font-weight: 700; font-size: 1.1rem;">${metrics?.pe ? metrics.pe.toFixed(1) : 'N/A'}</div>
-                    </div>
-                    <div class="kpi-box">
-                        <small style="opacity: 0.5; font-size: 0.65rem; text-transform: uppercase; display: block; margin-bottom: 4px;">P/B Ratio</small>
-                        <div style="font-weight: 700; font-size: 1.1rem;">${metrics?.pb ? metrics.pb.toFixed(1) : 'N/A'}</div>
-                    </div>
-                    <div class="kpi-box">
-                        <small style="opacity: 0.5; font-size: 0.65rem; text-transform: uppercase; display: block; margin-bottom: 4px;">Dividend Yield</small>
-                        <div style="font-weight: 700; color: var(--trading-green); font-size: 1.1rem;">${metrics?.yield ? metrics.yield.toFixed(2) + '%' : '0.00%'}</div>
-                    </div>
-                    <div class="kpi-box">
-                        <small style="opacity: 0.5; font-size: 0.65rem; text-transform: uppercase; display: block; margin-bottom: 4px;">ROI (TTM)</small>
-                        <div style="font-weight: 700; color: var(--trading-green); font-size: 1.1rem;">${metrics?.roi ? metrics.roi.toFixed(1) + '%' : 'N/A'}</div>
-                    </div>
-                    <div class="kpi-box" style="grid-column: span 2; border-top: 1px dashed var(--border-subtle); padding-top: 10px; margin-top: 5px;">
-                        <small style="opacity: 0.5; font-size: 0.65rem; text-transform: uppercase; display: block; margin-bottom: 4px;">Market Capitalization</small>
-                        <div style="font-weight: 700; font-size: 1.1rem;">${metrics?.marketCap ? window.formatCurrency(metrics.marketCap * 1000000) : 'N/A'}</div>
-                    </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:15px;">
+                    ${q1Html}
                 </div>
             </div>
 
-            <!-- Quadrante 2: Técnico e Momentum -->
-            <!-- Quadrante 2: Solidez e Crescimento -->
-            <div class="report-section" style="background: rgba(255,255,255,0.03); padding: 25px; border-radius: 16px; border: 1px solid var(--border-subtle);">
-                <header style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
-                    <span style="font-size: 1.3rem;">📊</span> <strong style="font-size: 0.75rem; text-transform: uppercase; color: var(--trading-blue); letter-spacing: 0.05em;">Solidez e Performance</strong>
+            <div class="report-section" style="background:rgba(255,255,255,0.03);padding:25px;border-radius:16px;border:1px solid var(--border-subtle);">
+                <header style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+                    <span style="font-size:1.3rem;">📐</span>
+                    <strong style="font-size:.75rem;text-transform:uppercase;color:var(--trading-blue);letter-spacing:.05em;">Solidez e Performance</strong>
                 </header>
                 <div class="study-grid-kpi">
-                    <div class="kpi-box">
-                        <small style="display: block; opacity: 0.6; font-size: 0.65rem; margin-bottom: 4px;">Dívida / Capital</small>
-                        <strong style="font-size: 1.1rem; color: ${metrics?.debtEquity > 100 ? 'var(--trading-red)' : 'var(--trading-green)'}">${metrics?.debtEquity ? metrics.debtEquity.toFixed(1) + '%' : 'Baixa'}</strong>
-                    </div>
-                    <div class="kpi-box">
-                        <small style="display: block; opacity: 0.6; font-size: 0.65rem; margin-bottom: 4px;">Crescimento Rec.</small>
-                        <strong style="font-size: 1.1rem; color: var(--trading-green)">+${metrics?.revenueGrowth ? metrics.revenueGrowth.toFixed(1) + '%' : 'N/A'}</strong>
-                    </div>
+                    ${q2DebtHtml}
+                    ${q2GrowthHtml}
                 </div>
-                
-                <div style="margin-top: 25px;">
-                    <div style="background: rgba(13, 148, 136, 0.05); padding: 15px; border-radius: 12px; border-left: 4px solid var(--trading-blue);">
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                            <small style="opacity: 0.6; color: var(--text-muted);">Preço vs Máximos (52 Sems)</small>
-                            <strong style="color: ${metrics?.vsHigh < -15 ? 'var(--trading-green)' : 'var(--text-main)'}">${metrics?.vsHigh ? metrics.vsHigh.toFixed(2) + '%' : 'N/A'}</strong>
+                <div style="margin-top:25px;">
+                    <div style="background:rgba(13,148,136,.05);padding:15px;border-radius:12px;border-left:4px solid var(--trading-blue);">
+                        <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+                            <small style="opacity:.6;color:var(--text-muted);">${barLabel}</small>
+                            <strong style="color:${vsHighVal < -15 ? 'var(--trading-green)' : 'var(--text-main)'}">${fmtP(metrics?.vsHigh) || na('N/D')}</strong>
                         </div>
-                        <div style="width: 100%; height: 6px; background: rgba(0,0,0,0.05); border-radius: 3px; overflow: hidden;">
-                            <div style="width: ${Math.min(100, Math.max(0, 100 + (metrics?.vsHigh || -100)))}%; height: 100%; background: var(--trading-blue);"></div>
+                        <div style="width:100%;height:6px;background:rgba(0,0,0,.05);border-radius:3px;overflow:hidden;">
+                            <div style="width:${barWidth}%;height:100%;background:var(--trading-blue);"></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Quadrante 3: Inteligência Global (Macro) -->
-            <div class="report-section" style="grid-column: span 2; background: linear-gradient(135deg, rgba(56, 189, 248, 0.08) 0%, rgba(56, 189, 248, 0.02) 100%); padding: 25px; border-radius: 16px; border: 1px solid rgba(56, 189, 248, 0.2);">
-                <header style="display: flex; align-items: center; gap: 10px; margin-bottom: 15px;">
-                    <span style="font-size: 1.3rem;">🌍</span> <strong style="font-size: 0.75rem; text-transform: uppercase; color: var(--trading-blue); letter-spacing: 0.05em;">Análise Macro & Sentimento</strong>
+            <div class="report-section" style="grid-column:span 2;background:linear-gradient(135deg,rgba(56,189,248,.08) 0%,rgba(56,189,248,.02) 100%);padding:25px;border-radius:16px;border:1px solid rgba(56,189,248,.2);">
+                <header style="display:flex;align-items:center;gap:10px;margin-bottom:15px;">
+                    <span style="font-size:1.3rem;">🌍</span>
+                    <strong style="font-size:.75rem;text-transform:uppercase;color:var(--trading-blue);letter-spacing:.05em;">Análise Macro &amp; Sentimento</strong>
                 </header>
-                <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 15px;">
-                    ${sentiment.trends.map(t => `<span style="font-size: 0.7rem; background: #fff; padding: 4px 12px; border-radius: 99px; border: 1px solid var(--trading-blue); font-weight: 700;">${t}</span>`).join('')}
-                    ${sentiment.alerts.map(a => `<span style="font-size: 0.7rem; background: #fee2e2; color: #dc2626; padding: 4px 12px; border-radius: 99px; border: 1px solid #fecaca; font-weight: 700;">⚠️ ${a}</span>`).join('')}
+                <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:15px;">
+                    ${sentiment.trends.map(t => `<span style="font-size:.7rem;background:#fff;padding:4px 12px;border-radius:99px;border:1px solid var(--trading-blue);font-weight:700;">${t}</span>`).join('')}
+                    ${sentiment.alerts.map(a => `<span style="font-size:.7rem;background:#fee2e2;color:#dc2626;padding:4px 12px;border-radius:99px;border:1px solid #fecaca;font-weight:700;">⚠️ ${a}</span>`).join('')}
                 </div>
-                <p style="font-size: 0.95rem; line-height: 1.7; color: #1e293b; margin: 0; font-family: 'Space Grotesk', sans-serif;">
+                <p style="font-size:.95rem;line-height:1.7;color:#1e293b;margin:0;font-family:'Space Grotesk',sans-serif;">
                     ${generateMacroInsight(sentiment, ticker, metrics)}
                 </p>
             </div>
         </div>
 
-        <div style="background: #fff; padding: 25px; border-radius: 16px; border-left: 6px solid ${score.color}; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-sm);">
-            <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <strong style="color: ${score.color}; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 0.05em;">Veredito Final da IA</strong>
-                <span style="font-size: 0.75rem; color: var(--text-muted);">Horizonte: Longo Prazo</span>
+        <div style="background:#fff;padding:25px;border-radius:16px;border-left:6px solid ${score.color};border:1px solid var(--border-subtle);box-shadow:var(--shadow-sm);">
+            <header style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
+                <strong style="color:${score.color};font-size:1.1rem;text-transform:uppercase;letter-spacing:.05em;">Veredito Final da IA</strong>
+                <span style="font-size:.75rem;color:var(--text-muted);">Horizonte: Longo Prazo</span>
             </header>
-            <p style="font-size: 1.05rem; line-height: 1.6; color: var(--text-main); margin-bottom: 25px;">${score.action}</p>
-            <button class="primary-btn" style="width: 100%; padding: 18px; font-size: 1.1rem; font-weight: 700; border-radius: 12px;" onclick="window.fillAssetForm('${asset.ticker}', '${asset.name}', '${asset.type === 'REIT' ? 'reit' : (asset.type === 'ETF' ? 'dividends' : 'growth')}')">
+            <p style="font-size:1.05rem;line-height:1.6;color:var(--text-main);margin-bottom:25px;">${score.action}</p>
+            <button class="primary-btn" style="width:100%;padding:18px;font-size:1.1rem;font-weight:700;border-radius:12px;" onclick="window.fillAssetForm('${asset.ticker}', '${asset.name}', '${asset.type === 'REIT' ? 'reit' : (asset.type === 'ETF' ? 'dividends' : 'growth')}')">  
                 Executar Decisão: Registar Ativo no Portfólio
             </button>
         </div>
@@ -217,62 +261,98 @@ window.viewFullStudy = async function(ticker) {
 // ── MOTOR DE INTELIGÊNCIA E MÉTRICAS ──────────────────────────
 
 async function fetchFinancialMetrics(ticker) {
-    if (!window.state.finnhubApiKey) {
-        console.warn(`[Pro 360] Nenhuma Chave API Finnhub encontrada. A utilizar dados limitados.`);
-        return {
-            yield: 0, pe: 0, pb: 0, marketCap: 0, roi: 0,
-            priceNote: "Chave API em falta. Configure nas definiÇÕES."
-        };
+    const apiKey = window.state?.finnhubApiKey;
+    const assetInfo = AI_KNOWLEDGE.find(a => a.ticker === ticker);
+    const assetType = assetInfo?.type || 'Stock';
+
+    // Para Cripto, usar CoinGecko (grátis, sem chave)
+    if (assetType === 'Crypto' || ['BTC','ETH','SOL','LINK','ADA','DOT','AVAX'].includes(ticker)) {
+        return fetchCryptoMetrics(ticker);
     }
+
+    if (!apiKey) {
+        console.warn(`[Pro 360] Chave API Finnhub em falta. Veja Configurações.`);
+        return { _noKey: true };
+    }
+
     try {
-        // NÃO remover o sufixo .DE ou .AS, a Finnhub precisa dele para mercados europeus
-        const symbol = ticker; 
-        
-        // Fazer pedidos em paralelo: Métricas Fundamentais e Cotação de Preço (Fallback)
-        const [metricRes, quoteRes] = await Promise.all([
-            fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${symbol}&metric=all&token=${window.state.finnhubApiKey}`),
-            fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${window.state.finnhubApiKey}`)
+        // ✓ PRESERVAR O TICKER COMPLETO (VWCE.DE, ASML.AS, etc.) — NÃO fazer split
+        const [metricsRes, quoteRes] = await Promise.all([
+            fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${apiKey}`).then(r => r.ok ? r.json() : null),
+            fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${apiKey}`).then(r => r.ok ? r.json() : null)
         ]);
-        
-        const metricData = await metricRes.json();
-        const quoteData = await quoteRes.json();
-        
-        let result = {
-            yield: 0, pe: 0, pb: 0, marketCap: 0, roi: 0, debtEquity: 0, revenueGrowth: 0,
-            high52: quoteData?.h || 0,
-            low52: quoteData?.l || 0,
-            currPrice: quoteData?.c || window.state.priceCache[ticker.toUpperCase()] || 0
+
+        const m = metricsRes?.metric || {};
+        const q = quoteRes || {};
+
+        // Preço atual: Quote é sempre mais recente
+        const currPrice = q.c || m['52WeekHigh'] * 0.9 || 0;
+        const high52 = m['52WeekHigh'] || q.h || 0;
+        const low52  = m['52WeekLow']  || q.l || 0;
+        const vsHigh = (currPrice && high52) ? ((currPrice / high52) - 1) * 100 : null;
+        const vsLow  = (currPrice && low52)  ? ((currPrice / low52)  - 1) * 100 : null;
+
+        return {
+            _type: assetType,
+            // Fundamentais (podem ser null em ETFs)
+            yield:         m.dividendYieldIndicatedAnnual || m.dividendYield5YAvg || null,
+            pe:            m.peExclExtraTTM || null,
+            pb:            m.priceToBookTTM || null,
+            marketCap:     m.marketCapitalization || null,
+            roi:           m.roiTTM || m.roeTTM || null,
+            epsGrowth:     m.epsGrowth5Y || m.epsGrowthTTM || null,
+            debtEquity:    m.totalDebtToTotalEquityTTM || null,
+            revenueGrowth: m.revenueGrowth5Y || null,
+            beta:          m.beta || null,
+            // Preço em tempo real (Quote)
+            currPrice,
+            high52,
+            low52,
+            vsHigh,
+            vsLow,
+            prevClose:     q.pc || null,
+            changePercent: q.pc ? ((q.c - q.pc) / q.pc * 100) : null,
         };
-
-        if (metricData && metricData.metric) {
-            const m = metricData.metric;
-            result = {
-                ...result,
-                yield: m.dividendYieldIndicatedAnnual || m.dividendYield5YAvg || 0,
-                pe: m.peExclExtraTTM || 0,
-                pb: m.priceToBookTTM || 0,
-                marketCap: m.marketCapitalization || 0,
-                roi: m.roiTTM || m.roeTTM || 0,
-                debtEquity: m.totalDebtToTotalEquityTTM || 0,
-                revenueGrowth: m.revenueGrowth5Y || 0,
-                high52: m['52WeekHigh'] || result.high52,
-                low52: m['52WeekLow'] || result.low52
-            };
-        }
-
-        // Calcular vsHigh com base nos dados disponíveis (Quote ou Metric)
-        if (result.currPrice && result.high52) {
-            result.vsHigh = ((result.currPrice / result.high52) - 1) * 100;
-        } else {
-            result.vsHigh = -10; // Fallback visual
-        }
-
-        return result;
     } catch (e) {
-        console.error("Erro ao obter métricas:", e);
+        console.error("[Pro 360] Erro ao obter métricas:", e);
+        return null;
     }
-    return null;
 }
+
+// Busca métricas de Cripto via CoinGecko (grátis, sem chave API)
+async function fetchCryptoMetrics(ticker) {
+    const COINGECKO_IDS = {
+        BTC: 'bitcoin', ETH: 'ethereum', SOL: 'solana',
+        LINK: 'chainlink', ADA: 'cardano', DOT: 'polkadot', AVAX: 'avalanche-2'
+    };
+    const id = COINGECKO_IDS[ticker.toUpperCase()];
+    if (!id) return null;
+    try {
+        const res = await fetch(`https://api.coingecko.com/api/v3/coins/${id}?localization=false&tickers=false&community_data=false&developer_data=false`);
+        if (!res.ok) return null;
+        const d = await res.json();
+        const md = d.market_data || {};
+        const currPrice = md.current_price?.eur || md.current_price?.usd || 0;
+        const high52    = md.ath?.eur || md.ath?.usd || null;
+        return {
+            _type: 'Crypto',
+            currPrice,
+            high52,
+            low52:         md.atl?.eur || md.atl?.usd || null,
+            vsHigh:        (currPrice && high52) ? ((currPrice / high52) - 1) * 100 : null,
+            changePercent: md.price_change_percentage_24h || null,
+            marketCap:     (md.market_cap?.eur || md.market_cap?.usd || 0) / 1e6, // em milhões
+            volume24h:     md.total_volume?.eur || md.total_volume?.usd || null,
+            circulatingSupply: d.market_data?.circulating_supply || null,
+            // Não aplicação a Cripto:
+            pe: null, pb: null, roi: null, debtEquity: null, revenueGrowth: null,
+        };
+    } catch (e) {
+        console.error('[Pro 360] Erro CoinGecko:', e);
+        return null;
+    }
+}
+
 
 async function fetchMarketNews() {
     if (!window.state.finnhubApiKey) return [];
@@ -375,17 +455,33 @@ function calculateGrowthScore(metrics, type, sentiment) {
     
     let score = 50;
     
-    // Melhoria da Lógica de Scoring 360º
-    if (metrics.pe > 0 && metrics.pe < 25) score += 15;
-    if (metrics.roi > 15) score += 10;
-    if (metrics.epsGrowth > 10) score += 10;
-    if (metrics.vsHigh < -15) score += 5;
+    if (type === 'ETF') {
+        // Função de score simplificada para ETFs (baseada em performance e yield)
+        score = 75; // Base sólida — ETFs diversificados têm risco estruturalmente menor
+        if (metrics.vsHigh !== null && metrics.vsHigh < -10) score += 8; // bom ponto de entrada
+        if (metrics.yield && metrics.yield > 1) score += 5;
+        if (metrics.changePercent < -3) score += 5; // correcção recente = oportunidade
+    } else if (type === 'Crypto') {
+        score = 55;
+        if (metrics.vsHigh !== null && metrics.vsHigh < -40) score += 20; // muito abaixo do ATH
+        else if (metrics.vsHigh !== null && metrics.vsHigh < -20) score += 10;
+        if (metrics.changePercent > 5) score += 5;
+        if (metrics.changePercent < -10) score -= 10;
+    } else {
+        // Stocks / REITs
+        if (metrics.pe && metrics.pe > 0 && metrics.pe < 25) score += 15;
+        if (metrics.roi && metrics.roi > 15) score += 10;
+        if (metrics.epsGrowth && metrics.epsGrowth > 10) score += 10;
+        if (metrics.vsHigh !== null && metrics.vsHigh < -15) score += 5;
+    }
     
     // Ajuste por sentimento macro
     if (sentiment) {
         if (sentiment.score > 20) score += 5;
         if (sentiment.score < -20) score -= 10;
     }
+    
+    score = Math.min(100, Math.max(10, score));
     
     let color = '#3b82f6'; // Blue
     let verdict = 'Manter em Observação';
@@ -395,6 +491,10 @@ function calculateGrowthScore(metrics, type, sentiment) {
         color = '#10b981'; // Green
         verdict = 'Compra Forte';
         action = 'Fundamentais robustos combinados com um ponto técnico atrativo. Considere entrada fracionada.';
+    } else if (score >= 65) {
+        color = '#0d9488'; // Teal  
+        verdict = 'Acumular';
+        action = 'Ativo com boa relação risco/retorno. Adequado para construção de posição gradual.';
     } else if (score < 45) {
         color = '#f43f5e'; // Red
         verdict = 'Risco Elevado';
