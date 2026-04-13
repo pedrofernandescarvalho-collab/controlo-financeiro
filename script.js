@@ -212,7 +212,7 @@ function isActiveMonthCurrent() {
 }
 
 function getActiveMonthKey() {
-  // Suporte ao navegador de mãªs do dashboard (window.dashboardMonthKey)
+  // Suporte ao navegador de mês do dashboard (window.dashboardMonthKey)
   if (typeof window !== 'undefined' && window.dashboardMonthKey) {
     return window.dashboardMonthKey;
   }
@@ -260,7 +260,7 @@ function sumExpensesUntil(day) {
     )
     .reduce((total, expense) => total + getNetExpenseAmount(expense), 0);
 
-  // Somar todos os recebíveis vinculados a despesas deste mãªs até ao dia (splits)
+  // Somar todos os recebíveis vinculados a despesas deste mês até ao dia (splits)
   const splits = state.receivables
     .filter(r => 
       r.linkedExpenseId && 
@@ -303,14 +303,14 @@ function getMonthlyProvisionForFixedExpenses() {
 }
 
 /**
- * Calcula o status das obrigações do mãªs atual.
+ * Calcula o status das obrigações do mês atual.
  * Compara a provisão teórica com os pagamentos fixos reais já registados.
  */
 function calculateObligationsStatus() {
     const monthKey = getMonthKey();
     const totalProvision = getMonthlyProvisionForFixedExpenses();
     
-    // Somar o que já foi registado como despesa fixa NESTE mãªs
+    // Somar o que já foi registado como despesa fixa NESTE mês
     const paidAmount = state.expenses
         .filter(e => getItemMonthKey(e) === monthKey && e.kind === 'fixed')
         .reduce((sum, e) => sum + Number(e.amount || 0), 0);
@@ -329,12 +329,12 @@ function calculateObligationsStatus() {
 function sumVariableExpenses() {
   const monthKey = getMonthKey();
   
-  // Soma total das despesas variáveis do mãªs
+  // Soma total das despesas variáveis do mês
   const totalVariable = state.expenses
     .filter(e => e.kind !== "fixed" && getItemMonthKey(e) === monthKey)
     .reduce((total, expense) => total + getNetExpenseAmount(expense), 0);
 
-  // Somar todos os recebíveis vinculados a despesas deste mãªs
+  // Somar todos os recebíveis vinculados a despesas deste mês
   const totalSplits = state.receivables
     .filter(r => r.linkedExpenseId && getItemMonthKey(r) === monthKey)
     .reduce((total, split) => total + Number(split.amount || 0), 0);
@@ -371,13 +371,13 @@ function calculateBudget() {
   // Provisionamento: peso médio mensal de todas as despesas (mensal + semestral/6 + anual/12)
   const monthlyProvision = getMonthlyProvisionForFixedExpenses();
   
-  // Despesas reais do mãªs (para análise de leftover corrente)
+  // Despesas reais do mês (para análise de leftover corrente)
   const fixedExpensesReal = sumFixedMonthlyExpenses();
   const variableExpenses = sumVariableExpenses();
   const transferExpenses = sumTransfers();
   const extraIncomes = sumIncomes(true); // Excluir reembolsos para o orçamento
   
-  // Orçamento base usa o provisionamento para que o disponível diário não varie conforme o mãªs
+  // Orçamento base usa o provisionamento para que o disponível diário não varie conforme o mês
   const disposableMonthlyBudget = Math.max(salary + extraIncomes - monthlyProvision, 0);
   const { daysInCycle } = getCycleWindow();
   const weeksInCycle = Math.max(Math.ceil(daysInCycle / 7), 1);
@@ -386,7 +386,7 @@ function calculateBudget() {
   const shareTotal = (Number(state.revolutShare) || 0) + (Number(state.xtbShare) || 0);
   const normalizedRevolutShare = shareTotal > 0 ? (Number(state.revolutShare) || 0) / shareTotal : 0.5;
   
-  // Leftover é o que SOBRA no mãªs real face ao que foi orçamentado e gasto REAL
+  // Leftover é o que SOBRA no mês real face ao que foi orçamentado e gasto REAL
   // Agora utiliza getRealSpentEfficiency() para detetar despesas não registadas automaticamente.
   const realFlexSpent = getRealSpentEfficiency();
   const leftover = Math.max(salary + extraIncomes - monthlyProvision - realFlexSpent, 0);
@@ -397,7 +397,7 @@ function calculateBudget() {
 
   return {
     fixedExpenses: monthlyProvision, // peso orçamental
-    fixedExpensesReal,               // pagamento real do mãªs
+    fixedExpensesReal,               // pagamento real do mês
     variableExpenses,
     transferExpenses,
     disposableMonthlyBudget,
@@ -464,7 +464,7 @@ function getSnapshotsForMonth() {
       // Atualizar o saldo conhecido desta conta
       accountBalances[identityKey] = { bank: Number(s.bankBalance)||0, cash: Number(s.cashBalance)||0 };
       
-      // Se este snapshot pertence ao mãªs que estamos a analisar, somamos TODOS os saldos conhecidos ATã‰ ESTE MOMENTO
+      // Se este snapshot pertence ao mês que estamos a analisar, somamos TODOS os saldos conhecidos ATã‰ ESTE MOMENTO
       if (s.monthKey === getMonthKey()) {
           let tb = 0; let tc = 0;
           for (let i in accountBalances) {
@@ -793,7 +793,7 @@ function getCalendarSlices() {
     start = sundayDay + 1;
   });
   
-  // A última fatia vai do dia seguinte ao último domingo até ao fim do mãªs (se ainda houver dias)
+  // A última fatia vai do dia seguinte ao último domingo até ao fim do mês (se ainda houver dias)
   if (start <= lastDay) {
     slices.push({ start, end: lastDay });
   }
@@ -1372,7 +1372,7 @@ function toggleFixedPayment(obligation, isPaid) {
       kind: "fixed",
       linkedObligationId: obligation.id
     });
-    showToast(`ObrigaÇÃo "${obligation.name}" marcada como paga.`);
+    showToast(`Obrigação "${obligation.name}" marcada como paga.`);
   } else {
     const expenseToRemove = state.expenses.find(e => 
       getItemMonthKey(e) === monthKey && 
@@ -1442,7 +1442,7 @@ function renderRecurring() {
         const sm = Number(item.startMonth) || 1;
         const currentMonth = Number(month); // Mãªs atual da análise
         
-        // Lógica simplificada e robusta para detectar se vence este mãªs
+        // Lógica simplificada e robusta para detectar se vence este mês
         const isCurrentPayment = (!item.frequency || item.frequency === 'monthly') ||
            (item.frequency === 'quarterly' && (currentMonth - sm + 12) % 3 === 0) ||
            (item.frequency === 'annual' && currentMonth === sm) ||
@@ -1491,10 +1491,10 @@ function renderRecurring() {
       });
 
       if (renderedCount === 0) {
-          // Se todas forem diluídas e nenhuma vencer este mãªs
+          // Se todas forem diluídas e nenhuma vencer este mês
           const msg = document.createElement("p");
           msg.style.cssText = "font-size: 0.75rem; opacity: 0.5; padding: 10px; text-align: center;";
-          msg.textContent = "Nenhuma conta vence este mãªs.";
+          msg.textContent = "Nenhuma conta vence este mês.";
           monthlyContainer.prepend(msg);
       }
     }
@@ -1610,7 +1610,7 @@ function renderReceivables() {
   });
 }
 
-// Retorna um filtro de mãªs de acordo com o período ativo na UI
+// Retorna um filtro de mês de acordo com o período ativo na UI
 function getPeriodMonthKeys() {
   const today = getToday();
   const period = (typeof window !== 'undefined' && window.activePeriodFilter) || 'month';
@@ -1649,7 +1649,7 @@ function renderExpenses() {
   if (allMonthExpenses.length === 0) {
     if (variableContainer) {
       variableContainer.classList.add("item-list", "empty-state");
-      variableContainer.textContent = "Ainda não existem despesas registadas para este mãªs.";
+      variableContainer.textContent = "Ainda não existem despesas registadas para este mês.";
     }
     return;
   }
@@ -1711,7 +1711,7 @@ function renderExpenses() {
     });
     updateAccountBalance(account.id, Number(document.querySelector("#startBankBalance").value) || 0);
 
-    // Auditoria Ponto 3: Verificar e transitar excedente do mãªs anterior automaticamente!
+    // Auditoria Ponto 3: Verificar e transitar excedente do mês anterior automaticamente!
     const activeKeyParts = getActiveMonthParts();
     let oldYear = activeKeyParts.year;
     let oldMonth = activeKeyParts.month - 1;
@@ -1749,7 +1749,7 @@ function renderExpenses() {
                          amount: oldSurplusToRoll,
                          day: 1, dateLabel: startDate
                      });
-                     showToast(`AtenÇÃo: O excedente esquecido de ${formatCurrency(oldSurplusToRoll)} do mãªs transato foi transferido como bónus!`);
+                     showToast(`AtenÇÃo: O excedente esquecido de ${formatCurrency(oldSurplusToRoll)} do mês transato foi transferido como bónus!`);
                  }
              }
         }
@@ -2019,7 +2019,7 @@ if (expenseForm) {
 
     const isFutureAllowed = kind === "fixed" && (frequency === "annual" || frequency === "semi-annual");
     if (!isFutureAllowed && !isCurrentMonthDate(expenseDate)) {
-      setStatus("#expenseStatus", "A despesa tem de estar dentro do mãªs atual ou ser uma obrigaÇÃo futura (Anual/Semestral).");
+      setStatus("#expenseStatus", "A despesa tem de estar dentro do mês atual ou ser uma obrigaÇÃo futura (Anual/Semestral).");
       return;
     }
 
@@ -2032,7 +2032,7 @@ if (expenseForm) {
       state.recurringFixed.push({
         id: generateUUID(), name, amount, day, frequency, startMonth
       });
-      setStatus("#expenseStatus", `ObrigaÇÃo "${name}" (${frequency}) integrada.`);
+      setStatus("#expenseStatus", `Obrigação "${name}" (${frequency}) integrada.`);
       expenseForm.reset();
       if (freqSelect) freqSelect.style.display = "none";
       if (splitContainer) splitContainer.style.display = "none";
@@ -2075,8 +2075,11 @@ if (expenseForm) {
     }
     
     saveState();
-    render(); if (expenseForm) expenseForm.removeAttribute('data-editing-id'); }); }
+    render();
+    if (expenseForm) expenseForm.removeAttribute('data-editing-id');
+  });
 }
+
 
 if (incomeForm) {
   incomeForm.addEventListener("submit", (event) => {
@@ -2134,7 +2137,7 @@ if (recurringForm) {
     recurringForm.reset();
     saveState();
     render();
-    setStatus("#recurringStatus", `ObrigaÇÃo "${name}" (${frequency}) integrada no fluxo orçamental.`);
+    setStatus("#recurringStatus", `Obrigação "${name}" (${frequency}) integrada no fluxo orçamental.`);
   });
 }
 
@@ -2308,7 +2311,7 @@ function getRealSpentEfficiency(targetDay = null) {
 function calculateSavingsRate() {
   const budget = calculateBudget();
   
-  // RENDIMENTO FRESCO: Apenas o que ganhou este mãªs (Salário + Extras Reais), 
+  // RENDIMENTO FRESCO: Apenas o que ganhou este mês (Salário + Extras Reais), 
   // excluindo a "TransiÇÃo Excedente" de meses passados para não inflacionar o denominador.
   const salary = Number(state.salary) || 0;
   const extraIncomesFresh = state.incomes
@@ -2367,7 +2370,7 @@ function getLeakageStatus() {
   return { type: 'info', message: `Excesso Registado: ${formatCurrency(absGap)} a mais face ao saldo.` };
 }
 
-// Auto-preenchimento do Saldo Inicial: vai buscar o último saldo do mãªs anterior
+// Auto-preenchimento do Saldo Inicial: vai buscar o último saldo do mês anterior
 function getPreviousMonthLastBalance() {
   const parts = getActiveMonthParts();
   let prevYear = parts.year;
@@ -2378,7 +2381,7 @@ function getPreviousMonthLastBalance() {
   const prevSnaps = state.snapshots.filter(s => s.monthKey === prevKey);
   if (!prevSnaps.length) return null;
   
-  // Agrupar por dia para encontrar o último dia do mãªs que tem registos
+  // Agrupar por dia para encontrar o último dia do mês que tem registos
   const days = prevSnaps.map(s => Number(s.day));
   const lastDay = Math.max(...days);
   const lastSnaps = prevSnaps.filter(s => Number(s.day) === lastDay);
