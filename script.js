@@ -1686,78 +1686,8 @@ function renderExpenses() {
     // Distribuir para o contentor correto baseado no tipo
     if (expense.kind !== "fixed" && variableContainer) {
         variableContainer.classList.remove("empty-state");
-
-    const startDate = document.querySelector("#startDate").value;
-    const accountId = document.querySelector("#startAccountId").value;
-    const account = state.accounts.find((item) => item.id === accountId);
-    if (!isCurrentMonthDate(startDate) || getDayFromDateInput(startDate) !== 1) {
-      setStatus("#bankStatus", "O ponto de partida tem de ser o dia 1 do mes atual.");
-      return;
+        variableContainer.appendChild(node);
     }
-    if (!account) {
-      setStatus("#bankStatus", "Escolhe a conta que vais analisar neste mes.");
-      return;
-    }
-
-    upsertSnapshot({
-      id: generateUUID(),
-      monthKey: getMonthKey(),
-      day: 1,
-      date: startDate,
-      accountId: account.id,
-      accountName: account.name,
-      bankBalance: Number(document.querySelector("#startBankBalance").value) || 0,
-      cashBalance: Number(document.querySelector("#startCashBalance").value) || 0
-    });
-    updateAccountBalance(account.id, Number(document.querySelector("#startBankBalance").value) || 0);
-
-    // Auditoria Ponto 3: Verificar e transitar excedente do mês anterior automaticamente!
-    const activeKeyParts = getActiveMonthParts();
-    let oldYear = activeKeyParts.year;
-    let oldMonth = activeKeyParts.month - 1;
-    if (oldMonth === 0) { oldMonth = 12; oldYear -= 1; }
-    const oldMonthKey = `${oldYear}-${String(oldMonth).padStart(2, "0")}`;
-    
-    const oldSnapshots = state.snapshots.filter(s => s.monthKey === oldMonthKey);
-    if (oldSnapshots.length > 0) {
-        const oldStart = oldSnapshots.find(s => s.day === 1);
-        const oldLast = oldSnapshots.slice().sort((a,b) => b.day - a.day)[0];
-        
-        if (oldStart && oldLast && oldLast.day > 1) {
-             const oldBudgetSalary = Number(state.salary) || 0;
-             const oldFixed = state.recurringFixed.reduce((sum, exp) => sum + Number(exp.amount), 0);
-             const oldIncomes = state.incomes.filter(i => getItemMonthKey(i) === oldMonthKey).reduce((sum, i) => sum + Number(i.amount), 0);
-             const oldTransfers = state.transfers.filter(t => getItemMonthKey(t) === oldMonthKey && t.day <= oldLast.day).reduce((sum, t) => sum + Number(t.amount), 0);
-             
-             const oldTotalBudget = Math.max(oldBudgetSalary + oldIncomes - oldFixed, 0);
-             
-             const stBank = Number(oldStart.bankBalance) + Number(oldStart.cashBalance);
-             const endBank = Number(oldLast.bankBalance) + Number(oldLast.cashBalance);
-             
-             const grossOutflow = Math.max((stBank - endBank) + oldIncomes, 0);
-             const oldFixedUpToLast = state.recurringFixed.filter(f => f.day <= oldLast.day).reduce((sum, f) => sum + Number(f.amount), 0);
-             const realSpent = Math.max(grossOutflow - oldFixedUpToLast - oldTransfers, 0);
-             
-             const oldSurplusToRoll = Math.max(oldTotalBudget - realSpent - oldTransfers, 0);
-             
-             if (oldSurplusToRoll > 0) {
-                 const hasRolloverAlready = state.incomes.find(i => getItemMonthKey(i) === getMonthKey() && i.name.includes("Excedente"));
-                 if (!hasRolloverAlready) {
-                     state.incomes.push({
-                         id: generateUUID(), monthKey: getMonthKey(),
-                         name: `TransiÇÃo Excedente: ${oldMonthKey}`,
-                         amount: oldSurplusToRoll,
-                         day: 1, dateLabel: startDate
-                     });
-                     showToast(`AtenÇÃo: O excedente esquecido de ${formatCurrency(oldSurplusToRoll)} do mês transato foi transferido como bónus!`);
-                 }
-             }
-        }
-    }
-
-    saveState();
-    render();
-    setStatus("#bankStatus", "Saldo inicial do mes guardado com sucesso.");
   });
 }
 
@@ -1982,6 +1912,7 @@ if (expenseForm) {
       showToast(`Divisão de ${part}€ aplicada a ${personCount} pessoas.`);
     };
   }
+}
 
   if (expenseForm) { expenseForm.addEventListener("submit", (event) => {
     event.preventDefault();
