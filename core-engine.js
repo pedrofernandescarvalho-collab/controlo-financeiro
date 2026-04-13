@@ -1711,6 +1711,25 @@ function renderExpenses() {
   });
 }
 
+if (settingsForm) {
+  settingsForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const salary = Number(document.querySelector("#salary").value) || 0;
+    const rev = Number(document.querySelector("#revolutShare").value) || 0;
+    const xtb = Number(document.querySelector("#xtbShare").value) || 0;
+    const apiKey = document.querySelector("#finnhubApiKey").value.trim();
+
+    state.salary = salary;
+    state.revolutShare = rev;
+    state.xtbShare = xtb;
+    state.finnhubApiKey = apiKey;
+
+    saveState();
+    alert("Definições guardadas com sucesso! A chave API Finnhub está agora ativa.");
+    location.reload(); 
+  });
+}
+
 if (snapshotForm) {
   snapshotForm.addEventListener("submit", (event) => {
     event.preventDefault();

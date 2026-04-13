@@ -217,7 +217,17 @@ window.viewFullStudy = async function(ticker) {
 // ── MOTOR DE INTELIGÊNCIA E MÉTRICAS ──────────────────────────
 
 async function fetchFinancialMetrics(ticker) {
-    if (!window.state.finnhubApiKey) return null;
+    if (!window.state.finnhubApiKey) {
+        console.warn(`[Pro 360] Nenhuma Chave API Finnhub encontrada. A utilizar dados limitados.`);
+        return {
+            yield: 0,
+            pe: 0,
+            pb: 0,
+            marketCap: 0,
+            roi: 0,
+            priceNote: "Chave API em falta. Configure nas definiÇÕES."
+        };
+    }
     try {
         const symbol = ticker.split('.')[0]; 
         const response = await fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${symbol}&metric=all&token=${window.state.finnhubApiKey}`);
