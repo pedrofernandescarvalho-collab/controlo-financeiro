@@ -1,4 +1,4 @@
-﻿const STORAGE_KEY = "finance-control-app";
+const STORAGE_KEY = "finance-control-app";
 
 function parseFormattedNumber(val) {
   if (typeof val !== "string") return Number(val) || 0;
