@@ -1714,19 +1714,34 @@ function renderExpenses() {
 if (settingsForm) {
   settingsForm.addEventListener("submit", (event) => {
     event.preventDefault();
-    const salary = Number(document.querySelector("#salary").value) || 0;
-    const rev = Number(document.querySelector("#revolutShare").value) || 0;
-    const xtb = Number(document.querySelector("#xtbShare").value) || 0;
-    const apiKey = document.querySelector("#finnhubApiKey").value.trim();
+    const salary = Number(document.querySelector("#salary")?.value) || 0;
+    const rev    = Number(document.querySelector("#revolutShare")?.value) || 0;
+    const xtb    = Number(document.querySelector("#xtbShare")?.value) || 0;
 
-    state.salary = salary;
-    state.revolutShare = rev;
-    state.xtbShare = xtb;
-    state.finnhubApiKey = apiKey;
-
+    state.salary        = salary;
+    state.revolutShare  = rev;
+    state.xtbShare      = xtb;
     saveState();
-    alert("Definições guardadas com sucesso! A chave API Finnhub está agora ativa.");
-    location.reload(); 
+    setStatus("#settingsStatus", "Definições guardadas.");
+  });
+}
+
+// ── Listener dedicado para a Chave API (formulário #api-settings-form) ──
+const apiSettingsForm = document.querySelector("#api-settings-form");
+if (apiSettingsForm) {
+  apiSettingsForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const apiKey = (document.querySelector("#finnhubApiKey")?.value || "").trim();
+    if (!apiKey) { alert("⚠️ Introduza uma chave API válida."); return; }
+    state.finnhubApiKey = apiKey;
+    if (typeof window !== 'undefined') window.state = state;
+    saveState();
+    const btn = apiSettingsForm.querySelector("button[type='submit'], button");
+    if (btn) { btn.textContent = "✅ Chave Guardada!"; btn.disabled = true; }
+    setTimeout(() => {
+      const ref = document.referrer;
+      window.location.href = (ref && ref.includes('pro360')) ? ref : 'pro360.html';
+    }, 800);
   });
 }
 

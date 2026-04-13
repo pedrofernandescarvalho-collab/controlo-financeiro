@@ -125,8 +125,8 @@ window.viewFullStudy = async function(ticker) {
             <div style="font-weight:700;font-size:1.1rem;${color ? 'color:'+color+';' : ''}">${value !== null ? value : na('N/D')}</div>
          </div>`;
 
-    const changeColor = metrics?.changePercent > 0 ? 'var(--trading-green)' : metrics?.changePercent < 0 ? 'var(--trading-red)' : '';
-    const changeStr   = metrics?.changePercent !== null ? `${metrics.changePercent >= 0 ? '+' : ''}${metrics.changePercent?.toFixed(2)}%` : null;
+    const changeColor = (metrics?.changePercent ?? null) > 0 ? 'var(--trading-green)' : (metrics?.changePercent ?? null) < 0 ? 'var(--trading-red)' : '';
+    const changeStr   = (metrics?.changePercent != null) ? `${metrics.changePercent >= 0 ? '+' : ''}${Number(metrics.changePercent).toFixed(2)}%` : null;
 
     // Quadrante 1 — adaptado por tipo
     let q1Html = '';
