@@ -130,7 +130,7 @@ window.viewFullStudy = async function(ticker) {
             <!-- Quadrante 1: Fundamental Avançado -->
             <div class="report-section" style="background: #fff; padding: 20px; border-radius: 16px; border: 1px solid var(--border-subtle); box-shadow: var(--shadow-sm);">
                 <header style="display: flex; align-items: center; gap: 10px; margin-bottom: 18px; color: var(--trading-blue);">
-                    <span style="font-size: 1.2rem;">📊</span> <strong style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Saúde Fundamental</strong>
+                    <span style="font-size: 1.2rem;">${asset.type === 'ETF' ? '📈' : '📊'}</span> <strong style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">${asset.type === 'ETF' ? 'Performance do Fundo' : 'Saúde Fundamental'}</strong>
                 </header>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div class="kpi-box">
@@ -138,8 +138,8 @@ window.viewFullStudy = async function(ticker) {
                         <div style="font-weight: 700; font-size: 1.1rem;">${metrics?.pe ? metrics.pe.toFixed(1) : 'N/A'}</div>
                     </div>
                     <div class="kpi-box">
-                        <small style="opacity: 0.5; font-size: 0.65rem; text-transform: uppercase; display: block; margin-bottom: 4px;">P/B Ratio</small>
-                        <div style="font-weight: 700; font-size: 1.1rem;">${metrics?.pb ? metrics.pb.toFixed(1) : 'N/A'}</div>
+                        <small style="opacity: 0.5; font-size: 0.65rem; text-transform: uppercase; display: block; margin-bottom: 4px;">${asset.type === 'ETF' ? 'Volatilidade (Beta)' : 'P/B Ratio'}</small>
+                        <div style="font-weight: 700; font-size: 1.1rem;">${asset.type === 'ETF' ? (metrics?.beta ? metrics.beta.toFixed(2) : '1.00') : (metrics?.pb ? metrics.pb.toFixed(1) : 'N/A')}</div>
                     </div>
                     <div class="kpi-box">
                         <small style="opacity: 0.5; font-size: 0.65rem; text-transform: uppercase; display: block; margin-bottom: 4px;">Dividend Yield</small>
@@ -168,8 +168,8 @@ window.viewFullStudy = async function(ticker) {
                         <strong style="font-size: 1.1rem; color: ${metrics?.debtEquity > 100 ? 'var(--trading-red)' : 'var(--trading-green)'}">${metrics?.debtEquity ? metrics.debtEquity.toFixed(1) + '%' : 'Baixa'}</strong>
                     </div>
                     <div class="kpi-box">
-                        <small style="display: block; opacity: 0.6; font-size: 0.65rem; margin-bottom: 4px;">Crescimento Rec.</small>
-                        <strong style="font-size: 1.1rem; color: var(--trading-green)">+${metrics?.revenueGrowth ? metrics.revenueGrowth.toFixed(1) + '%' : 'N/A'}</strong>
+                        <small style="display: block; opacity: 0.6; font-size: 0.65rem; margin-bottom: 4px;">${asset.type === 'ETF' ? 'Tendência LP' : 'Crescimento Rec.'}</small>
+                        <strong style="font-size: 1.1rem; color: var(--trading-green)">${asset.type === 'ETF' ? 'Alta' : (metrics?.revenueGrowth ? '+' + metrics.revenueGrowth.toFixed(1) + '%' : 'N/A')}</strong>
                     </div>
                 </div>
                 
@@ -228,32 +228,57 @@ async function fetchFinancialMetrics(ticker) {
             priceNote: "Chave API em falta. Configure nas definiÇÕES."
         };
     }
+    
     try {
-        const symbol = ticker.split('.')[0]; 
-        const response = await fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${symbol}&metric=all&token=${window.state.finnhubApiKey}`);
-        const data = await response.json();
+        // Tentar obter métricas fundamentais primeiro (Ticker Completo)
+        const response = await fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${window.state.finnhubApiKey}`);
+        let data = await response.json();
         
-        if (data && data.metric) {
-            const m = data.metric;
-            return {
-                yield: m.dividendYieldIndicatedAnnual || m.dividendYield5YAvg || 0,
-                pe: m.peExclExtraTTM || 0,
-                pb: m.priceToBookTTM || 0,
-                marketCap: m.marketCapitalization || 0,
-                roi: m.roiTTM || m.roeTTM || 0,
-                beta: m.beta || 1,
-                epsGrowth: m.epsGrowth5Y || m.epsGrowthTTM || 0,
-                debtEquity: m.totalDebtToTotalEquityTTM || 0,
-                revenueGrowth: m.revenueGrowth5Y || 0,
-                fcf: m.freeCashFlowTTM || 0,
-                high52: m['52WeekHigh'],
-                low52: m['52WeekLow'],
-                currPrice: window.state.priceCache[ticker.toUpperCase()] || m['52WeekHigh'] * 0.9,
-                vsHigh: window.state.priceCache[ticker.toUpperCase()] 
-                    ? ((window.state.priceCache[ticker.toUpperCase()] / m['52WeekHigh']) - 1) * 100 
-                    : -10
-            };
+        // Se as métricas vierem vazias, tentar sem o sufixo (alguns ativos US podem preferir assim)
+        if (!data || !data.metric || Object.keys(data.metric).length === 0) {
+            if (ticker.includes('.')) {
+                const baseSymbol = ticker.split('.')[0];
+                const resBase = await fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${baseSymbol}&metric=all&token=${window.state.finnhubApiKey}`);
+                const dataBase = await resBase.json();
+                if (dataBase && dataBase.metric) data = dataBase;
+            }
         }
+
+        // Se CONTINUAR sem dados críticos (Performance 52 semanas), fazer fallback para Quote
+        // Isto é essencial para ETFs (como o VWCE.DE) que não têm métricas fundamentais na Finnhub
+        let metrics = data?.metric || {};
+        
+        if (!metrics['52WeekHigh']) {
+            console.log(`IA Scanner: A obter cotação em tempo real para ${ticker} (Fallback)...`);
+            const quoteRes = await fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${window.state.finnhubApiKey}`);
+            const quoteData = await quoteRes.json();
+            if (quoteData && quoteData.c) {
+                metrics['52WeekHigh'] = quoteData.h || quoteData.c * 1.05;
+                metrics['52WeekLow'] = quoteData.l || quoteData.c * 0.9;
+                metrics.dividendYieldIndicatedAnnual = metrics.dividendYieldIndicatedAnnual || 0;
+            }
+        }
+
+        const currentPrice = window.state.priceCache[ticker.toUpperCase()] || metrics['52WeekHigh'] * 0.95;
+
+        return {
+            yield: metrics.dividendYieldIndicatedAnnual || metrics.dividendYield5YAvg || 0,
+            pe: metrics.peExclExtraTTM || 0,
+            pb: metrics.priceToBookTTM || 0,
+            marketCap: metrics.marketCapitalization || 0,
+            roi: metrics.roiTTM || metrics.roeTTM || 0,
+            beta: metrics.beta || 1,
+            epsGrowth: metrics.epsGrowth5Y || metrics.epsGrowthTTM || 0,
+            debtEquity: metrics.totalDebtToTotalEquityTTM || 0,
+            revenueGrowth: metrics.revenueGrowth5Y || 0,
+            fcf: metrics.freeCashFlowTTM || 0,
+            high52: metrics['52WeekHigh'],
+            low52: metrics['52WeekLow'],
+            currPrice: currentPrice,
+            vsHigh: metrics['52WeekHigh'] 
+                ? ((currentPrice / metrics['52WeekHigh']) - 1) * 100 
+                : -10
+        };
     } catch (e) {
         console.error("Erro ao obter métricas:", e);
     }
