@@ -1,4 +1,4 @@
-const CACHE_NAME = 'finance-control-v4.2.0';
+const CACHE_NAME = 'finance-control-v4.3.0';
 const ASSETS = [
   'index.html',
   'dashboard.html',
