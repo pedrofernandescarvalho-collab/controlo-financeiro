@@ -195,7 +195,7 @@ window.viewFullStudy = async function(ticker) {
             </div>
         </div>
 
-        ${noKey ? `<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:12px;padding:16px;margin-bottom:20px;font-size:0.9rem;">⚠️ <strong>Chave API não configurada.</strong> Vá a <a href="/configuracao.html" style="color:var(--trading-blue);">Configurações</a> e introduza a sua Finnhub API Key para métricas reais.</div>` : ''}
+        ${noKey ? `<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:12px;padding:16px;margin-bottom:20px;font-size:0.9rem;">⚠️ <strong>Chave API não configurada.</strong> Vá a <a href="configuracao.html" style="color:var(--trading-blue);font-weight:700;">Configurações</a> e introduza a sua Finnhub API Key para métricas reais.</div>` : ''}
         
         <div class="invest-grid-v2" style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:30px;">
             <div class="report-section" style="background:#fff;padding:20px;border-radius:16px;border:1px solid var(--border-subtle);box-shadow:var(--shadow-sm);">
