@@ -225,6 +225,25 @@
         </div>
       </section>
 
+      <!-- ── BACKUP LOCAL (SOBERANIA) ────────────────────────────────── -->
+      <section class="panel config-panel">
+        <div class="panel-heading">
+          <h2>Soberania de Dados (Backup Local)</h2>
+          <p>Exporta ou importa os teus dados manualmente num ficheiro JSON.</p>
+        </div>
+
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 15px;">
+          <button id="exportBackupBtn" class="secondary-btn" style="flex: 1; min-width: 150px;">
+            Exportar JSON
+          </button>
+          <button id="importBackupBtn" class="secondary-btn" style="flex: 1; min-width: 150px;">
+            Importar JSON
+          </button>
+          <input type="file" id="importFile" style="display: none;" accept=".json">
+        </div>
+        <p class="goal-label">Utiliza esta opção se preferires não usar a nuvem do Google Drive.</p>
+      </section>
+
     </main>
   </div>
 

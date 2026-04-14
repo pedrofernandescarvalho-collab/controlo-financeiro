@@ -213,31 +213,46 @@ async function autoCheckCloudDraft() {
     } catch (e) { console.warn("Verificação automática de cloud falhou:", e); }
 }
 
+// Inicialização e Ciclo de Vida
 document.addEventListener('DOMContentLoaded', () => {
     initializeGoogleDrive();
-    const navBtn = document.getElementById('syncNowBtnNav');
-    if (navBtn) {
-        navBtn.onclick = async (e) => {
-            e.preventDefault();
-            if (typeof window.syncDataToDrive === 'function') { await window.syncDataToDrive(true); } else { alert('A sincronização não está disponível neste momento.'); }
-        };
-    }
+    
+    // Aplicar Hook de Auto-Sincronização ao motor central
     const applyHook = () => {
         if (typeof window.saveState === 'function' && !window.saveState.__isHooked) {
             const originalSaveState = window.saveState;
             window.saveState = function() {
                 originalSaveState(); 
-                if (driveAccessToken && typeof window.syncDataToDrive === 'function') {
+                if (localStorage.getItem('google_drive_token') && typeof window.syncDataToDrive === 'function') {
                     clearTimeout(window.syncDebounceTimer);
                     window.syncDebounceTimer = setTimeout(() => { window.syncDataToDrive(false); }, 3000);
                 }
             };
             window.saveState.__isHooked = true;
-            console.log("Auto-Sync Hook aplicado ao saveState.");
+            console.log("[DRIVE] Auto-Sync Hook activo.");
         }
     };
+
+    // Tentar aplicar múltiplas vezes para contornar latência de carregamento do core-engine.js
     applyHook();
     setTimeout(applyHook, 1000);
     setTimeout(applyHook, 3000);
-    setTimeout(applyHook, 5000);
 });
+
+// Polling para ligar botões da barra de navegação que aparecem em múltiplas páginas
+function attachNavSyncButton() {
+    const navBtn = document.getElementById('syncNowBtnNav');
+    if (navBtn && !navBtn._attached) {
+        navBtn.onclick = async (e) => {
+            e.preventDefault();
+            if (typeof window.syncDataToDrive === 'function') { 
+                await window.syncDataToDrive(true); 
+            } else { 
+                alert('Motor de sincronização a inicializar...'); 
+            }
+        };
+        navBtn._attached = true;
+    }
+}
+setInterval(attachNavSyncButton, 2000);
+attachNavSyncButton();

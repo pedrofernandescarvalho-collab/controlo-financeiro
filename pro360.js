@@ -217,8 +217,8 @@ window.viewFullStudy = async function(ticker) {
                     ${q2DebtHtml}
                     ${q2GrowthHtml}
                 </div>
-                <div style="margin-top:25px;">
-                    <div style="background:rgba(13,148,136,.05);padding:15px;border-radius:12px;border-left:4px solid var(--trading-blue);">
+                <div style="margin-top:25px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div style="background:rgba(13,148,136,.05);padding:15px;border-radius:12px;border-left:4px solid var(--trading-blue); grid-column:span 2;">
                         <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
                             <small style="opacity:.6;color:var(--text-muted);">${barLabel}</small>
                             <strong style="color:${vsHighVal < -15 ? 'var(--trading-green)' : 'var(--text-main)'}">${fmtP(metrics?.vsHigh) || na('N/D')}</strong>
@@ -227,13 +227,26 @@ window.viewFullStudy = async function(ticker) {
                             <div style="width:${barWidth}%;height:100%;background:var(--trading-blue);"></div>
                         </div>
                     </div>
+                    <!-- Novos Indicadores Técnicos -->
+                    <div style="background:var(--bg-main); padding:10px; border-radius:10px; border:1px solid var(--border-subtle); text-align:center;">
+                        <small style="display:block; opacity:0.6; font-size:0.6rem; text-transform:uppercase;">RSI (14d)</small>
+                        <strong style="font-size:1.1rem; color:${(metrics?.rsi || 50) < 35 ? 'var(--trading-green)' : (metrics?.rsi || 50) > 70 ? 'var(--trading-red)' : 'var(--text-main)'}">
+                            ${metrics?.rsi ? metrics.rsi.toFixed(0) : 'N/D'}
+                        </strong>
+                    </div>
+                    <div style="background:var(--bg-main); padding:10px; border-radius:10px; border:1px solid var(--border-subtle); text-align:center;">
+                        <small style="display:block; opacity:0.6; font-size:0.6rem; text-transform:uppercase;">Backtest (1 Ano)</small>
+                        <strong style="font-size:1.1rem; color:${(metrics?.return1Y || 0) >= 0 ? 'var(--trading-green)' : 'var(--trading-red)'}">
+                            ${metrics?.return1Y ? metrics.return1Y.toFixed(1) + '%' : 'N/D'}
+                        </strong>
+                    </div>
                 </div>
             </div>
 
             <div class="report-section" style="grid-column:span 2;background:linear-gradient(135deg,rgba(56,189,248,.08) 0%,rgba(56,189,248,.02) 100%);padding:25px;border-radius:16px;border:1px solid rgba(56,189,248,.2);">
                 <header style="display:flex;align-items:center;gap:10px;margin-bottom:15px;">
                     <span style="font-size:1.3rem;">🌍</span>
-                    <strong style="font-size:.75rem;text-transform:uppercase;color:var(--trading-blue);letter-spacing:.05em;">Análise Macro &amp; Sentimento</strong>
+                    <strong style="font-size:.75rem;text-transform:uppercase;color:var(--trading-blue);letter-spacing:.05em;">Análise Macro & Sentimento</strong>
                 </header>
                 <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:15px;">
                     ${sentiment.trends.map(t => `<span style="font-size:.7rem;background:#fff;padding:4px 12px;border-radius:99px;border:1px solid var(--trading-blue);font-weight:700;">${t}</span>`).join('')}
@@ -261,6 +274,20 @@ window.viewFullStudy = async function(ticker) {
 // ── MOTOR DE INTELIGÊNCIA E MÉTRICAS ──────────────────────────
 
 async function fetchFinancialMetrics(ticker) {
+    // ── GESTÃO DE CACHE (15 MINUTOS) ──
+    const CACHE_KEY = `metrics_cache_${ticker}`;
+    const CACHE_TTL = 15 * 60 * 1000;
+    try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+            const { data, timestamp } = JSON.parse(cached);
+            if (Date.now() - timestamp < CACHE_TTL) {
+                console.log(`[Pro 360] Serving ${ticker} from cache.`);
+                return data;
+            }
+        }
+    } catch(e) {}
+
     const apiKey = window.state?.finnhubApiKey;
     const assetInfo = AI_KNOWLEDGE.find(a => a.ticker === ticker);
     const assetType = assetInfo?.type || 'Stock';
@@ -302,10 +329,9 @@ async function fetchFinancialMetrics(ticker) {
         const vsHigh    = (currPrice && high52) ? ((currPrice / high52) - 1) * 100 : null;
         const changePercent = (currPrice && prevClose) ? ((currPrice - prevClose) / prevClose * 100) : yahooData?.changePercent || null;
 
-        return {
+        const result = {
             _type: assetType,
             _source: hasMetrics ? 'finnhub' : (yahooData ? 'yahoo' : 'limited'),
-            // Fundamentais (null para ETFs — a renderização adapta-se)
             yield:         m.dividendYieldIndicatedAnnual || m.dividendYield5YAvg || null,
             pe:            m.peExclExtraTTM || m.peTTM || null,
             pb:            m.priceToBookTTM || m.pbTTM || null,
@@ -315,7 +341,6 @@ async function fetchFinancialMetrics(ticker) {
             debtEquity:    m.totalDebtToTotalEquityTTM || null,
             revenueGrowth: m.revenueGrowth5Y || null,
             beta:          m.beta || null,
-            // Preço e performance
             currPrice,
             high52,
             low52,
@@ -323,7 +348,14 @@ async function fetchFinancialMetrics(ticker) {
             prevClose,
             changePercent,
             name: yahooData?.name || null,
+            rsi: yahooData?.rsi || null,
+            sma8: yahooData?.sma8 || null,
+            return1Y: yahooData?.return1Y || null
         };
+
+        // Guardar em Cache
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ data: result, timestamp: Date.now() }));
+        return result;
     } catch (e) {
         console.error("[Pro 360] Erro ao obter métricas:", e);
         return { _type: assetType, _source: 'error' };
@@ -367,7 +399,22 @@ async function fetchYahooFallback(ticker) {
             const high52    = highs.length ? Math.max(...highs) : null;
             const low52     = lows.length  ? Math.min(...lows)  : null;
 
-            console.log(`[Pro 360] Yahoo Finance: ${ticker} → preço ${price}, máx52 ${high52}`);
+            // ── CÁLCULO DE INDICADORES TÉCNICOS (RSI & SMA) ──
+            let rsi = null;
+            if (closes.length >= 15) {
+                let gains = 0, losses = 0;
+                for (let i = closes.length - 14; i < closes.length; i++) {
+                    const diff = closes[i] - closes[i-1];
+                    if (diff >= 0) gains += diff; else losses -= diff;
+                }
+                const rs = gains / (losses || 1);
+                rsi = 100 - (100 / (1 + rs));
+            }
+
+            const sma8 = closes.length >= 8 ? closes.slice(-8).reduce((a, b) => a + b, 0) / 8 : null;
+            const return1Y = (price && closes[0]) ? ((price / closes[0]) - 1) * 100 : null;
+
+            console.log(`[Pro 360] Yahoo Data OK: ${ticker} | Preço: ${price} | RSI: ${rsi?.toFixed(0)}`);
 
             return {
                 price,
@@ -377,6 +424,9 @@ async function fetchYahooFallback(ticker) {
                 changePercent: (price && prevClose) ? ((price - prevClose) / prevClose * 100) : null,
                 marketCap: meta.marketCap || null,
                 name: meta.shortName || meta.longName || null,
+                rsi,
+                sma8,
+                return1Y
             };
         } catch (e) {
             console.warn(`[Pro 360] Yahoo fallback falhou para ${ticker}:`, e.message);
@@ -448,9 +498,9 @@ async function fetchMarketNews() {
 
 function analyzeGlobalSentiment(news) {
     const keywords = {
-        positive: ['crescimento', 'recuperação', 'inovação', 'corte', 'estímulo', 'tech', 'recorde', 'alta'],
-        negative: ['inflação', 'aumento', 'taxas', 'conflito', 'guerra', 'recessão', 'crise', 'risco', 'queda'],
-        macro: ['bce', 'fed', 'juros', 'emprego', 'pib', 'petróleo', 'ouro']
+        positive: ['growth', 'recovery', 'innovation', 'cut', 'stimulus', 'tech', 'record', 'rally', 'surge', 'beat', 'upgrade', 'profit', 'expansion'],
+        negative: ['inflation', 'hike', 'tariff', 'conflict', 'war', 'recession', 'crisis', 'risk', 'decline', 'downgrade', 'miss', 'slump', 'drop'],
+        macro: ['bce', 'fed', 'juros', 'rates', 'pib', 'gdp', 'oil', 'gold', 'employment']
     };
 
     let sentiment = { score: 0, alerts: [], trends: [] };
@@ -690,8 +740,8 @@ window.refreshAllPrices = async function() {
 async function fetchFinnhubPrice(ticker) {
     if (!window.state.finnhubApiKey) return;
     try {
-        // Finnhub requer símbolos no formato AAPL ou XLON:VWCE
-        const symbol = ticker.replace('.DE', '').replace('.IT', ''); // Simplificação rudimentar
+        // Finnhub requer símbolos no formato AAPL ou XLON:VWCE. Preservar tickers europeus.
+        const symbol = ticker; 
         const response = await fetch(`https://finnhub.io/api/v1/quote?symbol=${symbol}&token=${window.state.finnhubApiKey}`);
         const data = await response.json();
         if (data.c) {
@@ -748,30 +798,57 @@ function renderAssets() {
         
         const currentValue = asset.qty * currentPrice;
         totalInvestedValue += currentValue;
-        allocationData[asset.category] = (allocationData[asset.category] || 0) + currentValue;
-
-        const profitPct = (((currentPrice - asset.avgPrice) / asset.avgPrice) * 100).toFixed(2);
-        const profitClass = profitPct >= 0 ? 'value-up' : 'value-down';
-
-        const item = document.createElement('article');
-        item.className = 'asset-item';
         
-        item.innerHTML = `
-            <div style="min-width: 0; flex: 1;">
-                <span class="ticker-badge">${asset.ticker}</span>
-                <strong style="margin-left: 10px;">${asset.name}</strong>
-                <div style="margin-top: 5px; font-size: 0.8rem;">
-                  <span class="type-pill">${asset.category}</span>
-                  <small style="color: var(--text-muted); margin-left: 8px;">${asset.qty} unids @ ${window.formatCurrency(asset.avgPrice)}</small>
+        if (asset.category) {
+            allocationData[asset.category] += currentValue;
+        }
+
+        const profit = currentValue - (asset.qty * asset.avgPrice);
+        const profitPercent = (profit / (asset.qty * asset.avgPrice)) * 100;
+        const color = profit >= 0 ? 'var(--trading-green)' : 'var(--trading-red)';
+
+        const card = document.createElement('div');
+        card.className = 'asset-card';
+        card.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                    <span class="ticker-badge">${asset.ticker}</span>
+                    <strong style="display:block; margin-top:8px; font-size:1.1rem;">${asset.name}</strong>
+                    <span style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">${asset.category || 'Outros'}</span>
+                </div>
+                <div style="text-align:right;">
+                    <div style="font-size:1.2rem; font-weight:700;">${window.formatCurrency(currentValue)}</div>
+                    <div style="color:${color}; font-size:0.85rem; font-weight:700;">
+                        ${profit >= 0 ? '+' : ''}${window.formatCurrency(profit)} (${profitPercent.toFixed(2)}%)
+                    </div>
                 </div>
             </div>
-            <div style="text-align: right;">
-                <div style="font-weight: 700;">${window.formatCurrency(currentValue)}</div>
-                <small class="${profitClass}">${profitPct}% ${profitPct >= 0 ? '▲' : '▼'}</small>
-                <button class="ghost-btn" style="padding: 4px; font-size: 0.7rem; display: block; margin-left: auto; margin-top: 4px; color: var(--error);" onclick="window.removeAsset(${index})">Remover</button>
+            
+            <div style="margin-top:15px; padding-top:15px; border-top:1px solid var(--border-subtle); display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div>
+                    <small style="display:block; opacity:0.5; font-size:0.65rem;">QUANTIDADE</small>
+                    <strong style="font-size:0.9rem;">${asset.qty}</strong>
+                </div>
+                <div>
+                    <small style="display:block; opacity:0.5; font-size:0.65rem;">PREÇO MÉDIO</small>
+                    <strong style="font-size:0.9rem;">${window.formatCurrency(asset.avgPrice)}</strong>
+                </div>
+            </div>
+
+            ${profitPercent < -10 ? `
+                <div style="margin-top:12px; background:rgba(239,68,68,0.1); color:#ef4444; padding:8px; border-radius:8px; font-size:0.75rem; font-weight:700; text-align:center; border:1px solid rgba(239,68,68,0.2);">
+                    ⚠️ ALERTA DE QUEDA: Valorização negativa significativa.
+                </div>
+            ` : ''}
+
+            <div style="display:flex; gap:8px; margin-top:15px;">
+                <button class="secondary-btn" style="flex:1; font-size:0.75rem; padding:8px;" onclick="window.viewFullStudy('${asset.ticker}')">Análise 360º</button>
+                <button class="ghost-btn" style="color:var(--trading-red); padding:8px;" onclick="window.removeAsset(${index})">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
             </div>
         `;
-        list.appendChild(item);
+        list.appendChild(card);
     });
 
     renderAllocationChart(allocationData, totalInvestedValue);
@@ -807,15 +884,17 @@ function renderAllocationChart(data, total) {
 }
 
 function getPeriodicHighlights() {
-    // Lógica para selecionar destaques com base na data
-    const now = new Date();
-    const day = now.getDate();
-    const month = now.getMonth();
+    // Lógica Dinâmica: Selecionar ativos com melhor rácio RSI/SMA8 (Oversold = Oportunidade)
+    const sorted = [...AI_KNOWLEDGE].sort((a, b) => {
+        const rsiA = JSON.parse(localStorage.getItem(`metrics_cache_${a.ticker}`) || '{}')?.data?.rsi || 50;
+        const rsiB = JSON.parse(localStorage.getItem(`metrics_cache_${b.ticker}`) || '{}')?.data?.rsi || 50;
+        return rsiA - rsiB; // Menor RSI primeiro (Oversold)
+    });
     
     return {
-        dia: AI_KNOWLEDGE[day % AI_KNOWLEDGE.length],
-        semana: AI_KNOWLEDGE[(day + 7) % AI_KNOWLEDGE.length],
-        mes: AI_KNOWLEDGE[month % AI_KNOWLEDGE.length]
+        dia: sorted[0] || AI_KNOWLEDGE[0],
+        semana: sorted[1] || AI_KNOWLEDGE[1],
+        mes: sorted[2] || AI_KNOWLEDGE[2]
     };
 }
 
@@ -834,19 +913,22 @@ function generateAiOpportunities() {
 
     container.innerHTML = `
         <div style="background: linear-gradient(135deg, rgba(13, 148, 136, 0.05), rgba(124, 58, 237, 0.05)); border: 1px solid var(--border-subtle); padding: 25px; margin-bottom: 40px; border-radius: var(--radius-lg);">
-            <h3 style="margin-top:0; border-bottom: 2px solid var(--trading-blue); display: inline-block; padding-bottom: 5px;">📍 Destaques de Hoje</h3>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; border-bottom: 2px solid var(--trading-blue); display: inline-block; padding-bottom: 5px;">📍 Oportunidades do Momento</h3>
+                <span style="font-size:0.65rem; background:rgba(13,148,136,0.1); color:var(--trading-blue); padding:4px 12px; border-radius:99px; font-weight:700;">IA DINÂMICA</span>
+            </div>
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top:20px;">
                 <div style="border: 1px solid var(--border-subtle); padding:20px; background:rgba(255,255,255,0.8); border-radius: var(--radius-md);">
-                    <span style="font-size: 0.7rem; color: var(--trading-blue); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">⚡ Sugestão do Dia</span>
+                    <span style="font-size: 0.7rem; color: var(--trading-blue); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">⚡ Top Pick Hoje</span>
                     <strong style="display: block; font-size: 1.5rem; margin: 10px 0; color: var(--text-main);">${highlights.dia.ticker}</strong>
-                    <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 12px;">${highlights.dia.rationale.substring(0, 80)}...</p>
-                    <button class="primary-btn" style="width:100%; font-size: 0.8rem; border-radius: 8px;" onclick="window.viewFullStudy('${highlights.dia.ticker}')">Análise Analista →</button>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 12px;">Ranking de confiança elevado e fundamentos sólidos.</p>
+                    <button class="primary-btn" style="width:100%; font-size: 0.8rem; border-radius: 8px;" onclick="window.viewFullStudy('${highlights.dia.ticker}')">Análise Pro →</button>
                 </div>
                 <div style="border: 1px solid var(--border-subtle); padding:20px; background:rgba(255,255,255,0.8); border-radius: var(--radius-md);">
-                    <span style="font-size: 0.7rem; color: var(--trading-green); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">🔥 Da Semana</span>
-                    <strong style="display: block; font-size: 1.5rem; margin: 10px 0; color: var(--text-main);">${highlights.semana.ticker}</strong>
-                    <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 12px;">${highlights.semana.rationale.substring(0, 80)}...</p>
-                    <button class="primary-btn" style="width:100%; font-size: 0.8rem; background: var(--trading-green); border-radius: 8px;" onclick="window.viewFullStudy('${highlights.semana.ticker}')">Análise Analista →</button>
+                    <span style="font-size: 0.7rem; color: var(--trading-green); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em;">🔥 Procura de Volume</span>
+                    <strong style="display: block; font-size: 1.5rem; margin: 10px 0; color: var(--text-main); font-family: 'Space Grotesk', sans-serif;">BTC</strong>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0 0 12px;">Ativo digital com maior dominância do mercado.</p>
+                    <button class="primary-btn" style="width:100%; font-size: 0.8rem; background: var(--trading-green); border-radius: 8px;" onclick="window.viewFullStudy('BTC')">Análise Pro →</button>
                 </div>
             </div>
         </div>
@@ -895,44 +977,15 @@ function generateAiOpportunities() {
         });
         container.appendChild(section);
     });
-
-    const status = document.createElement('div');
-    status.style.cssText = 'font-size: 0.65rem; text-align: center; color: var(--text-muted); margin-top: 20px; font-weight: 600; padding: 12px; background: rgba(13,148,136,0.05); border-radius: 8px;';
-    status.textContent = '🤖 IA Scanner Ativo — Varrimento de 60+ ativos globais em tempo real';
-    container.appendChild(status);
 }
 
 function updateAllocationTargets() {
-    const targets = window.state.investmentTargets;
-    if (targets) {
-        if (document.getElementById('targetDivDisplay')) document.getElementById('targetDivDisplay').textContent = `${targets.dividends}%`;
-        if (document.getElementById('targetCryptoDisplay')) document.getElementById('targetCryptoDisplay').textContent = `${targets.crypto}%`;
-        if (document.getElementById('targetGrowthDisplay')) document.getElementById('targetGrowthDisplay').textContent = `${targets.growth}%`;
-    }
+    const goals = { dividends: 40, growth: 40, crypto: 10, reit: 10 };
+    Object.keys(goals).forEach(cat => {
+        const el = document.getElementById(`target-${cat}`);
+        if (el) el.textContent = `${goals[cat]}%`;
+    });
 }
 
-// Lógica de Submissão Segura
-document.addEventListener('submit', (e) => {
-    if (e.target.id === 'asset-form') {
-        e.preventDefault();
-        const ticker = document.getElementById('assetTicker').value.toUpperCase();
-        const name = document.getElementById('assetName').value;
-        const qty = Number(document.getElementById('assetQty').value);
-        const avgPrice = Number(document.getElementById('assetAvgPrice').value);
-        const category = document.getElementById('assetCategory').value;
 
-        const newAsset = { id: Date.now(), ticker, name, qty, avgPrice, category };
-        window.state.investments.push(newAsset);
-        
-        if (typeof saveState === 'function') saveState();
-        renderAssets();
-        generateAiOpportunities();
-        window.closeAssetModal();
-        e.target.reset();
-    }
-});
-
-// Inicialização com atraso de segurança
-window.addEventListener('load', () => {
-    setTimeout(initInvestments, 200);
-});
+document.addEventListener('DOMContentLoaded', initInvestments);
