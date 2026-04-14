@@ -330,17 +330,22 @@ async function fetchFinancialMetrics(ticker) {
     }
 }
 
-// Camada 2: Yahoo Finance via proxy público (sem chave, gratuito)
+// Camada 2: Yahoo Finance via proxy CORS (sem chave, gratuito)
 async function fetchYahooFallback(ticker) {
-    // Mapear tickers para formato Yahoo (VUAA.IT → VUAA.MI, VWCE.DE → VWCE.DE funciona)
+    // Mapear tickers para formato Yahoo (VUAA.IT → VUAA.MI para Borsa Italiana)
     const YAHOO_MAP = {
         'VUAA.IT': 'VUAA.MI',
+        'VWCE.DE': 'VWCE.DE',
         'IUSE.L':  'IUSE.L',
     };
     const yahooTicker = YAHOO_MAP[ticker] || ticker;
+    const yahooUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${yahooTicker}?range=1y&interval=1d`;
 
+    // Tentar múltiplos proxies CORS em cascata
     const PROXIES = [
-        `https://query1.finance.yahoo.com/v8/finance/chart/${yahooTicker}?range=1y&interval=1d`,
+        `https://corsproxy.io/?${encodeURIComponent(yahooUrl)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(yahooUrl)}`,
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(yahooUrl)}`,
     ];
 
     for (const url of PROXIES) {
