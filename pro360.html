@@ -302,7 +302,44 @@
   </div>
 
   <script src="core-engine.js?v=4.3.0"></script>
-  <script src="pro360.js?v=4.3.0"></script>
+  <script>
+  // ── Yahoo Finance Fallback (inline, bypass ao cache do SW) ──
+  window.fetchYahooFallback = async function(ticker) {
+    const YAHOO_MAP = {'VUAA.IT':'VUAA.MI','VWCE.DE':'VWCE.DE','IUSE.L':'IUSE.L'};
+    const yt = YAHOO_MAP[ticker] || ticker;
+    const baseUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/' + yt + '?range=1y&interval=1d';
+    const PROXIES = [
+      'https://corsproxy.io/?' + encodeURIComponent(baseUrl),
+      'https://api.allorigins.win/raw?url=' + encodeURIComponent(baseUrl),
+      'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(baseUrl),
+    ];
+    for (const url of PROXIES) {
+      try {
+        console.log('[Pro 360 inline] Yahoo via proxy:', url.substring(0,60)+'...');
+        const res = await fetch(url);
+        if (!res.ok) { console.warn('[Pro 360 inline] Proxy status:', res.status); continue; }
+        const data = await res.json();
+        const result = data?.chart?.result?.[0];
+        if (!result) continue;
+        const meta = result.meta || {};
+        const q = result.indicators?.quote?.[0] || {};
+        const closes = (q.close||[]).filter(v=>v!=null);
+        const highs  = (q.high||[]).filter(v=>v!=null);
+        const lows   = (q.low||[]).filter(v=>v!=null);
+        const price = meta.regularMarketPrice || closes[closes.length-1] || null;
+        const prev  = meta.chartPreviousClose || meta.previousClose || (closes.length>1?closes[closes.length-2]:null);
+        const h52   = highs.length ? Math.max(...highs) : null;
+        const l52   = lows.length  ? Math.min(...lows)  : null;
+        console.log('[Pro 360 inline] Yahoo OK:', ticker, '→', price, 'EUR');
+        return {price, prevClose:prev, high52:h52, low52:l52,
+          changePercent: (price&&prev) ? ((price-prev)/prev*100) : null,
+          marketCap: meta.marketCap||null, name: meta.shortName||meta.longName||null};
+      } catch(e) { console.warn('[Pro 360 inline] Proxy falhou:', e.message); }
+    }
+    return null;
+  };
+  </script>
+  <script src="pro360.js?v=4.3.1"></script>
   <script src="google-drive-sync.js"></script>
   <script>
     if ('serviceWorker' in navigator) {

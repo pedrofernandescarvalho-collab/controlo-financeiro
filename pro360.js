@@ -291,7 +291,7 @@ async function fetchFinancialMetrics(ticker) {
         let yahooData = null;
         if (!hasMetrics && !hasQuote) {
             console.log(`[Pro 360] Finnhub sem dados para ${ticker}. A tentar Yahoo Finance...`);
-            yahooData = await fetchYahooFallback(ticker);
+            yahooData = await (window.fetchYahooFallback || fetchYahooFallback)(ticker);
         }
 
         // Preço: Yahoo > Finnhub Quote > Finnhub Metric
