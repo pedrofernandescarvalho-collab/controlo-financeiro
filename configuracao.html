@@ -254,5 +254,71 @@
     
   </script>
 <script src="google-drive-sync.js"></script>
+
+<script>
+// ── Guardar Chave API (inline, sem depender de cache) ──
+(function() {
+  const apiForm = document.getElementById('api-settings-form');
+  if (!apiForm) return;
+
+  // Pré-preencher o campo se já existir chave guardada
+  try {
+    const raw = localStorage.getItem('finance-control-app');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.finnhubApiKey) {
+        const input = document.getElementById('finnhubApiKey');
+        if (input) input.value = parsed.finnhubApiKey;
+      }
+    }
+  } catch(e) {}
+
+  apiForm.addEventListener('submit', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const input = document.getElementById('finnhubApiKey');
+    const apiKey = (input ? input.value : '').trim();
+    
+    if (!apiKey) {
+      alert('⚠️ Introduza uma chave API válida.');
+      return;
+    }
+
+    // Guardar directamente no localStorage
+    try {
+      const STORAGE_KEY = 'finance-control-app';
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const data = raw ? JSON.parse(raw) : {};
+      data.finnhubApiKey = apiKey;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+      // Atualizar estado em memória se existir
+      if (window.state) window.state.finnhubApiKey = apiKey;
+
+      // Feedback visual
+      const btn = apiForm.querySelector('button[type="submit"]');
+      if (btn) {
+        btn.textContent = '✅ Chave Guardada!';
+        btn.style.background = '#10b981';
+        btn.disabled = true;
+      }
+      const status = document.getElementById('apiStatus');
+      if (status) {
+        status.textContent = '✅ Chave Finnhub persistida com sucesso. A redirecionar...';
+        status.style.color = '#10b981';
+        status.style.fontWeight = '700';
+      }
+
+      // Redirecionar para o terminal após 1s
+      setTimeout(function() {
+        window.location.href = 'pro360.html';
+      }, 1000);
+    } catch(err) {
+      alert('Erro ao guardar: ' + err.message);
+    }
+  });
+})();
+</script>
 </body>
 </html>
