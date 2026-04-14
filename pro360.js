@@ -271,53 +271,115 @@ async function fetchFinancialMetrics(ticker) {
     }
 
     if (!apiKey) {
-        console.warn(`[Pro 360] Chave API Finnhub em falta. Veja Configurações.`);
-        return { _noKey: true };
+        console.warn(`[Pro 360] Chave API Finnhub em falta.`);
+        return { _noKey: true, _type: assetType };
     }
 
     try {
-        // ✓ PRESERVAR O TICKER COMPLETO (VWCE.DE, ASML.AS, etc.) — NÃO fazer split
+        // Camada 1: Finnhub (métricas fundamentais + cotação)
         const [metricsRes, quoteRes] = await Promise.all([
-            fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${apiKey}`).then(r => r.ok ? r.json() : null),
-            fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${apiKey}`).then(r => r.ok ? r.json() : null)
+            fetch(`https://finnhub.io/api/v1/stock/metric?symbol=${ticker}&metric=all&token=${apiKey}`).then(r => r.ok ? r.json() : null).catch(() => null),
+            fetch(`https://finnhub.io/api/v1/quote?symbol=${ticker}&token=${apiKey}`).then(r => r.ok ? r.json() : null).catch(() => null)
         ]);
 
         const m = metricsRes?.metric || {};
         const q = quoteRes || {};
+        const hasMetrics = Object.keys(m).length > 0;
+        const hasQuote   = q.c > 0;
 
-        // Preço atual: Quote é sempre mais recente
-        const currPrice = q.c || m['52WeekHigh'] * 0.9 || 0;
-        const high52 = m['52WeekHigh'] || q.h || 0;
-        const low52  = m['52WeekLow']  || q.l || 0;
-        const vsHigh = (currPrice && high52) ? ((currPrice / high52) - 1) * 100 : null;
-        const vsLow  = (currPrice && low52)  ? ((currPrice / low52)  - 1) * 100 : null;
+        // Camada 2: Se Finnhub não devolveu dados, tentar Yahoo Finance (proxy público)
+        let yahooData = null;
+        if (!hasMetrics && !hasQuote) {
+            console.log(`[Pro 360] Finnhub sem dados para ${ticker}. A tentar Yahoo Finance...`);
+            yahooData = await fetchYahooFallback(ticker);
+        }
+
+        // Preço: Yahoo > Finnhub Quote > Finnhub Metric
+        const currPrice = yahooData?.price || (hasQuote ? q.c : null) || (m['52WeekHigh'] ? m['52WeekHigh'] * 0.9 : null);
+        const high52    = m['52WeekHigh'] || yahooData?.high52 || (hasQuote ? q.h : null) || null;
+        const low52     = m['52WeekLow']  || yahooData?.low52  || (hasQuote ? q.l : null) || null;
+        const prevClose = (hasQuote && q.pc > 0) ? q.pc : yahooData?.prevClose || null;
+        const vsHigh    = (currPrice && high52) ? ((currPrice / high52) - 1) * 100 : null;
+        const changePercent = (currPrice && prevClose) ? ((currPrice - prevClose) / prevClose * 100) : yahooData?.changePercent || null;
 
         return {
             _type: assetType,
-            // Fundamentais (podem ser null em ETFs)
+            _source: hasMetrics ? 'finnhub' : (yahooData ? 'yahoo' : 'limited'),
+            // Fundamentais (null para ETFs — a renderização adapta-se)
             yield:         m.dividendYieldIndicatedAnnual || m.dividendYield5YAvg || null,
-            pe:            m.peExclExtraTTM || null,
-            pb:            m.priceToBookTTM || null,
-            marketCap:     m.marketCapitalization || null,
+            pe:            m.peExclExtraTTM || m.peTTM || null,
+            pb:            m.priceToBookTTM || m.pbTTM || null,
+            marketCap:     m.marketCapitalization || yahooData?.marketCap || null,
             roi:           m.roiTTM || m.roeTTM || null,
             epsGrowth:     m.epsGrowth5Y || m.epsGrowthTTM || null,
             debtEquity:    m.totalDebtToTotalEquityTTM || null,
             revenueGrowth: m.revenueGrowth5Y || null,
             beta:          m.beta || null,
-            // Preço em tempo real (Quote)
+            // Preço e performance
             currPrice,
             high52,
             low52,
             vsHigh,
-            vsLow,
-            prevClose:     q.pc || null,
-            changePercent: q.pc ? ((q.c - q.pc) / q.pc * 100) : null,
+            prevClose,
+            changePercent,
+            name: yahooData?.name || null,
         };
     } catch (e) {
         console.error("[Pro 360] Erro ao obter métricas:", e);
-        return null;
+        return { _type: assetType, _source: 'error' };
     }
 }
+
+// Camada 2: Yahoo Finance via proxy público (sem chave, gratuito)
+async function fetchYahooFallback(ticker) {
+    // Mapear tickers para formato Yahoo (VUAA.IT → VUAA.MI, VWCE.DE → VWCE.DE funciona)
+    const YAHOO_MAP = {
+        'VUAA.IT': 'VUAA.MI',
+        'IUSE.L':  'IUSE.L',
+    };
+    const yahooTicker = YAHOO_MAP[ticker] || ticker;
+
+    const PROXIES = [
+        `https://query1.finance.yahoo.com/v8/finance/chart/${yahooTicker}?range=1y&interval=1d`,
+    ];
+
+    for (const url of PROXIES) {
+        try {
+            const res = await fetch(url);
+            if (!res.ok) continue;
+            const data = await res.json();
+            const result = data?.chart?.result?.[0];
+            if (!result) continue;
+
+            const meta = result.meta || {};
+            const quotes = result.indicators?.quote?.[0] || {};
+            const closes = quotes.close?.filter(v => v != null) || [];
+            const highs  = quotes.high?.filter(v => v != null) || [];
+            const lows   = quotes.low?.filter(v => v != null) || [];
+
+            const price     = meta.regularMarketPrice || closes[closes.length - 1] || null;
+            const prevClose = meta.chartPreviousClose || meta.previousClose || (closes.length > 1 ? closes[closes.length - 2] : null);
+            const high52    = highs.length ? Math.max(...highs) : null;
+            const low52     = lows.length  ? Math.min(...lows)  : null;
+
+            console.log(`[Pro 360] Yahoo Finance: ${ticker} → preço ${price}, máx52 ${high52}`);
+
+            return {
+                price,
+                prevClose,
+                high52,
+                low52,
+                changePercent: (price && prevClose) ? ((price - prevClose) / prevClose * 100) : null,
+                marketCap: meta.marketCap || null,
+                name: meta.shortName || meta.longName || null,
+            };
+        } catch (e) {
+            console.warn(`[Pro 360] Yahoo fallback falhou para ${ticker}:`, e.message);
+        }
+    }
+    return null;
+}
+
 
 // Busca métricas de Cripto via CoinGecko (grátis, sem chave API)
 async function fetchCryptoMetrics(ticker) {
