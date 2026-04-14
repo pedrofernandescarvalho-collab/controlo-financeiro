@@ -3,21 +3,23 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboards e Analítica — Controlo Financeiro</title>
-  <meta name="description" content="Dashboard financeiro com evolução patrimonial, burn rate semanal, radar de saúde financeira e tabela analítica mensal.">
+  <title>Dashboard Analítico — Controlo Financeiro</title>
+  <meta name="description" content="Análise profunda de gastos, radar de saúde financeira e autonomia de estilo de vida.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0d9488">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="app-shell">
-        <nav class="top-nav">
+    <nav class="top-nav">
         <a href="index.html" class="nav-link">Registos</a>
         <a href="dashboard.html" class="nav-link active">Dashboards</a>
         <a href="extrato.html" class="nav-link">Extrato</a>
-        <a href="pro360.html" class="nav-link">Investimentos</a>
+        <a href="investimentos.html" class="nav-link">Investimentos</a>
         <a href="configuracao.html" class="nav-link">Configuração</a>
         <button id="syncNowBtnNav" class="sync-nav-btn" title="Sincronizar com Google Drive">
           <span class="sync-icon">🔄</span>
@@ -25,127 +27,92 @@
         </button>
     </nav>
 
-    <header class="hero compact-hero">
-      <div>
-        <p class="eyebrow">Business Intelligence</p>
-        <h1>Centro de Análise Financeira</h1>
-        <p class="hero-copy">
-          Dashboard dinâmico com evolução patrimonial e métricas de saúde financeira. Usa o seletor de mês para ver relatórios históricos.
-        </p>
-        <!-- Seletor de mês para relatório -->
-        <div class="period-selector" id="dashboardMonthNav" role="group" aria-label="Navegação de mês">
-          <button class="period-btn" id="dashPrevMonth" title="Mês anterior">‹ Anterior</button>
-          <span class="period-btn active" id="dashboardMonthDisplay" style="cursor: default; pointer-events: none;">A carregar...</span>
-          <button class="period-btn" id="dashNextMonth" title="Mês seguinte">Seguinte ›</button>
-          <button class="period-btn" id="dashCurrentMonth" title="Voltar ao mês atual">Hoje</button>
+    <header class="hero">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; width:100%; flex-wrap: wrap; gap: 20px;">
+        <div style="flex: 1; min-width: 300px;">
+          <p class="eyebrow">Relatório de Inteligência Financeira</p>
+          <h1 id="dashboardMonthDisplay">A carregar...</h1>
+          <div style="display: flex; gap: 8px; margin-top: 12px;">
+            <button id="dashPrevMonth" class="ghost-btn" style="padding: 6px 12px;">◀ Anterior</button>
+            <button id="dashCurrentMonth" class="ghost-btn" style="padding: 6px 12px; font-weight: 700;">Mês Atual</button>
+            <button id="dashNextMonth" class="ghost-btn" style="padding: 6px 12px;">Próximo ▶</button>
+          </div>
         </div>
-      </div>
-      <div class="hero-card accent strong-card">
-        <p>Património Líquido Global</p>
-        <strong id="globalNetWorthDisplay">A calcular...</strong>
-        <div id="netWorthDetail" class="mt-10" style="opacity: 0.8; font-size: 0.85rem; color: #94a3b8;">
-           <!-- Detalhes preenchidos pelo script.js -->
-        </div>
-      </div>
-      <div class="hero-card accent strong-card">
-        <p>Taxa de Poupança (Mês)</p>
-        <strong id="savingsRateDisplay">A calcular...</strong>
-        <div id="savingsRateDetail" class="mt-10" style="opacity: 0.8; font-size: 0.85rem; color: #94a3b8;">
-            <!-- Detalhes preenchidos pelo motor de BI -->
-        </div>
-      </div>
-      <div class="hero-card accent strong-card">
-        <p>Reserva p/ Obrigações</p>
-        <strong id="obligationsPendingDisplay">A calcular...</strong>
-        <div id="obligationsDetail" class="mt-10" style="opacity: 0.8; font-size: 0.85rem; color: #94a3b8;">
-            <!-- Detalhes de Pago vs Pendente -->
+        
+        <div class="hero-card success strong-card" style="min-width: 250px;">
+          <p>Taxa de Poupança (Mês)</p>
+          <strong id="savingsRateDisplay">0.0%</strong>
+          <p id="savingsRateDetail" style="font-size: 0.75rem; opacity: 0.8; margin-top:5px;"></p>
         </div>
       </div>
     </header>
 
     <main class="dashboard-layout">
+      <!-- Coluna Visual: Gráficos -->
       <div class="dashboard-col">
         <section class="panel">
-          <div class="panel-heading compact-heading">
-            <h2>Evolução Patrimonial</h2>
-            <p>Evolução da soma de todas as contas ao longo do tempo, com e sem recebíveis em aberto.</p>
+          <div class="panel-heading">
+            <h2>Distribuição de Gasto</h2>
+            <p>Onde estás a alocar o teu capital este mês.</p>
           </div>
-          <div style="position: relative; height:30vh; width:100%">
-            <canvas id="longTermNetWorthChart"></canvas>
-          </div>
-        </section>
-
-        <section class="panel">
-          <div class="panel-heading compact-heading">
-            <h2>Burn-Rate vs Orçamento Ideal</h2>
-            <p>Calcula ao rubro se o que gastas em despesas + transferências está dentro da tua meta diária.</p>
-          </div>
-          <div style="position: relative; height:30vh; width:100%">
-            <canvas id="weeklyBurnChart"></canvas>
-          </div>
-        </section>
-      </div>
-
-      <div class="dashboard-col">
-        <section class="panel">
-          <div class="panel-heading compact-heading">
-            <h2>Distribuição por Categoria</h2>
-            <p>Sombra do ciclo selecionado. Quais os setores a furar a margem?</p>
-          </div>
-          <div style="position: relative; height:40vh; width:100%; display: flex; justify-content: center;">
+          <div class="chart-container">
             <canvas id="categoryDistributionChart"></canvas>
           </div>
         </section>
 
         <section class="panel">
-          <div class="panel-heading compact-heading">
-            <h2>Top 5 Despesas Variáveis do Mês</h2>
-            <p>Maiores custos diretos responsáveis pela erosão do ciclo corrente, ordenados de forma descendente.</p>
+          <div class="panel-heading">
+            <h2>Evolução do Património</h2>
+            <p>Liquidez Total vs Riqueza Total (incluindo dívidas a receber).</p>
           </div>
-          <div id="topExpensesList" class="item-list empty-state item-list-container">
-            A recrutar dados...
+          <div class="chart-container">
+            <canvas id="longTermNetWorthChart"></canvas>
+          </div>
+        </section>
+        
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Performance Diária vs Meta</h2>
+            <p>Consumo real diário comparado com o orçamento ideal.</p>
+          </div>
+          <div class="chart-container">
+            <canvas id="dailyPerformanceChart"></canvas>
           </div>
         </section>
       </div>
 
-      <!-- Apanhado Semanal / Orçamento Dinâmico -->
-      <section class="panel config-panel span-all">
-        <div class="panel-heading compact-heading">
-          <h2>🎯 Apanhado Semanal Soberano</h2>
-          <p>Orçamento diário e semanal calculado por fatias (Domingo a Domingo). O dinheiro que sobra aqui é o que alimenta o teu futuro.</p>
-        </div>
-        
-        <div class="summary-grid mb-20" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
-            <article class="summary-card accent">
-                <span>Orçamento do Dia</span>
-                <strong id="dailyBudgetDisplay">0,00 €</strong>
-                <p class="hero-copy" style="font-size: 0.75rem;">O que podes gastar hoje sem furar o plano.</p>
-            </article>
-            <article class="summary-card">
-                <span>Orçamento p/ esta Semana</span>
-                <strong id="weeklySliceBudgetDisplay">0,00 €</strong>
-                <p class="hero-copy" style="font-size: 0.75rem;">Disponível total para a fatia corrente.</p>
-            </article>
-            <article class="summary-card strong-card" style="border-color: var(--primary);">
-                <span>Excedente p/ Apanhado</span>
-                <strong id="sliceSurplusDisplay" style="color: var(--primary);">0,00 €</strong>
-                <p id="weeklySliceMath" style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; font-family: monospace;">A calcular conta...</p>
-                <p class="hero-copy" style="font-size: 0.75rem;">Dinheiro acumulado para Revolut/XTB no próximo domingo.</p>
-            </article>
-        </div>
+      <div class="dashboard-col">
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Burn Rate & Orçamento Linear</h2>
+            <p>Projeção de gasto acumulado vs meta de poupança.</p>
+          </div>
+          <div class="chart-container">
+            <canvas id="weeklyBurnChart"></canvas>
+          </div>
+        </section>
 
-        <div id="weeklySlicesList" class="item-list empty-state item-list-container">
-            A calcular fatias do calendário...
-        </div>
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Maiores Saídas (Mês)</h2>
+            <p>Top 5 despesas variáveis registadas.</p>
+          </div>
+          <div id="topExpensesList" class="item-list-container">
+            A recrutar dados...
+          </div>
+        </section>
 
-        <div class="panel-heading compact-heading mt-20">
-            <h3>📈 Performance Diária (Meta vs Gasto)</h3>
-            <p>Comparação entre o orçamento ideal p/ dia e o teu gasto real variável.</p>
-        </div>
-        <div style="position: relative; height:30vh; width:100%">
-            <canvas id="dailyPerformanceChart"></canvas>
-        </div>
-      </section>
+        <section class="panel" style="background: var(--text-main); color: white;">
+          <div class="panel-heading" style="border-bottom-color: rgba(255,255,255,0.1);">
+            <h2 style="color: white;">🛡️ Reserva p/ Obrigações</h2>
+            <p style="color: #94a3b8;">Capital que deve estar retido para pagar custos fixos ainda não vencidos.</p>
+          </div>
+          <div style="padding: 10px 0;">
+            <strong id="obligationsPendingDisplay" style="font-size: 2rem; display: block; margin-bottom: 5px;">0,00 €</strong>
+            <p id="obligationsDetail" style="font-size: 0.85rem; color: #94a3b8;"></p>
+          </div>
+        </section>
+      </div>
 
       <!-- Radar de Saúde Financeira -->
       <section class="panel config-panel span-all" style="padding: 30px;">
@@ -243,16 +210,14 @@
     </article>
   </template>
 
-  <script src="script.js"></script>
-  <script src="charts.js"></script>
+  <script src="core-engine.js?v=4.3.0"></script>
+  <script src="charts.js?v=4.3.0"></script>
   
   <script>
-    // Botão de Sincronização na Nav
-    
-
     // ── Navegação de mês no Dashboard ────────────────────────────
     (function() {
       function getMonthParts(key) {
+        if (!key) return { year: new Date().getFullYear(), month: new Date().getMonth() + 1 };
         const [y, m] = key.split('-').map(Number);
         return { year: y, month: m };
       }
@@ -270,32 +235,27 @@
       const nextBtn = document.getElementById('dashNextMonth');
       const todayBtn = document.getElementById('dashCurrentMonth');
 
-      let currentKey = typeof getMonthKey === 'function' ? getMonthKey() : '';
+      let currentKey = (typeof getActiveMonthKey === 'function') ? getActiveMonthKey() : '';
       const todayKey = currentKey;
 
-      function updateDisplay() {
+      function updateUI() {
         if (display) display.textContent = monthLabel(currentKey);
-        // Expor para charts.js
         window.dashboardMonthKey = currentKey;
-        // Re-renderizar gráficos e radar
+        
         if (typeof renderRadar === 'function') renderRadar();
         if (typeof renderTopExpenses === 'function') renderTopExpenses();
-        if (typeof drawCategoryChart === 'function') {
-          // Destruir e recriar o gráfico de categoria
-          const canvas = document.getElementById('categoryDistributionChart');
-          if (canvas && canvas._chartInstance) { canvas._chartInstance.destroy(); }
-          drawCategoryChart();
-        }
-        if (typeof drawBurnRateChart === 'function') {
-          const canvas = document.getElementById('weeklyBurnChart');
-          if (canvas && canvas._chartInstance) { canvas._chartInstance.destroy(); }
-          drawBurnRateChart();
-        }
-        if (typeof renderAnalyticTable === 'function') renderAnalyticTable();
-        // Savings Rate
+        if (typeof _renderGlobalAnalyticTable === 'function') _renderGlobalAnalyticTable();
+        if (typeof renderObligationsReserves === 'function') renderObligationsReserves();
+        
+        // Redraw Charts
+        if (typeof drawCategoryChart === 'function') drawCategoryChart();
+        if (typeof drawBurnRateChart === 'function') drawBurnRateChart();
+        if (typeof drawNetWorthChart === 'function') drawNetWorthChart();
+        if (typeof drawDailyPerformanceChart === 'function') drawDailyPerformanceChart();
+        
         if (typeof calculateSavingsRate === 'function') {
-          const el = document.getElementById('savingsRateDisplay');
-          if (el) el.textContent = calculateSavingsRate().toFixed(1) + '%';
+           const el = document.getElementById('savingsRateDisplay');
+           if (el) el.textContent = calculateSavingsRate().toFixed(1) + '%';
         }
       }
 
@@ -304,9 +264,7 @@
         const newM = month === 1 ? 12 : month - 1;
         const newY = month === 1 ? year - 1 : year;
         currentKey = formatMonthKey(newY, newM);
-        // Expor para o motor
-        if (typeof state !== 'undefined') state.analysisMonth = currentKey;
-        updateDisplay();
+        updateUI();
       });
 
       if (nextBtn) nextBtn.addEventListener('click', () => {
@@ -314,19 +272,16 @@
         const newM = month === 12 ? 1 : month + 1;
         const newY = month === 12 ? year + 1 : year;
         currentKey = formatMonthKey(newY, newM);
-        if (typeof state !== 'undefined') state.analysisMonth = currentKey;
-        updateDisplay();
+        updateUI();
       });
 
       if (todayBtn) todayBtn.addEventListener('click', () => {
         currentKey = todayKey;
-        if (typeof state !== 'undefined') state.analysisMonth = '';
-        updateDisplay();
+        updateUI();
       });
 
-      // Inicializar display
-      if (display) display.textContent = monthLabel(currentKey);
-      window.dashboardMonthKey = currentKey;
+      // Inicialização
+      setTimeout(updateUI, 100);
     })();
   </script>
 <script src="google-drive-sync.js"></script>
