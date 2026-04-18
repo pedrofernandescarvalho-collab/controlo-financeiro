@@ -2460,11 +2460,12 @@ function renderGlobalExtract() {
   });
 }
 
-window.getGlobalAccountsTotal = function() {
-  return state.accounts.reduce((sum, acc) => sum + (Number(acc.balance) || 0), 0);
-};
 function getGlobalAccountsTotal() {
-  return window.getGlobalAccountsTotal();
+  if (typeof state === 'undefined' || !state || !Array.isArray(state.accounts)) return 0;
+  return state.accounts.reduce((sum, acc) => sum + (Number(acc.balance) || 0), 0);
+}
+if (typeof window !== 'undefined') {
+  window.getGlobalAccountsTotal = getGlobalAccountsTotal;
 }
 
 
