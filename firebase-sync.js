@@ -72,13 +72,20 @@ async function initFirebase() {
         console.log("[Firebase] Autenticado:", u.uid);
         updateUIStatus("Ligado e Seguro", "#10b981", "online");
         
-        // Verificação Inicial: Se a nuvem estiver vazia, subir o local
-        const docRef = doc(db, FIREBASE_COLLECTION, FIREBASE_DOC_ID);
-        const snap = await getDoc(docRef);
-        
-        if (!snap.exists() && window.state) {
-            console.log("[Firebase] Nuvem vazia. A realizar migração inicial...");
-            await window.syncToFirebase(window.state);
+        try {
+            // Verificação Inicial: Se a nuvem estiver vazia, subir o local
+            const docRef = doc(db, FIREBASE_COLLECTION, FIREBASE_DOC_ID);
+            const snap = await getDoc(docRef);
+            
+            if (!snap.exists() && window.state) {
+                console.log("[Firebase] Nuvem vazia. A realizar migração inicial...");
+                await window.syncToFirebase(window.state);
+            }
+        } catch (e) {
+            console.warn("[Firebase] Falha na leitura inicial (possível API desativa):", e.message);
+            if (e.code === "permission-denied") {
+                updateUIStatus("API Pendente", "#f59e0b", "pending");
+            }
         }
         
         startRealtimeSync();
@@ -114,6 +121,11 @@ function startRealtimeSync() {
         }
         window.dispatchEvent(new CustomEvent('stateUpdated', { detail: cloudData.state }));
       }
+    }
+  }, (err) => {
+    console.error("[Firebase] Erro no Snapshot:", err.message);
+    if (err.code === "permission-denied") {
+        updateUIStatus("API Pendente na Consola", "#f59e0b", "pending");
     }
   });
 }
