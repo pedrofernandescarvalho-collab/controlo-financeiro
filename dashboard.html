@@ -256,9 +256,12 @@
   </template>
 
   
+  <script src="core-engine.js"></script>
+  <script src="charts.js"></script>
+  <script src="firebase-config.js"></script>
+  <script type="module" src="firebase-sync.js"></script>
   <script>
     // Botão de Sincronização na Nav
-    
 
     // ---- Navegação de mês no Dashboard --------------------------------------------------------
     (function() {
@@ -339,9 +342,5 @@
       window.dashboardMonthKey = currentKey;
     })();
   </script>
-    <script src="core-engine.js"></script>
-    <script src="charts.js"></script>
-    <script src="firebase-config.js"></script>
-    <script type="module" src="firebase-sync.js"></script>
 </body>
 </html>
