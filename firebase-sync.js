@@ -109,17 +109,26 @@ function startRealtimeSync() {
       const cloudData = snap.data();
       const lastLocalSync = localStorage.getItem('last_firebase_sync') || 0;
       
-      if (cloudData.updatedAt > lastLocalSync) {
-        console.log("[Firebase] Sincronização Cloud -> Local");
+      // 1. Verificar se a nuvem tem dados novos
+      const isCloudNewer = cloudData.updatedAt > lastLocalSync;
+      
+      // 2. Verificar se o estado local em memória tem alterações não sincronizadas
+      const localStateTimestamp = window.state?.updatedAt || 0;
+      const hasLocalChanges = localStateTimestamp > lastLocalSync;
+
+      if (isCloudNewer && !hasLocalChanges) {
+        console.log("[Firebase] Sincronização Cloud -> Local (Atualização externa)");
         localStorage.setItem('finance-control-app', JSON.stringify(cloudData.state));
         localStorage.setItem('last_firebase_sync', cloudData.updatedAt);
         
-        // Se estivermos na dashboard ou noutra página, avisar o motor
         if (window.state) {
             window.state = cloudData.state;
             if (typeof render === 'function') render();
+            window.dispatchEvent(new CustomEvent('stateUpdated', { detail: cloudData.state }));
         }
-        window.dispatchEvent(new CustomEvent('stateUpdated', { detail: cloudData.state }));
+      } else if (isCloudNewer && hasLocalChanges) {
+        console.warn("[Firebase] Conflito: Nuvem e Local têm alterações. Prioridade: Local.");
+        window.syncToFirebase(window.state);
       }
     }
   }, (err) => {
@@ -144,6 +153,7 @@ window.syncToFirebase = async function(state) {
     }, { merge: true });
 
     localStorage.setItem('last_firebase_sync', timestamp);
+    window.isSyncing = false;
     console.log("[Firebase] Sincronização Local -> Cloud concluída.");
     
   } catch (error) {

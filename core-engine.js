@@ -94,25 +94,27 @@ function loadState() {
   }
 }
 
-window.saveState = saveState;
 function saveState() {
+  state.updatedAt = Date.now();
+  window.isSyncing = true;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   // Notificar outros componentes (ex: Firebase Sync, Charts)
-  window.dispatchEvent(new CustomEvent('stateUpdated', { detail: state }));
+  window.dispatchEvent(new CustomEvent("stateUpdated", { detail: state }));
 }
 
-function getToday() {
-  return new Date();
-}
+// Navigation Guard: Avisar se houver sincronização pendente
+window.addEventListener('beforeunload', (e) => {
+  if (window.isSyncing) {
+    // A maioria dos browsers modernos não permite mensagens customizadas, 
+    // mas isto despoleta o aviso padrão de "Tens alterações não guardadas".
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
 
-function isActiveMonthCurrent() {
-  const today = getToday();
-  const { year, month } = getActiveMonthParts();
-  return year === today.getFullYear() && month === today.getMonth() + 1;
-}
+window.saveState = saveState;
 
 function getActiveMonthKey() {
-  // Suporte ao navegador de mês do dashboard (window.dashboardMonthKey)
   if (typeof window !== 'undefined' && window.dashboardMonthKey) {
     return window.dashboardMonthKey;
   }
@@ -139,6 +141,7 @@ function formatCurrency(value) {
     currency: "EUR"
   }).format(Number(value) || 0);
 }
+
 function sumExpensesUntil(day) {
   const monthKey = getMonthKey();
   
@@ -294,6 +297,10 @@ function getCycleWindow() {
   };
 }
 
+function getToday() {
+  return new Date();
+}
+
 function normalizeDay(day) {
   return Math.min(Math.max(Number(day) || 1, 1), getCycleWindow().daysInCycle);
 }
@@ -388,7 +395,6 @@ function getDayFromDateInput(value) {
   return parsed ? normalizeDay(parsed.day) : null;
 }
 
-// Removido sumExpensesUntil duplicado para evitar inconsistências
 
 function sumFixedExpensesUntil(day) {
   const { month } = getActiveMonthParts();
@@ -486,11 +492,11 @@ function getStartingSnapshot() {
   const firstDaySnaps = monthSnaps.filter(s => s.day === firstDay);
   
   if (firstDaySnaps.length === 1) {
-    // Apenas uma conta - retornar diretamente
+    // Apenas uma conta -  retornar diretamente
     return firstDaySnaps[0];
   }
   
-  // Múltiplas contas no dia 1 - consolidar numa entrada virtual
+  // Múltiplas contas no dia 1 -  consolidar numa entrada virtual
   const totalBank = firstDaySnaps.reduce((sum, s) => sum + (Number(s.bankBalance) || 0), 0);
   const totalCash = firstDaySnaps.reduce((sum, s) => sum + (Number(s.cashBalance) || 0), 0);
   return {
@@ -638,7 +644,7 @@ function getCycleAnalysis(targetDay = null) {
   const currentDay = isActiveMonthCurrent() ? today.getDate() : 31;
   const elapsedDays = Math.min(targetDay || currentDay, daysInCycle);
   
-  // Encontrar o último snapshot AT-0 ao dia analisado (targetDay ou hoje)
+  // Encontrar o último snapshot AT-@ o dia analisado (targetDay ou hoje)
   const snapshotsUntilTarget = snapshots.filter(s => s.day <= elapsedDays);
   const latestSnapshot = snapshotsUntilTarget.length
     ? snapshotsUntilTarget[snapshotsUntilTarget.length - 1]
@@ -999,7 +1005,7 @@ function renderAnalysis() {
   document.querySelector("#availableToSplit").textContent = formatCurrency(analysis.availableToSplit);
   document.querySelector("#splitNowRevolut").textContent = formatCurrency(analysis.splitNowRevolut);
   document.querySelector("#splitNowXtb").textContent = formatCurrency(analysis.splitNowXtb);
-  // ENCONTRAR O -aLTIMO DOMINGO PARA REFER-`NCIA DE DEP-SITOS
+  // ENCONTRAR O -aLTIMO DOMINGO PARA REFER-`NCIA DE DEP- SITOS
   const today = getToday();
   const currentMonthDay = isActiveMonthCurrent() ? today.getDate() : 31;
   let lastSundayDay = 0;
@@ -2084,7 +2090,7 @@ if (expenseForm) {
       rows.forEach(row => {
         row.querySelector(".split-amount").value = part;
       });
-      showToast(`Divisão de ${part}-- aplicada a ${personCount} pessoas.`);
+      showToast(`Divisão de ${part}- - aplicada a ${personCount} pessoas.`);
     };
   }
 
@@ -2118,7 +2124,7 @@ if (expenseForm) {
         return;
       }
       if (splitTotalSum > amount) {
-        setStatus("#expenseStatus", `ERRO: A soma das partilhas (${splitTotalSum.toFixed(2)}--) é maior que o total (${amount.toFixed(2)}--)!`);
+        setStatus("#expenseStatus", `ERRO: A soma das partilhas (${splitTotalSum.toFixed(2)}- -) é maior que o total (${amount.toFixed(2)}- -)!`);
         return;
       }
     }
@@ -2306,8 +2312,8 @@ document.addEventListener('change', (e) => {
     if (e.target.id === 'importFile') importState(e);
 });
 
-// ---- Auto-Preencher Saldo Inicial --------------------------------------------------------------------------
-// Definido como função normal - chamado após o state ser inicializado
+// - -- - Auto-Preencher Saldo Inicial - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
+// Definido como função normal -  chamado após o state ser inicializado
 function initAutofillBanner() {
   if (typeof document === 'undefined') return;
   const banner = document.getElementById('autofillBanner');
