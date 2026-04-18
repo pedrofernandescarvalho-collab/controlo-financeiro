@@ -1,4 +1,4 @@
-const CACHE_NAME = 'finance-control-v4.3.0';
+const CACHE_NAME = 'finance-control-v4.3.1-premium';
 const ASSETS = [
   'index.html',
   'dashboard.html',
@@ -7,7 +7,9 @@ const ASSETS = [
   'configuracao.html',
   'extrato.html',
   'style.css',
-  'core-engine.js'
+  'core-engine.js',
+  'firebase-config.js',
+  'firebase-sync.js'
 ];
 
 self.addEventListener('install', event => {
