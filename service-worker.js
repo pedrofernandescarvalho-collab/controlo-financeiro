@@ -1,4 +1,4 @@
-const CACHE_NAME = 'finance-control-v4.3.1-premium';
+const CACHE_NAME = 'finance-control-v4.5.0-ultimate-reset';
 const ASSETS = [
   'index.html',
   'dashboard.html',
