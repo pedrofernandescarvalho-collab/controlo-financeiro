@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-PT">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Configuração Financeira — Controlo Financeiro</title>
-  <meta name="description" content="Configura o teu salário, metas, despesas recorrentes e gerir backups da app de controlo financeiro.">
+  <title>ConfiguraÃ§Ã£o Financeira â€” Controlo Financeiro</title>
+  <meta name="description" content="Configura o teu salÃ¡rio, metas, despesas recorrentes e gerir backups da app de controlo financeiro.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
@@ -19,9 +19,9 @@
         <a href="dashboard.html" class="nav-link">Dashboards</a>
         <a href="extrato.html" class="nav-link">Extrato</a>
         <a href="investimentos.html" class="nav-link">Investimentos</a>
-        <a href="configuracao.html" class="nav-link active">Configuração</a>
+        <a href="configuracao.html" class="nav-link active">ConfiguraÃ§Ã£o</a>
         <button id="syncNowBtnNav" class="sync-nav-btn" title="Sincronizar com Google Drive">
-          <span class="sync-icon">🔄</span>
+          <span class="sync-icon">ðŸ”„</span>
           <span class="sync-text">Sincronizar</span>
         </button>
         <div id="cloudStatusPill" class="cloud-pill">Cloud: Desligada</div>
@@ -29,25 +29,25 @@
 
     <header class="hero compact-hero">
       <div>
-        <p class="eyebrow">Gestão e metas</p>
-        <h1>Configuração e administração</h1>
+        <p class="eyebrow">GestÃ£o e metas</p>
+        <h1>ConfiguraÃ§Ã£o e administraÃ§Ã£o</h1>
         <p class="hero-copy">
-          Define o teu rendimento base, despesas fixas mensais recorrentes, categorias e faz a gestão dos teus backups.
+          Define o teu rendimento base, despesas fixas mensais recorrentes, categorias e faz a gestÃ£o dos teus backups.
         </p>
       </div>
       <div class="hero-card accent strong-card">
-        <p>Património Líquido Global</p>
+        <p>PatrimÃ³nio LÃ­quido Global</p>
         <strong id="globalNetWorthDisplay">A calcular...</strong>
       </div>
     </header>
 
     <main class="grid">
 
-      <!-- ── SALDO INICIAL DO MÊS ─────────────────────────────────── -->
+      <!-- â”€â”€ SALDO INICIAL DO MÃŠS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <section class="panel config-panel" style="grid-column: 1 / -1;">
         <div class="panel-heading">
-          <h2>Saldo Inicial do Mês</h2>
-          <p>Regista apenas <strong>uma vez</strong> por mês o saldo do dia 1 de cada conta. Este é o ponto de partida de todos os cálculos de orçamento, autonomia financeira e reconciliação bancária.</p>
+          <h2>Saldo Inicial do MÃªs</h2>
+          <p>Regista apenas <strong>uma vez</strong> por mÃªs o saldo do dia 1 de cada conta. Este Ã© o ponto de partida de todos os cÃ¡lculos de orÃ§amento, autonomia financeira e reconciliaÃ§Ã£o bancÃ¡ria.</p>
         </div>
 
         <div class="summary-grid" style="margin-bottom: 20px;">
@@ -56,16 +56,16 @@
             <strong id="startOfMonthBalanceDisplay">0,00 EUR</strong>
           </article>
           <article class="summary-card">
-            <span>Última análise guardada</span>
+            <span>Ãšltima anÃ¡lise guardada</span>
             <strong id="latestSnapshotDisplay">Sem registo</strong>
           </article>
         </div>
 
-        <!-- Banner auto-preenchimento do mês anterior -->
+        <!-- Banner auto-preenchimento do mÃªs anterior -->
         <div id="autofillBanner" style="display:none; margin-bottom: 16px; padding: 14px 18px; background: rgba(13,148,136,0.05); border: 1px solid rgba(13,148,136,0.25); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
           <div>
-            <strong style="font-size: 0.9rem; color: var(--primary);">✦ Início de Mês Detetado</strong>
-            <p style="margin: 4px 0 0; font-size: 0.82rem; color: var(--text-muted);" id="autofillDesc">Detetei o saldo final do mês anterior. Queres usá-lo como ponto de partida?</p>
+            <strong style="font-size: 0.9rem; color: var(--primary);">âœ¦ InÃ­cio de MÃªs Detetado</strong>
+            <p style="margin: 4px 0 0; font-size: 0.82rem; color: var(--text-muted);" id="autofillDesc">Detetei o saldo final do mÃªs anterior. Queres usÃ¡-lo como ponto de partida?</p>
           </div>
           <button type="button" id="autofillBtn" class="secondary-btn" style="width: auto; white-space: nowrap; min-width: 160px;">
             Auto-Preencher
@@ -88,10 +88,10 @@
           <button type="submit" class="secondary-btn">Guardar saldo inicial</button>
         </form>
 
-        <p id="bankStatus" class="goal-label">O ponto de partida do mês fica guardado aqui. Regista o dia 1 de cada conta para o sistema funcionar com precisão.</p>
+        <p id="bankStatus" class="goal-label">O ponto de partida do mÃªs fica guardado aqui. Regista o dia 1 de cada conta para o sistema funcionar com precisÃ£o.</p>
       </section>
 
-      <!-- ── RENDIMENTO FIXO E METAS ───────────────────────────────── -->
+      <!-- â”€â”€ RENDIMENTO FIXO E METAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <section class="panel config-panel">
         <div class="panel-heading">
           <h2>Rendimento Fixo e Metas</h2>
@@ -101,7 +101,7 @@
         <form id="settings-form" class="stack">
 
           <label>
-            Salário líquido mensal
+            SalÃ¡rio lÃ­quido mensal
             <input id="salary" name="salary" type="number" min="0" step="0.01" placeholder="Ex: 1250">
           </label>
 
@@ -117,66 +117,66 @@
 
           <label>
             Objetivo da conta Revolut
-            <input id="revolutGoal" name="revolutGoal" type="text" maxlength="80" placeholder="Ex: Fundo de emergência / viagem">
+            <input id="revolutGoal" name="revolutGoal" type="text" maxlength="80" placeholder="Ex: Fundo de emergÃªncia / viagem">
           </label>
 
-          <button type="submit" class="primary-btn">Guardar configuração</button>
+          <button type="submit" class="primary-btn">Guardar configuraÃ§Ã£o</button>
         </form>
 
-        <p id="settingsStatus" class="goal-label">A base do mês usa sempre o saldo do dia 1.</p>
+        <p id="settingsStatus" class="goal-label">A base do mÃªs usa sempre o saldo do dia 1.</p>
       </section>
 
-      <!-- ── GESTÁO DE DADOS ────────────────────────────────────────── -->
+      <!-- â”€â”€ GESTÃO DE DADOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <section class="panel config-panel">
         <div class="panel-heading">
-          <h2>Gestão de Dados e Backups</h2>
+          <h2>GestÃ£o de Dados e Backups</h2>
           <p>Exporta os teus dados ou usa a nuvem para manter tudo seguro.</p>
         </div>
 
         <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.05); opacity: 0.4; font-size: 0.7rem;">
-            PWA Versão 2.1.1 — Sync Engine Refined
+            PWA VersÃ£o 2.1.1 â€” Sync Engine Refined
         </div>
 
       <section class="panel config-panel">
         <div class="panel-heading">
-          <h2>Sincronização Cloud (Firebase)</h2>
-          <p>O Google Drive foi desativado. Agora os teus dados são seguros e sincronizados instantaneamente via Firebase.</p>
+          <h2>SincronizaÃ§Ã£o Cloud (Firebase)</h2>
+          <p>O Google Drive foi desativado. Agora os teus dados sÃ£o seguros e sincronizados instantaneamente via Firebase.</p>
         </div>
         <div id="firebaseStatusPanel" style="padding: 20px; background: rgba(16, 185, 129, 0.05); border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.2);">
             <div style="display: flex; align-items: center; gap: 12px;">
                 <div class="status-dot online"></div>
                 <div>
                     <span id="firebaseStatus" style="font-weight: 700; color: var(--success);">Ligado e Seguro</span>
-                    <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">Sincronização em tempo real ativa.</p>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">SincronizaÃ§Ã£o em tempo real ativa.</p>
                 </div>
             </div>
         </div>
       </section>
 
-      <!-- ── CONFIGURAÇÁO DE APIS ────────────────────────────────────── -->
+      <!-- â”€â”€ CONFIGURAÃ‡ÃO DE APIS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <section class="panel config-panel">
         <div class="panel-heading">
           <h2>Conectividade e Dados Reais</h2>
-          <p>Configura as tuas chaves de API para obteres cotações de mercado em tempo real.</p>
+          <p>Configura as tuas chaves de API para obteres cotaÃ§Ãµes de mercado em tempo real.</p>
         </div>
 
         <form id="api-settings-form" class="stack">
           <label>
-            Finnhub API Key (Ações/ETFs)
+            Finnhub API Key (AÃ§Ãµes/ETFs)
             <input id="finnhubApiKey" name="finnhubApiKey" type="password" placeholder="Cola aqui a tua chave da Finnhub">
-            <small style="opacity: 0.6; font-size: 0.75rem;">Obtém uma chave gratuita em <a href="https://finnhub.io/" target="_blank" style="color: var(--primary);">finnhub.io</a></small>
+            <small style="opacity: 0.6; font-size: 0.75rem;">ObtÃ©m uma chave gratuita em <a href="https://finnhub.io/" target="_blank" style="color: var(--primary);">finnhub.io</a></small>
           </label>
 
           <div style="padding: 12px; background: rgba(16, 185, 129, 0.05); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">
-            <p style="margin: 0; font-size: 0.8rem; color: var(--success);"><strong>✓ CoinGecko (Cripto)</strong> ativo via rede pública (sem necessidade de chave).</p>
+            <p style="margin: 0; font-size: 0.8rem; color: var(--success);"><strong>âœ“ CoinGecko (Cripto)</strong> ativo via rede pÃºblica (sem necessidade de chave).</p>
           </div>
 
           <button type="submit" class="primary-btn">Guardar chaves</button>
         </form>
-        <p id="apiStatus" class="goal-label">As chaves são guardadas apenas no teu navegador.</p>
+        <p id="apiStatus" class="goal-label">As chaves sÃ£o guardadas apenas no teu navegador.</p>
       </section>
 
-      <!-- ── CATEGORIAS ─────────────────────────────────────────────── -->
+      <!-- â”€â”€ CATEGORIAS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <section class="panel config-panel">
         <div class="panel-heading">
           <h2>Categorias de despesa</h2>
@@ -188,13 +188,13 @@
           <button type="submit" class="secondary-btn">Adicionar categoria</button>
         </form>
 
-        <p id="categoryStatus" class="goal-label">As categorias criadas aparecem depois no formulário das despesas.</p>
+        <p id="categoryStatus" class="goal-label">As categorias criadas aparecem depois no formulÃ¡rio das despesas.</p>
         <div id="categoryList" class="item-list empty-state item-list-container">
-          Ainda não existem categorias registadas.
+          Ainda nÃ£o existem categorias registadas.
         </div>
       </section>
 
-      <!-- ── BACKUP LOCAL (SOBERANIA) ────────────────────────────────── -->
+      <!-- â”€â”€ BACKUP LOCAL (SOBERANIA) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
       <section class="panel config-panel">
         <div class="panel-heading">
           <h2>Soberania de Dados (Backup Local)</h2>
@@ -210,7 +210,7 @@
           </button>
           <input type="file" id="importFile" style="display: none;" accept=".json">
         </div>
-        <p class="goal-label">Utiliza esta opção se preferires não usar a nuvem do Google Drive.</p>
+        <p class="goal-label">Utiliza esta opÃ§Ã£o se preferires nÃ£o usar a nuvem do Google Drive.</p>
       </section>
 
     </main>
@@ -238,18 +238,18 @@
       });
     }
 
-    // Botão de Sincronização na Nav
+    // BotÃ£o de SincronizaÃ§Ã£o na Nav
     
   </script>
 <script src="google-drive-sync.js"></script>
 
 <script>
-// ── Guardar Chave API (inline, sem depender de cache) ──
+// â”€â”€ Guardar Chave API (inline, sem depender de cache) â”€â”€
 (function() {
   const apiForm = document.getElementById('api-settings-form');
   if (!apiForm) return;
 
-  // Pré-preencher o campo se já existir chave guardada
+  // PrÃ©-preencher o campo se jÃ¡ existir chave guardada
   try {
     const raw = localStorage.getItem('finance-control-app');
     if (raw) {
@@ -269,7 +269,7 @@
     const apiKey = (input ? input.value : '').trim();
     
     if (!apiKey) {
-      alert('⚠️ Introduza uma chave API válida.');
+      alert('âš ï¸ Introduza uma chave API vÃ¡lida.');
       return;
     }
 
@@ -281,24 +281,24 @@
       data.finnhubApiKey = apiKey;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 
-      // Atualizar estado em memória se existir
+      // Atualizar estado em memÃ³ria se existir
       if (window.state) window.state.finnhubApiKey = apiKey;
 
       // Feedback visual
       const btn = apiForm.querySelector('button[type="submit"]');
       if (btn) {
-        btn.textContent = '✅ Chave Guardada!';
+        btn.textContent = 'âœ… Chave Guardada!';
         btn.style.background = '#10b981';
         btn.disabled = true;
       }
       const status = document.getElementById('apiStatus');
       if (status) {
-        status.textContent = '✅ Chave Finnhub persistida com sucesso. A redirecionar...';
+        status.textContent = 'âœ… Chave Finnhub persistida com sucesso. A redirecionar...';
         status.style.color = '#10b981';
         status.style.fontWeight = '700';
       }
 
-      // Redirecionar para o terminal após 1s
+      // Redirecionar para o terminal apÃ³s 1s
       setTimeout(function() {
         window.location.href = 'pro360.html';
       }, 1000);

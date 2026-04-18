@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-PT">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboards e Analítica — Controlo Financeiro</title>
-  <meta name="description" content="Dashboard financeiro com evolução patrimonial, burn rate semanal, radar de saúde financeira e tabela analítica mensal.">
+  <title>Dashboards e AnalÃ­tica â€” Controlo Financeiro</title>
+  <meta name="description" content="Dashboard financeiro com evoluÃ§Ã£o patrimonial, burn rate semanal, radar de saÃºde financeira e tabela analÃ­tica mensal.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
@@ -18,40 +18,40 @@
         <a href="dashboard.html" class="nav-link active">Dashboards</a>
         <a href="extrato.html" class="nav-link">Extrato</a>
         <a href="pro360.html" class="nav-link">Investimentos</a>
-        <a href="configuracao.html" class="nav-link">Configuração</a>
+        <a href="configuracao.html" class="nav-link">ConfiguraÃ§Ã£o</a>
     </nav>
 
     <header class="hero compact-hero">
       <div>
         <p class="eyebrow">Business Intelligence</p>
-        <h1>Centro de Análise Financeira</h1>
+        <h1>Centro de AnÃ¡lise Financeira</h1>
         <p class="hero-copy">
-          Dashboard dinâmico com evolução patrimonial e métricas de saúde financeira. Usa o seletor de mês para ver relatórios históricos.
+          Dashboard dinÃ¢mico com evoluÃ§Ã£o patrimonial e mÃ©tricas de saÃºde financeira. Usa o seletor de mÃªs para ver relatÃ³rios histÃ³ricos.
         </p>
-        <!-- Seletor de mês para relatório -->
-        <div class="period-selector" id="dashboardMonthNav" role="group" aria-label="Navegação de mês">
-          <button class="period-btn" id="dashPrevMonth" title="Mês anterior">‹ Anterior</button>
+        <!-- Seletor de mÃªs para relatÃ³rio -->
+        <div class="period-selector" id="dashboardMonthNav" role="group" aria-label="NavegaÃ§Ã£o de mÃªs">
+          <button class="period-btn" id="dashPrevMonth" title="MÃªs anterior">â€¹ Anterior</button>
           <span class="period-btn active" id="dashboardMonthDisplay" style="cursor: default; pointer-events: none;">A carregar...</span>
-          <button class="period-btn" id="dashNextMonth" title="Mês seguinte">Seguinte ›</button>
-          <button class="period-btn" id="dashCurrentMonth" title="Voltar ao mês atual">Hoje</button>
+          <button class="period-btn" id="dashNextMonth" title="MÃªs seguinte">Seguinte â€º</button>
+          <button class="period-btn" id="dashCurrentMonth" title="Voltar ao mÃªs atual">Hoje</button>
         </div>
       </div>
       <div class="hero-card accent strong-card">
-        <p>Património Líquido Global</p>
+        <p>PatrimÃ³nio LÃ­quido Global</p>
         <strong id="globalNetWorthDisplay">A calcular...</strong>
         <div id="netWorthDetail" class="mt-10" style="opacity: 0.8; font-size: 0.85rem; color: #94a3b8;">
            <!-- Detalhes preenchidos pelo script.js -->
         </div>
       </div>
       <div class="hero-card accent strong-card">
-        <p>Taxa de Poupança (Mês)</p>
+        <p>Taxa de PoupanÃ§a (MÃªs)</p>
         <strong id="savingsRateDisplay">A calcular...</strong>
         <div id="savingsRateDetail" class="mt-10" style="opacity: 0.8; font-size: 0.85rem; color: #94a3b8;">
             <!-- Detalhes preenchidos pelo motor de BI -->
         </div>
       </div>
       <div class="hero-card accent strong-card">
-        <p>Reserva p/ Obrigações</p>
+        <p>Reserva p/ ObrigaÃ§Ãµes</p>
         <strong id="obligationsPendingDisplay">A calcular...</strong>
         <div id="obligationsDetail" class="mt-10" style="opacity: 0.8; font-size: 0.85rem; color: #94a3b8;">
             <!-- Detalhes de Pago vs Pendente -->
@@ -63,8 +63,8 @@
       <div class="dashboard-col">
         <section class="panel">
           <div class="panel-heading compact-heading">
-            <h2>Evolução Patrimonial</h2>
-            <p>Evolução da soma de todas as contas ao longo do tempo, com e sem recebíveis em aberto.</p>
+            <h2>EvoluÃ§Ã£o Patrimonial</h2>
+            <p>EvoluÃ§Ã£o da soma de todas as contas ao longo do tempo, com e sem recebÃ­veis em aberto.</p>
           </div>
           <div style="position: relative; height:30vh; width:100%">
             <canvas id="longTermNetWorthChart"></canvas>
@@ -73,8 +73,8 @@
 
         <section class="panel">
           <div class="panel-heading compact-heading">
-            <h2>Burn-Rate vs Orçamento Ideal</h2>
-            <p>Calcula ao rubro se o que gastas em despesas + transferências está dentro da tua meta diária.</p>
+            <h2>Burn-Rate vs OrÃ§amento Ideal</h2>
+            <p>Calcula ao rubro se o que gastas em despesas + transferÃªncias estÃ¡ dentro da tua meta diÃ¡ria.</p>
           </div>
           <div style="position: relative; height:30vh; width:100%">
             <canvas id="weeklyBurnChart"></canvas>
@@ -85,7 +85,7 @@
       <div class="dashboard-col">
         <section class="panel">
           <div class="panel-heading compact-heading">
-            <h2>Distribuição por Categoria</h2>
+            <h2>DistribuiÃ§Ã£o por Categoria</h2>
             <p>Sombra do ciclo selecionado. Quais os setores a furar a margem?</p>
           </div>
           <div style="position: relative; height:40vh; width:100%; display: flex; justify-content: center;">
@@ -95,8 +95,8 @@
 
         <section class="panel">
           <div class="panel-heading compact-heading">
-            <h2>Top 5 Despesas Variáveis do Mês</h2>
-            <p>Maiores custos diretos responsáveis pela erosão do ciclo corrente, ordenados de forma descendente.</p>
+            <h2>Top 5 Despesas VariÃ¡veis do MÃªs</h2>
+            <p>Maiores custos diretos responsÃ¡veis pela erosÃ£o do ciclo corrente, ordenados de forma descendente.</p>
           </div>
           <div id="topExpensesList" class="item-list empty-state item-list-container">
             A recrutar dados...
@@ -104,113 +104,113 @@
         </section>
       </div>
 
-      <!-- Apanhado Semanal / Orçamento Dinâmico -->
+      <!-- Apanhado Semanal / OrÃ§amento DinÃ¢mico -->
       <section class="panel config-panel span-all">
         <div class="panel-heading compact-heading">
-          <h2>🎯 Apanhado Semanal Soberano</h2>
-          <p>Orçamento diário e semanal calculado por fatias (Domingo a Domingo). O dinheiro que sobra aqui é o que alimenta o teu futuro.</p>
+          <h2>ðŸŽ¯ Apanhado Semanal Soberano</h2>
+          <p>OrÃ§amento diÃ¡rio e semanal calculado por fatias (Domingo a Domingo). O dinheiro que sobra aqui Ã© o que alimenta o teu futuro.</p>
         </div>
         
         <div class="summary-grid mb-20" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
             <article class="summary-card accent">
-                <span>Orçamento do Dia</span>
-                <strong id="dailyBudgetDisplay">0,00 €</strong>
+                <span>OrÃ§amento do Dia</span>
+                <strong id="dailyBudgetDisplay">0,00 â‚¬</strong>
                 <p class="hero-copy" style="font-size: 0.75rem;">O que podes gastar hoje sem furar o plano.</p>
             </article>
             <article class="summary-card">
-                <span>Orçamento p/ esta Semana</span>
-                <strong id="weeklySliceBudgetDisplay">0,00 €</strong>
-                <p class="hero-copy" style="font-size: 0.75rem;">Disponível total para a fatia corrente.</p>
+                <span>OrÃ§amento p/ esta Semana</span>
+                <strong id="weeklySliceBudgetDisplay">0,00 â‚¬</strong>
+                <p class="hero-copy" style="font-size: 0.75rem;">DisponÃ­vel total para a fatia corrente.</p>
             </article>
             <article class="summary-card strong-card" style="border-color: var(--primary);">
                 <span>Excedente p/ Apanhado</span>
-                <strong id="sliceSurplusDisplay" style="color: var(--primary);">0,00 €</strong>
+                <strong id="sliceSurplusDisplay" style="color: var(--primary);">0,00 â‚¬</strong>
                 <p id="weeklySliceMath" style="font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; font-family: monospace;">A calcular conta...</p>
-                <p class="hero-copy" style="font-size: 0.75rem;">Dinheiro acumulado para Revolut/XTB no próximo domingo.</p>
+                <p class="hero-copy" style="font-size: 0.75rem;">Dinheiro acumulado para Revolut/XTB no prÃ³ximo domingo.</p>
             </article>
         </div>
 
         <div id="weeklySlicesList" class="item-list empty-state item-list-container">
-            A calcular fatias do calendário...
+            A calcular fatias do calendÃ¡rio...
         </div>
 
         <div class="panel-heading compact-heading mt-20">
-            <h3>📈 Performance Diária (Meta vs Gasto)</h3>
-            <p>Comparação entre o orçamento ideal p/ dia e o teu gasto real variável.</p>
+            <h3>ðŸ“ˆ Performance DiÃ¡ria (Meta vs Gasto)</h3>
+            <p>ComparaÃ§Ã£o entre o orÃ§amento ideal p/ dia e o teu gasto real variÃ¡vel.</p>
         </div>
         <div style="position: relative; height:30vh; width:100%">
             <canvas id="dailyPerformanceChart"></canvas>
         </div>
       </section>
 
-      <!-- Radar de Saúde Financeira -->
+      <!-- Radar de SaÃºde Financeira -->
       <section class="panel config-panel span-all" style="padding: 30px;">
         <div class="panel-heading compact-heading">
-          <h2>⚡ Radar de Saúde Financeira</h2>
-          <p>Indicadores de consultoria em tempo real. O teu relatório estratégico automático.</p>
+          <h2>âš¡ Radar de SaÃºde Financeira</h2>
+          <p>Indicadores de consultoria em tempo real. O teu relatÃ³rio estratÃ©gico automÃ¡tico.</p>
         </div>
         <div class="radar-grid">
           <div class="radar-card" id="runwayCard">
-            <div class="radar-icon">🛡️</div>
+            <div class="radar-icon">ðŸ›¡ï¸</div>
             <div class="radar-content">
               <span class="radar-label">Autonomia Financeira</span>
               <strong class="radar-value" id="runwayDisplay">A calcular...</strong>
               <p class="radar-hint" id="runwayHint">Quantos meses sobrevives sem rendimento</p>
             </div>
-            <div class="radar-badge" id="runwayBadge">—</div>
+            <div class="radar-badge" id="runwayBadge">â€”</div>
           </div>
 
           <div class="radar-card" id="emergencyFundCard">
-            <div class="radar-icon">🏦</div>
+            <div class="radar-icon">ðŸ¦</div>
             <div class="radar-content">
-              <span class="radar-label">Fundo de Emergência (Meta: 6 meses)</span>
+              <span class="radar-label">Fundo de EmergÃªncia (Meta: 6 meses)</span>
               <strong class="radar-value" id="emergencyFundDisplay">A calcular...</strong>
               <div class="progress-bar-track">
                 <div class="progress-bar-fill" id="emergencyFundBar" style="width: 0%"></div>
               </div>
-              <p class="radar-hint" id="emergencyFundHint">Progresso em direção à segurança total</p>
+              <p class="radar-hint" id="emergencyFundHint">Progresso em direÃ§Ã£o Ã  seguranÃ§a total</p>
             </div>
           </div>
 
           <div class="radar-card" id="velocityCard">
-            <div class="radar-icon">🎯</div>
+            <div class="radar-icon">ðŸŽ¯</div>
             <div class="radar-content">
-              <span class="radar-label">Aproveitamento do Orçamento</span>
+              <span class="radar-label">Aproveitamento do OrÃ§amento</span>
               <strong class="radar-value" id="budgetVelocityDisplay">A calcular...</strong>
               <div class="progress-bar-track">
                 <div class="progress-bar-fill" id="budgetVelocityBar" style="width: 0%"></div>
               </div>
-              <p class="radar-hint" id="velocityHint">Percentagem do orçamento mensal já utilizada</p>
+              <p class="radar-hint" id="velocityHint">Percentagem do orÃ§amento mensal jÃ¡ utilizada</p>
             </div>
           </div>
 
           <div class="radar-card" id="leakageAlertCard">
-            <div class="radar-icon">🔍</div>
+            <div class="radar-icon">ðŸ”</div>
             <div class="radar-content">
               <span class="radar-label">Auditoria de Fluxo</span>
               <strong class="radar-value" id="leakageDisplay">A analisar...</strong>
-              <p class="radar-hint" id="leakageHint">Diferença entre o saldo real e as despesas registadas</p>
+              <p class="radar-hint" id="leakageHint">DiferenÃ§a entre o saldo real e as despesas registadas</p>
             </div>
-            <div class="radar-badge" id="leakageBadge">—</div>
+            <div class="radar-badge" id="leakageBadge">â€”</div>
           </div>
         </div>
       </section>
 
-      <!-- Tabela Analítica Mensal -->
+      <!-- Tabela AnalÃ­tica Mensal -->
       <section class="panel config-panel span-all" style="padding: 30px;">
         <div class="panel-heading compact-heading">
-          <h2>Balanço Mensal Categórico</h2>
-          <p>Tabela com o histórico completo — todos os meses com dados, ordenados cronologicamente.</p>
+          <h2>BalanÃ§o Mensal CategÃ³rico</h2>
+          <p>Tabela com o histÃ³rico completo â€” todos os meses com dados, ordenados cronologicamente.</p>
         </div>
         <div class="table-wrapper">
           <table class="analytic-table">
             <thead>
               <tr>
-                <th>Mês de Referência</th>
+                <th>MÃªs de ReferÃªncia</th>
                 <th class="text-right">Ganhos Extra</th>
                 <th class="text-right">Custo Fixo</th>
-                <th class="text-right">Gasto Variável</th>
-                <th class="text-right">Transf. / Poupanças</th>
+                <th class="text-right">Gasto VariÃ¡vel</th>
+                <th class="text-right">Transf. / PoupanÃ§as</th>
                 <th class="text-right">Saldo (Estimado)</th>
               </tr>
             </thead>
@@ -243,10 +243,10 @@
   <script src="charts.js"></script>
   
   <script>
-    // Botão de Sincronização na Nav
+    // BotÃ£o de SincronizaÃ§Ã£o na Nav
     
 
-    // ── Navegação de mês no Dashboard ────────────────────────────
+    // â”€â”€ NavegaÃ§Ã£o de mÃªs no Dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     (function() {
       function getMonthParts(key) {
         const [y, m] = key.split('-').map(Number);
@@ -273,11 +273,11 @@
         if (display) display.textContent = monthLabel(currentKey);
         // Expor para charts.js
         window.dashboardMonthKey = currentKey;
-        // Re-renderizar gráficos e radar
+        // Re-renderizar grÃ¡ficos e radar
         if (typeof renderRadar === 'function') renderRadar();
         if (typeof renderTopExpenses === 'function') renderTopExpenses();
         if (typeof drawCategoryChart === 'function') {
-          // Destruir e recriar o gráfico de categoria
+          // Destruir e recriar o grÃ¡fico de categoria
           const canvas = document.getElementById('categoryDistributionChart');
           if (canvas && canvas._chartInstance) { canvas._chartInstance.destroy(); }
           drawCategoryChart();

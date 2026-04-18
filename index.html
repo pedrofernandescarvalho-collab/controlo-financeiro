@@ -1,10 +1,10 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registos Financeiros — Controlo Financeiro</title>
-    <meta name="description" content="Registo diário de despesas, ganhos e fotografias globais de saldo.">
+    <title>Registos Financeiros â€” Controlo Financeiro</title>
+    <meta name="description" content="Registo diÃ¡rio de despesas, ganhos e fotografias globais de saldo.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
@@ -75,17 +75,17 @@
         <a href="dashboard.html" class="nav-link">Dashboards</a>
         <a href="extrato.html" class="nav-link">Extrato</a>
         <a href="pro360.html" class="nav-link">Investimentos</a>
-        <a href="configuracao.html" class="nav-link">Configuração</a>
+        <a href="configuracao.html" class="nav-link">ConfiguraÃ§Ã£o</a>
     </nav>
 
         <header class="hero compact-hero">
             <div>
-                <p class="eyebrow">Operações Diárias</p>
+                <p class="eyebrow">OperaÃ§Ãµes DiÃ¡rias</p>
                 <h1>Cockpit de Registos</h1>
-                <p class="hero-copy">Gere o teu dia financeiro com precisão milimétrica.</p>
+                <p class="hero-copy">Gere o teu dia financeiro com precisÃ£o milimÃ©trica.</p>
             </div>
             <div class="hero-card accent strong-card">
-                <p>Património Líquido Global</p>
+                <p>PatrimÃ³nio LÃ­quido Global</p>
                 <strong id="globalNetWorthDisplay">0,00 EUR</strong>
                 <div id="netWorthDetail" class="mt-10" style="opacity: 0.8; font-size: 0.85rem; color: #94a3b8;">
                    <!-- Detalhes preenchidos pelo script.js -->
@@ -95,9 +95,9 @@
 
         <main>
             <nav class="tab-nav">
-                <button class="tab-btn active" data-tab="tab-snapshots" onclick="switchTab('tab-snapshots')">📸 Snapshots</button>
-                <button class="tab-btn" data-tab="tab-movimentos" onclick="switchTab('tab-movimentos')">💸 Movimentos Diários</button>
-                <button class="tab-btn" data-tab="tab-receivables" onclick="switchTab('tab-receivables')">🤝 Dívidas</button>
+                <button class="tab-btn active" data-tab="tab-snapshots" onclick="switchTab('tab-snapshots')">ðŸ“¸ Snapshots</button>
+                <button class="tab-btn" data-tab="tab-movimentos" onclick="switchTab('tab-movimentos')">ðŸ’¸ Movimentos DiÃ¡rios</button>
+                <button class="tab-btn" data-tab="tab-receivables" onclick="switchTab('tab-receivables')">ðŸ¤ DÃ­vidas</button>
             </nav>
 
             <!-- TAB 1: SNAPSHOT -->
@@ -124,7 +124,7 @@
 
                     <section class="panel">
                         <div class="panel-heading">
-                            <h2>Histórico do Mês</h2>
+                            <h2>HistÃ³rico do MÃªs</h2>
                             <p>Visualiza snapshots anteriores.</p>
                         </div>
                         <div id="snapshotList" class="item-list item-list-container"></div>
@@ -136,26 +136,26 @@
             <div id="tab-movimentos" class="tab-content">
                 <div class="cockpit-grid">
                     
-                    <!-- COLUNA 1: CONFIGURAÇÁO / SETUP -->
+                    <!-- COLUNA 1: CONFIGURAÃ‡ÃO / SETUP -->
                     <div class="compact-form-section">
                         <section class="panel">
                             <div class="panel-heading compact">
-                                <h2>Configurar Obrigações</h2>
+                                <h2>Configurar ObrigaÃ§Ãµes</h2>
                                 <p>Define as regras de faturas fixas.</p>
                             </div>
                             <form id="recurring-form" class="stack" style="gap: 12px;">
-                                <label>Descrição
+                                <label>DescriÃ§Ã£o
                                     <input id="recurringName" type="text" placeholder="Ex: Renda" required>
                                 </label>
                                 <div class="grid">
-                                    <label>Valor €
+                                    <label>Valor â‚¬
                                         <input id="recurringAmount" type="number" step="0.01" placeholder="0,00" required>
                                     </label>
                                     <label>Dia
                                         <input id="recurringDay" type="number" min="1" max="31" placeholder="Dia" required>
                                     </label>
                                 </div>
-                                <label>Frequência
+                                <label>FrequÃªncia
                                     <select id="recurringFrequency">
                                         <option value="monthly" selected>Mensal</option>
                                         <option value="quarterly">Trimestral</option>
@@ -164,15 +164,15 @@
                                     </select>
                                 </label>
                                 <select id="recurringStartMonth" style="display:none;">
-                                    <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
+                                    <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">MarÃ§o</option>
                                     <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
                                     <option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
                                     <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
                                 </select>
-                                <button type="submit" class="secondary-btn">Adicionar Obrigação</button>
+                                <button type="submit" class="secondary-btn">Adicionar ObrigaÃ§Ã£o</button>
                             </form>
                             
-                            <h3 class="section-title-sm">Obrigações Configuradas</h3>
+                            <h3 class="section-title-sm">ObrigaÃ§Ãµes Configuradas</h3>
                             <div id="recurringList" class="item-list-container" style="max-height: 250px;"></div>
                         </section>
 
@@ -183,7 +183,7 @@
                             <form id="income-form" class="stack" style="gap: 12px;">
                                 <input id="incomeName" type="text" placeholder="Origem" required>
                                 <div class="grid">
-                                    <input id="incomeAmount" type="number" step="0.01" placeholder="Valor €" required>
+                                    <input id="incomeAmount" type="number" step="0.01" placeholder="Valor â‚¬" required>
                                     <input id="incomeDate" type="date" required>
                                 </div>
                                 <button type="submit" class="secondary-btn">Registar Provento</button>
@@ -191,18 +191,18 @@
                         </section>
                     </div>
 
-                    <!-- COLUNA 2: REGISTO DIÁRIO (FOCO CENTRAL) -->
+                    <!-- COLUNA 2: REGISTO DIÃRIO (FOCO CENTRAL) -->
                     <section class="panel" style="border: 2px solid var(--border-subtle);">
                         <div class="panel-heading">
-                            <h2>Registar Despesa Variável</h2>
+                            <h2>Registar Despesa VariÃ¡vel</h2>
                             <p>Gastos que saem do teu saldo de investimento/livre.</p>
                         </div>
                         <form id="expense-form" class="stack" style="gap: 16px;">
-                            <label>Descrição da Despesa
+                            <label>DescriÃ§Ã£o da Despesa
                                 <input id="expenseName" type="text" placeholder="Ex: Supermercado" required>
                             </label>
                             <div class="grid">
-                                <label>Valor (€)
+                                <label>Valor (â‚¬)
                                     <input id="expenseAmount" type="number" step="0.01" required>
                                 </label>
                                 <label>Data
@@ -215,7 +215,7 @@
                             
                             <label>Dividir conta?
                                 <select id="expenseSplit">
-                                    <option value="no" selected>Não</option>
+                                    <option value="no" selected>NÃ£o</option>
                                     <option value="yes">Sim</option>
                                 </select>
                             </label>
@@ -225,7 +225,7 @@
                                     <strong>Partilha de Despesa</strong>
                                     <div>
                                         <button type="button" id="addSplitPerson" class="text-btn">+ Nome</button>
-                                        <button type="button" id="distributeSplit" class="text-btn">÷ Dividir</button>
+                                        <button type="button" id="distributeSplit" class="text-btn">Ã· Dividir</button>
                                     </div>
                                 </div>
                                 <div id="splitList" class="stack" style="gap:8px;"></div>
@@ -237,24 +237,24 @@
                         </form>
                     </section>
 
-                    <!-- COLUNA 3: CHECKLIST & HISTÓRICO -->
+                    <!-- COLUNA 3: CHECKLIST & HISTÃ“RICO -->
                     <div class="stack" style="gap: 28px;">
                         <section class="panel" style="border-top: 4px solid var(--primary);">
                             <div class="panel-heading compact">
-                                <h2>Vistos do Mês (Checklist)</h2>
-                                <p>Marca o que já saiu efetivamente do banco.</p>
+                                <h2>Vistos do MÃªs (Checklist)</h2>
+                                <p>Marca o que jÃ¡ saiu efetivamente do banco.</p>
                             </div>
                             <div id="fixedExpensesList" class="item-list-container"></div>
                         </section>
 
                         <section class="panel">
                             <div class="panel-heading compact">
-                                <h2>Histórico Recente</h2>
+                                <h2>HistÃ³rico Recente</h2>
                             </div>
                             <h3 class="section-title-sm">Ganhos Lancados</h3>
                             <div id="incomesList" class="item-list-container" style="max-height: 180px;"></div>
                             
-                            <h3 class="section-title-sm">Despesas Variáveis</h3>
+                            <h3 class="section-title-sm">Despesas VariÃ¡veis</h3>
                             <div id="expensesList" class="item-list-container" style="max-height: 280px;"></div>
                         </section>
                     </div>
@@ -262,14 +262,14 @@
                 </div>
             </div>
 
-            <!-- TAB 3: DÍVIDAS -->
+            <!-- TAB 3: DÃVIDAS -->
             <div id="tab-receivables" class="tab-content">
                 <div class="inner-dashboard-grid">
                     <section class="panel">
-                        <div class="panel-heading"><h2>Nova Dívida a Receber</h2></div>
+                        <div class="panel-heading"><h2>Nova DÃ­vida a Receber</h2></div>
                         <form id="receivable-form" class="stack">
-                            <label>Descrição
-                                <input id="receivableName" type="text" placeholder="Ex: Empréstimo Pedro" required>
+                            <label>DescriÃ§Ã£o
+                                <input id="receivableName" type="text" placeholder="Ex: EmprÃ©stimo Pedro" required>
                             </label>
                             <div class="grid">
                                 <label>Valor
@@ -279,21 +279,21 @@
                                     <input id="receivableDate" type="date" required>
                                 </label>
                             </div>
-                            <label>Estado da Dívida
+                            <label>Estado da DÃ­vida
                                 <select id="receivableStatus">
                                     <option value="pending" selected>Pendente (Em Aberto)</option>
                                     <option value="received">Liquidada (Recebida)</option>
                                 </select>
                             </label>
-                            <button type="submit" class="primary-btn">Confirmar Alterações / Registar</button>
+                            <button type="submit" class="primary-btn">Confirmar AlteraÃ§Ãµes / Registar</button>
                             <p id="receivableStatusText" class="status-msg"></p>
                         </form>
                     </section>
                     <section class="panel">
-                        <div class="panel-heading"><h2>Controlo de Recebíveis</h2></div>
+                        <div class="panel-heading"><h2>Controlo de RecebÃ­veis</h2></div>
                         <div class="summary-grid mb-20">
-                            <article class="summary-card accent"><span>Em Aberto</span><strong id="receivablePendingTotal">0,00 €</strong></article>
-                            <article class="summary-card success"><span>Liquidado</span><strong id="receivableReceivedTotal">0,00 €</strong></article>
+                            <article class="summary-card accent"><span>Em Aberto</span><strong id="receivablePendingTotal">0,00 â‚¬</strong></article>
+                            <article class="summary-card success"><span>Liquidado</span><strong id="receivableReceivedTotal">0,00 â‚¬</strong></article>
                         </div>
                         <div id="receivablesList" class="item-list item-list-container"></div>
                     </section>
@@ -305,7 +305,7 @@
     <template id="item-template">
         <article class="item-card">
             <div style="min-width:0; flex:1;"><strong class="item-title" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></strong><p class="item-subtitle"></p></div>
-            <div class="item-actions"><span class="item-value"></span><button type="button" class="ghost-btn" style="padding:4px 8px; font-size:0.75rem;">×</button></div>
+            <div class="item-actions"><span class="item-value"></span><button type="button" class="ghost-btn" style="padding:4px 8px; font-size:0.75rem;">Ã—</button></div>
         </article>
     </template>
 
@@ -314,7 +314,7 @@
     <script type="module" src="firebase-sync.js"></script>
     
     <script>
-        // Botão de Sincronização na Nav
+        // BotÃ£o de SincronizaÃ§Ã£o na Nav
         
 
         function switchTab(tabId) {

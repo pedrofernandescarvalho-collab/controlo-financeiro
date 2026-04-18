@@ -1,4 +1,4 @@
-const CACHE_NAME = 'finance-control-v4.5.0-ultimate-reset';
+﻿const CACHE_NAME = 'finance-control-v4.5.0-ultimate-reset';
 const ASSETS = [
   'index.html',
   'dashboard.html',
@@ -31,7 +31,7 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // Estratégia Network First para garantir que as atualizações chegam rápido
+  // EstratÃ©gia Network First para garantir que as atualizaÃ§Ãµes chegam rÃ¡pido
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))
   );
