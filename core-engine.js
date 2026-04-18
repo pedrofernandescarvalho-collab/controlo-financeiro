@@ -2541,3 +2541,27 @@ function getCalendarSlices() {
   }
   return slices;
 }
+
+// Valor líquido de uma despesa (subtraindo splits/recebíveis associados)
+function getNetExpenseAmount(expense) {
+  if (!expense) return 0;
+  const gross = Number(expense.amount) || 0;
+  if (!expense.id) return gross;
+  const linkedSplits = state.receivables.filter(r => r.linkedExpenseId === expense.id);
+  const splitTotal = linkedSplits.reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+  return Math.max(0, gross - splitTotal);
+}
+
+// Gasto diário (despesas variáveis) para cada dia do mês ativo
+function getDailySpendingData() {
+  const { year, month } = getActiveMonthParts();
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const mk = getMonthKey();
+  const result = new Array(daysInMonth).fill(0);
+  state.expenses.forEach(e => {
+    if (getItemMonthKey(e) !== mk || e.kind === 'fixed') return;
+    const day = Math.min(Math.max(Number(e.day) || 1, 1), daysInMonth) - 1;
+    result[day] += getNetExpenseAmount(e);
+  });
+  return result;
+}
