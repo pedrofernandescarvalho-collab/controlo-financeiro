@@ -683,7 +683,7 @@ button { font-family: inherit; cursor: pointer; transition: var(--transition); d
   background: rgba(13, 148, 136, 0.6);
 }
 
-/* Melhorias visuais na grelha e cart�es */
+/* Melhorias visuais na grelha e cart-es */
 .item-list-container {
   padding-right: 10px;
   max-height: 300px;

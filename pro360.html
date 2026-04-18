@@ -11,18 +11,18 @@
     </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Investimentos Inteligentes â€” Controlo Financeiro</title>
+  <title>Investimentos Inteligentes - Controlo Financeiro</title>
   <meta name="app-version" content="4.3.0">
-  <meta name="description" content="GestÃ£o avanÃ§ada de portfÃ³lio XTB com recomendaÃ§Ãµes de IA e radar de descoberta de ativos.">
+  <meta name="description" content="Gestão avançada de portfólio XTB com recomendações de IA e radar de descoberta de ativos.">
   <script>
-    // Script de EmergÃªncia para ForÃ§ar AtualizaÃ§Ã£o (Cache Buster)
+    // Script de Emergência para Forçar Atualização (Cache Buster)
     const APP_VERSION = '4.3.0';
     if (localStorage.getItem('last_deployed_version') !== APP_VERSION) {
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.getRegistrations().then(registrations => {
                 for(let registration of registrations) registration.unregister();
                 localStorage.setItem('last_deployed_version', APP_VERSION);
-                console.log("VersÃ£o antiga detetada. A forÃ§ar atualizaÃ§Ã£o...");
+                console.log("Versão antiga detetada. A forçar atualização...");
                 window.location.reload(true);
             });
         }
@@ -33,11 +33,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
   <style>
-    /* HarmonizaÃ§Ã£o Pro 360 com Tema Premium Light */
+    /* Harmonização Pro 360 com Tema Premium Light */
     :root {
       --trading-green: #10b981;
       --trading-red: #f43f5e;
-      --trading-blue: #0d9488; /* Usando o Teal como base tÃ©cnica */
+      --trading-blue: #0d9488; /* Usando o Teal como base técnica */
       --terminal-accent: #7c3aed;
     }
 
@@ -127,7 +127,7 @@
         border: 1px solid var(--border-subtle);
     }
 
-    /* UtilitÃ¡rios de Lista */
+    /* Utilitários de Lista */
     .asset-item {
         display: flex;
         justify-content: space-between;
@@ -166,9 +166,9 @@
         <a href="dashboard.html" class="nav-link">Dashboards</a>
         <a href="extrato.html" class="nav-link">Extrato</a>
         <a href="investimentos.html" class="nav-link active">Investimentos</a>
-        <a href="configuracao.html" class="nav-link">ConfiguraÃ§Ã£o</a>
+        <a href="configuracao.html" class="nav-link">Configuração</a>
         <button id="syncNowBtnNav" class="sync-nav-btn" title="Sincronizar Cloud">
-            <span class="sync-icon">ðŸ”„</span>
+            <span class="sync-icon">-x</span>
             <span class="sync-text">Sincronizar</span>
         </button>
         <div id="cloudStatusPill" class="cloud-pill">Cloud: Desligada</div>
@@ -177,11 +177,11 @@
     <header class="terminal-header">
       <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
         <div>
-          <p class="eyebrow">InteligÃªncia de Ativos Real-Time</p>
+          <p class="eyebrow">Inteligência de Ativos Real-Time</p>
           <h1 style="margin: 0;">Terminal de Investimentos</h1>
           <div style="margin-top: 8px; font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
-            <span id="syncStatusIcon" style="color: var(--trading-green);">â—</span> 
-            <span id="lastSyncTime">SincronizaÃ§Ã£o inativa</span>
+            <span id="syncStatusIcon" style="color: var(--trading-green);">--</span> 
+            <span id="lastSyncTime">Sincronização inativa</span>
             <button class="text-btn" style="font-size: 0.75rem; padding: 0;" onclick="window.refreshAllPrices()">[Atualizar Agora]</button>
           </div>
         </div>
@@ -194,7 +194,7 @@
 
     <main class="invest-grid">
       
-      <!-- â”€â”€ PORTFÃ“LIO E ATIVOS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+      <!-- ---- PORTF-LIO E ATIVOS ---------------------------------------------------------------------------- -->
       <section class="stack">
         <div class="portfolio-card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
@@ -203,33 +203,33 @@
           </div>
 
           <div id="assetsList" class="stack">
-            <div class="empty-state">Ainda nÃ£o tem ativos registados na sua conta XTB.</div>
+            <div class="empty-state">Ainda não tem ativos registados na sua conta XTB.</div>
           </div>
         </div>
 
-        <!-- Radar de NotÃ­cias Global (Market Pulse) -->
+        <!-- Radar de Notícias Global (Market Pulse) -->
         <div class="portfolio-card" style="border-top: 4px solid var(--trading-blue);">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-            <h3 style="margin:0; font-size: 1rem; text-transform: uppercase;">âš¡ Pulso do Mercado</h3>
+            <h3 style="margin:0; font-size: 1rem; text-transform: uppercase;">-a- Pulso do Mercado</h3>
             <span style="font-size: 0.75rem; color: var(--trading-green); cursor: pointer;" onclick="renderMarketPulse()">[Recarregar]</span>
           </div>
           <div id="marketPulseContent" class="stack" style="gap: 12px; max-height: 400px; overflow-y: auto; padding-right: 10px;">
-             <p style="opacity: 0.5; font-size: 0.85rem;">A carregar notÃ­cias globais...</p>
+             <p style="opacity: 0.5; font-size: 0.85rem;">A carregar notícias globais...</p>
           </div>
         </div>
       </section>
 
-      <!-- â”€â”€ INTELIGÃŠNCIA IA E RADAR â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ -->
+      <!-- ---- INTELIG-`NCIA IA E RADAR -------------------------------------------------------------------- -->
       <aside class="stack">
         
         <div class="ai-radar">
           <h3 style="margin-top:0; color: var(--trading-blue); display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 1.4rem;">âœ¦</span> AI Opportunities Hub
+            <span style="font-size: 1.4rem;">-S-</span> AI Opportunities Hub
           </h3>
           <p style="font-size: 0.85rem; opacity: 0.8; line-height: 1.4;">Analista virtual ativo. Cruzando dados de mercado com o seu perfil de dividendos e crescimento.</p>
           
           <div id="aiDiscoveryList" class="stack" style="margin-top: 20px;">
-            <!-- SugestÃµes da IA aqui -->
+            <!-- Sugestões da IA aqui -->
           </div>
 
           <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border-subtle);">
@@ -242,11 +242,11 @@
         </div>
 
         <div class="portfolio-card" style="margin-top: 24px;">
-          <h3 style="margin-bottom: 16px;">AlocaÃ§Ã£o EstratÃ©gica</h3>
+          <h3 style="margin-bottom: 16px;">Alocação Estratégica</h3>
           <div id="allocationChartPlaceholder" style="background: rgba(0,0,0,0.02); border-radius: 16px; padding: 20px; text-align: center; border: 1px solid var(--border-subtle); position: relative;">
-             <p style="opacity: 0.5; font-size: 0.85rem; margin-bottom: 15px;">DistribuiÃ§Ã£o por Classe</p>
+             <p style="opacity: 0.5; font-size: 0.85rem; margin-bottom: 15px;">Distribuição por Classe</p>
              <div id="dynamicAllocationChart" style="margin: 0 auto; width: 140px; height: 140px; border-radius: 50%; background: conic-gradient(var(--trading-blue) 0%, var(--accent) 0%, var(--trading-green) 0%, #eee 0%); transition: background 0.5s ease;"></div>
-             <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, 0); font-weight: 700; font-size: 1.2rem;" id="totalInvestedSmall">0â‚¬</div>
+             <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, 0); font-weight: 700; font-size: 1.2rem;" id="totalInvestedSmall">0--</div>
           </div>
           <div class="stack" style="margin-top: 20px;">
             <div style="display: flex; justify-content: space-between; font-size: 0.85rem; padding: 4px 0;">
@@ -273,7 +273,7 @@
   <div id="assetModal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; padding: 20px;">
     <div class="panel" style="width: 100%; max-width: 480px; box-shadow: var(--shadow-lg);">
       <h2 style="margin-top:0;">Registar Ativo XTB</h2>
-      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 24px;">Adicione os detalhes da sua posiÃ§Ã£o para que a IA possa analisar o seu portfÃ³lio.</p>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 24px;">Adicione os detalhes da sua posição para que a IA possa analisar o seu portfólio.</p>
       
       <form id="asset-form" class="stack">
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
@@ -282,12 +282,12 @@
         </div>
         <label class="field-block">Nome do Ativo <input id="assetName" type="text" placeholder="Ex: Vanguard FTSE All-World" required></label>
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-          <label class="field-block">PreÃ§o MÃ©dio (EUR) <input id="assetAvgPrice" type="number" step="0.01" placeholder="0,00" required></label>
+          <label class="field-block">Preço Médio (EUR) <input id="assetAvgPrice" type="number" step="0.01" placeholder="0,00" required></label>
           <label class="field-block">Categoria 
             <select id="assetCategory">
-              <option value="dividends">AÃ§Ãµes/ETFs Dividendos</option>
+              <option value="dividends">Ações/ETFs Dividendos</option>
               <option value="growth">Crescimento/Growth</option>
-              <option value="reit">REITs (ImobiliÃ¡rio)</option>
+              <option value="reit">REITs (Imobiliário)</option>
               <option value="crypto">Criptomoedas</option>
             </select>
           </label>
@@ -304,7 +304,7 @@
   <div id="studyModal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(12px); z-index: 1100; align-items: center; justify-content: center; padding: 20px;">
     <div class="panel" style="width: 100%; max-width: 600px; max-height: 85vh; overflow-y: auto;">
       <div id="studyContent">
-        <!-- ConteÃºdo do estudo gerado aqui -->
+        <!-- Conteúdo do estudo gerado aqui -->
       </div>
       <button class="secondary-btn" style="margin-top: 24px;" onclick="closeStudyModal()">Fechar Estudo</button>
     </div>
@@ -312,7 +312,7 @@
 
   <script src="core-engine.js"></script>
   <script>
-  // â”€â”€ Yahoo Finance Fallback (inline, bypass ao cache do SW) â”€â”€
+  // ---- Yahoo Finance Fallback (inline, bypass ao cache do SW) ----
   window.fetchYahooFallback = async function(ticker) {
     const YAHOO_MAP = {'VUAA.IT':'VUAA.MI','VWCE.DE':'VWCE.DE','IUSE.L':'IUSE.L'};
     const yt = YAHOO_MAP[ticker] || ticker;
@@ -339,7 +339,7 @@
         const prev  = meta.chartPreviousClose || meta.previousClose || (closes.length>1?closes[closes.length-2]:null);
         const h52   = highs.length ? Math.max(...highs) : null;
         const l52   = lows.length  ? Math.min(...lows)  : null;
-        console.log('[Pro 360 inline] Yahoo OK:', ticker, 'â†’', price, 'EUR');
+        console.log('[Pro 360 inline] Yahoo OK:', ticker, '- ', price, 'EUR');
         return {price, prevClose:prev, high52:h52, low52:l52,
           changePercent: (price&&prev) ? ((price-prev)/prev*100) : null,
           marketCap: meta.marketCap||null, name: meta.shortName||meta.longName||null};

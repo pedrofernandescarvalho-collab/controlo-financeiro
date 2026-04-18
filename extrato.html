@@ -11,8 +11,8 @@
     </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Extrato Global â€” Controlo Financeiro</title>
-  <meta name="description" content="Extrato cronolÃ³gico completo de todos os movimentos financeiros com saldo acumulado.">
+  <title>Extrato Global - Controlo Financeiro</title>
+  <meta name="description" content="Extrato cronológico completo de todos os movimentos financeiros com saldo acumulado.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
@@ -47,19 +47,19 @@
         <a href="dashboard.html" class="nav-link">Dashboards</a>
         <a href="extrato.html" class="nav-link active">Extrato</a>
         <a href="investimentos.html" class="nav-link">Investimentos</a>
-        <a href="configuracao.html" class="nav-link">ConfiguraÃ§Ã£o</a>
+        <a href="configuracao.html" class="nav-link">Configuração</a>
     </nav>
 
     <header class="hero">
       <div>
-        <p class="eyebrow">AnÃ¡lise CronolÃ³gica Global</p>
+        <p class="eyebrow">Análise Cronológica Global</p>
         <h1>Extrato de Movimentos</h1>
         <p class="hero-copy">
-          Consulta todos os teus ganhos, despesas e transferÃªncias por ordem cronolÃ³gica com o saldo acumulado total.
+          Consulta todos os teus ganhos, despesas e transferências por ordem cronológica com o saldo acumulado total.
         </p>
       </div>
       <div class="hero-card accent strong-card">
-        <p>PatrimÃ³nio Atual (Banco + Cash + RecebÃ­veis)</p>
+        <p>Património Atual (Banco + Cash + Recebíveis)</p>
         <strong id="globalNetWorthDisplay">A calcular...</strong>
         <div id="netWorthDetail" class="mt-10" style="opacity: 0.8; font-size: 0.85rem; color: #94a3b8;">
            <!-- Detalhes preenchidos pelo script.js -->
@@ -72,14 +72,14 @@
         <section class="panel">
           <div class="panel-heading">
             <h2>Timeline Completa</h2>
-            <p>Filtra e pesquisa movimentos em todo o teu histÃ³rico.</p>
+            <p>Filtra e pesquisa movimentos em todo o teu histórico.</p>
           </div>
 
           <div class="extract-filters">
             <button class="period-btn active" data-filter="all" id="btn-filter-all">Tudo</button>
-            <button class="period-btn" data-filter="income" id="btn-filter-income">SÃ³ Entradas</button>
-            <button class="period-btn" data-filter="variable" id="btn-filter-expense">SÃ³ SaÃ­das</button>
-            <button class="period-btn" data-filter="transfer" id="btn-filter-transfer">SÃ³ PoupanÃ§as/Transf.</button>
+            <button class="period-btn" data-filter="income" id="btn-filter-income">Só Entradas</button>
+            <button class="period-btn" data-filter="variable" id="btn-filter-expense">Só Saídas</button>
+            <button class="period-btn" data-filter="transfer" id="btn-filter-transfer">Só Poupanças/Transf.</button>
           </div>
 
           <div class="table-wrapper">
@@ -87,7 +87,7 @@
               <thead>
                 <tr>
                   <th>Data</th>
-                  <th>DescriÃ§Ã£o</th>
+                  <th>Descrição</th>
                   <th>Categoria</th>
                   <th>Tipo</th>
                   <th class="text-right">Valor</th>
@@ -118,7 +118,7 @@
     }
   </script>
   <script>
-    // Inicializar filtros globais se necessÃ¡rio
+    // Inicializar filtros globais se necessário
     document.addEventListener('DOMContentLoaded', () => {
       const filters = document.querySelectorAll('.extract-filters .period-btn');
       filters.forEach(btn => {
