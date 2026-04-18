@@ -11,7 +11,7 @@
     </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Configuração Financeira -  Controlo Financeiro</title>
+  <title>Configuração Financeira - Controlo Financeiro</title>
   <meta name="description" content="Configura o teu salário, metas, despesas recorrentes e gerir backups da app de controlo financeiro.">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -47,7 +47,7 @@
 
     <main class="grid">
 
-      <!-- - -- - SALDO INICIAL DO M-`S - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- - -->
+      <!-- ---- SALDO INICIAL DO M-`S ---------------------------------------------------------------------- -->
       <section class="panel config-panel" style="grid-column: 1 / -1;">
         <div class="panel-heading">
           <h2>Saldo Inicial do Mês</h2>
@@ -95,7 +95,7 @@
         <p id="bankStatus" class="goal-label">O ponto de partida do mês fica guardado aqui. Regista o dia 1 de cada conta para o sistema funcionar com precisão.</p>
       </section>
 
-      <!-- - -- - RENDIMENTO FIXO E METAS - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- - -->
+      <!-- ---- RENDIMENTO FIXO E METAS ------------------------------------------------------------------ -->
       <section class="panel config-panel">
         <div class="panel-heading">
           <h2>Rendimento Fixo e Metas</h2>
@@ -130,7 +130,7 @@
         <p id="settingsStatus" class="goal-label">A base do mês usa sempre o saldo do dia 1.</p>
       </section>
 
-      <!-- - -- - GESTÁO DE DADOS - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- - -->
+      <!-- ---- GESTÁO DE DADOS ------------------------------------------------------------------------------------ -->
       <section class="panel config-panel">
         <div class="panel-heading">
           <h2>Gestão de Dados e Backups</h2>
@@ -138,7 +138,7 @@
         </div>
 
         <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.05); opacity: 0.4; font-size: 0.7rem;">
-            PWA Versão 2.1.1 -  Sync Engine Refined
+            PWA Versão 2.1.1 - Sync Engine Refined
         </div>
 
       <section class="panel config-panel">
@@ -157,7 +157,7 @@
         </div>
       </section>
 
-      <!-- - -- - CONFIGURA-!ÁO DE APIS - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- - -->
+      <!-- ---- CONFIGURA-!ÁO DE APIS ---------------------------------------------------------------------------- -->
       <section class="panel config-panel">
         <div class="panel-heading">
           <h2>Conectividade e Dados Reais</h2>
@@ -172,7 +172,7 @@
           </label>
 
           <div style="padding: 12px; background: rgba(16, 185, 129, 0.05); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">
-            <p style="margin: 0; font-size: 0.8rem; color: var(--success);"><strong>-S  CoinGecko (Cripto)</strong> ativo via rede pública (sem necessidade de chave).</p>
+            <p style="margin: 0; font-size: 0.8rem; color: var(--success);"><strong>-S CoinGecko (Cripto)</strong> ativo via rede pública (sem necessidade de chave).</p>
           </div>
 
           <button type="submit" class="primary-btn">Guardar chaves</button>
@@ -180,7 +180,7 @@
         <p id="apiStatus" class="goal-label">As chaves são guardadas apenas no teu navegador.</p>
       </section>
 
-      <!-- - -- - CATEGORIAS - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- - -->
+      <!-- ---- CATEGORIAS ---------------------------------------------------------------------------------------------- -->
       <section class="panel config-panel">
         <div class="panel-heading">
           <h2>Categorias de despesa</h2>
@@ -198,7 +198,7 @@
         </div>
       </section>
 
-      <!-- - -- - BACKUP LOCAL (SOBERANIA) - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- - -->
+      <!-- ---- BACKUP LOCAL (SOBERANIA) -------------------------------------------------------------------- -->
       <section class="panel config-panel">
         <div class="panel-heading">
           <h2>Soberania de Dados (Backup Local)</h2>
@@ -246,7 +246,7 @@
   </script>
 
 <script>
-// - -- - Guardar Chave API (inline, sem depender de cache) - -- -
+// ---- Guardar Chave API (inline, sem depender de cache) ----
 (function() {
   const apiForm = document.getElementById('api-settings-form');
   if (!apiForm) return;

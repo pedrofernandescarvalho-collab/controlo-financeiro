@@ -11,7 +11,7 @@
     </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Investimentos Inteligentes -  Controlo Financeiro</title>
+  <title>Investimentos Inteligentes - Controlo Financeiro</title>
   <meta name="app-version" content="4.3.0">
   <meta name="description" content="Gestão avançada de portfólio XTB com recomendações de IA e radar de descoberta de ativos.">
   <script>
@@ -180,7 +180,7 @@
           <p class="eyebrow">Inteligência de Ativos Real-Time</p>
           <h1 style="margin: 0;">Terminal de Investimentos</h1>
           <div style="margin-top: 8px; font-size: 0.75rem; color: var(--text-muted); display: flex; align-items: center; gap: 6px;">
-            <span id="syncStatusIcon" style="color: var(--trading-green);">- -</span> 
+            <span id="syncStatusIcon" style="color: var(--trading-green);">--</span> 
             <span id="lastSyncTime">Sincronização inativa</span>
             <button class="text-btn" style="font-size: 0.75rem; padding: 0;" onclick="window.refreshAllPrices()">[Atualizar Agora]</button>
           </div>
@@ -194,7 +194,7 @@
 
     <main class="invest-grid">
       
-      <!-- - -- - PORTF- LIO E ATIVOS - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- - -->
+      <!-- ---- PORTF-LIO E ATIVOS ---------------------------------------------------------------------------- -->
       <section class="stack">
         <div class="portfolio-card">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
@@ -219,7 +219,7 @@
         </div>
       </section>
 
-      <!-- - -- - INTELIG-`NCIA IA E RADAR - -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- - -->
+      <!-- ---- INTELIG-`NCIA IA E RADAR -------------------------------------------------------------------- -->
       <aside class="stack">
         
         <div class="ai-radar">
@@ -246,7 +246,7 @@
           <div id="allocationChartPlaceholder" style="background: rgba(0,0,0,0.02); border-radius: 16px; padding: 20px; text-align: center; border: 1px solid var(--border-subtle); position: relative;">
              <p style="opacity: 0.5; font-size: 0.85rem; margin-bottom: 15px;">Distribuição por Classe</p>
              <div id="dynamicAllocationChart" style="margin: 0 auto; width: 140px; height: 140px; border-radius: 50%; background: conic-gradient(var(--trading-blue) 0%, var(--accent) 0%, var(--trading-green) 0%, #eee 0%); transition: background 0.5s ease;"></div>
-             <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, 0); font-weight: 700; font-size: 1.2rem;" id="totalInvestedSmall">0- -</div>
+             <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, 0); font-weight: 700; font-size: 1.2rem;" id="totalInvestedSmall">0--</div>
           </div>
           <div class="stack" style="margin-top: 20px;">
             <div style="display: flex; justify-content: space-between; font-size: 0.85rem; padding: 4px 0;">
@@ -312,7 +312,7 @@
 
   <script src="core-engine.js"></script>
   <script>
-  // - -- - Yahoo Finance Fallback (inline, bypass ao cache do SW) - -- -
+  // ---- Yahoo Finance Fallback (inline, bypass ao cache do SW) ----
   window.fetchYahooFallback = async function(ticker) {
     const YAHOO_MAP = {'VUAA.IT':'VUAA.MI','VWCE.DE':'VWCE.DE','IUSE.L':'IUSE.L'};
     const yt = YAHOO_MAP[ticker] || ticker;
@@ -339,7 +339,7 @@
         const prev  = meta.chartPreviousClose || meta.previousClose || (closes.length>1?closes[closes.length-2]:null);
         const h52   = highs.length ? Math.max(...highs) : null;
         const l52   = lows.length  ? Math.min(...lows)  : null;
-        console.log('[Pro 360 inline] Yahoo OK:', ticker, '-  ', price, 'EUR');
+        console.log('[Pro 360 inline] Yahoo OK:', ticker, '- ', price, 'EUR');
         return {price, prevClose:prev, high52:h52, low52:l52,
           changePercent: (price&&prev) ? ((price-prev)/prev*100) : null,
           marketCap: meta.marketCap||null, name: meta.shortName||meta.longName||null};
