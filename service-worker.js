@@ -31,7 +31,7 @@ self.addEventListener('activate', event => {
 });
 
 self.addEventListener('fetch', event => {
-  // EstratÃ©gia Network First para garantir que as atualizaÃ§Ãµes chegam rÃ¡pido
+  // Estratégia Network First para garantir que as atualizações chegam rápido
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))
   );

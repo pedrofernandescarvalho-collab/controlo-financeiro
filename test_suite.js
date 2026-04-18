@@ -1,13 +1,13 @@
 /**
  * ============================================================
- * SUITE DE TESTES COMPLETA â€” Controlo Financeiro v2
+ * SUITE DE TESTES COMPLETA - Controlo Financeiro v2
  * Usa escopo isolado para evitar conflitos com const/function do script.js
  * ============================================================
  */
 'use strict';
 const fs = require('fs');
 
-// â”€â”€ FRAMEWORK DE TESTES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ---- FRAMEWORK DE TESTES --------------------------------------------------------------------------
 let passed = 0, failed = 0;
 const results = [];
 
@@ -17,8 +17,8 @@ function assert(desc, cond, expected, actual) {
 }
 function section(title) { results.push({ status: 'SECTION', desc: title }); }
 
-// â”€â”€ AMBIENTE BASE NODE (PARTILHADO) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const BASE_MONTH = '2026-03'; // MÃªs anterior ao atual â€” garante que isActiveMonthCurrent=false nos testes
+// ---- AMBIENTE BASE NODE (PARTILHADO) --------------------------------------------------
+const BASE_MONTH = '2026-03'; // Mês anterior ao atual - garante que isActiveMonthCurrent=false nos testes
 const BASE_STATE = {
   analysisMonth: BASE_MONTH, salary: 1500, revolutShare: 60, xtbShare: 40, revolutGoal: 'Fundo',
   categories: ['Casa','Alimentacao','Transporte','Lazer'],
@@ -40,12 +40,12 @@ const BASE_STATE = {
     { id:'r2', name:'Emprestimo Maria',amount:200, status:'received', dateLabel:'2026-03-01' },
   ],
   snapshots: [
-    // Dia 1 — Multi conta (Bancos + Dinheiro)
+    // Dia 1  Multi conta (Bancos + Dinheiro)
     { id:'s1', monthKey:BASE_MONTH, day:1,  accountId:'acc-main',    bankBalance:2000, cashBalance:0, date:'2026-03-01' },
     { id:'s2', monthKey:BASE_MONTH, day:1,  accountId:'acc-revolut', bankBalance:800,  cashBalance:0, date:'2026-03-01' },
     { id:'s1-c', monthKey:BASE_MONTH, day:1, accountId:'acc-cash-physical', bankBalance:50, cashBalance:0, date:'2026-03-01' },
     
-    // Dia 15 — snapshot intermédio (Bancos + Dinheiro)
+    // Dia 15  snapshot interm-dio (Bancos + Dinheiro)
     { id:'s3', monthKey:BASE_MONTH, day:15, accountId:'acc-main',    bankBalance:1100, cashBalance:0, date:'2026-03-15' },
     { id:'s4', monthKey:BASE_MONTH, day:15, accountId:'acc-revolut', bankBalance:1000, cashBalance:0, date:'2026-03-15' },
     { id:'s3-c', monthKey:BASE_MONTH, day:15, accountId:'acc-cash-physical', bankBalance:30, cashBalance:0, date:'2026-03-15' },
@@ -59,7 +59,7 @@ const BASE_STATE = {
   ],
 };
 
-// â”€â”€ FACTORY: cria um motor de finanÃ§as isolado â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ---- FACTORY: cria um motor de finanças isolado ------------------------------
 function createEngine(stateOverrides) {
   const lsData = {};
   const lsState = Object.assign({}, BASE_STATE, stateOverrides || {});
@@ -106,27 +106,27 @@ function createEngine(stateOverrides) {
     );
     return win;
   } catch(e) {
-    // render() pode falhar em Node (elementos DOM nÃ£o existem) â€” Ã© esperado
+    // render() pode falhar em Node (elementos DOM não existem) - é esperado
     if (mockWindow.state) return mockWindow;
     throw e;
   }
 }
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// -"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"-
 // INICIALIZAR MOTOR
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// -"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"-
 let engine;
 try {
   engine = createEngine();
 } catch(e) {
-  // render() provavelmente falhou â€” tentar extrair state de qualquer forma
-  // Se o engine ainda nÃ£o tem state, criar um fallback
+  // render() provavelmente falhou - tentar extrair state de qualquer forma
+  // Se o engine ainda não tem state, criar um fallback
   console.error('Engine init error (expected if render fails):', e.message);
   process.exit(1);
 }
 
-const S = engine.state; // referÃªncia ao state
-// FunÃ§Ãµes expostas pelo engine:
+const S = engine.state; // referência ao state
+// Funções expostas pelo engine:
 const fn = {
   calculateBudget:             () => engine.calculateBudget(),
   getGlobalAccountsTotal:      () => { const b=engine.calculateBudget(); return S.accounts.reduce((t,a)=>t+(Number(a.balance)||0),0); },
@@ -140,11 +140,11 @@ const fn = {
   getReconciliationHistory:    () => engine.getReconciliationHistory(),
 };
 
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// -"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"-
 // TESTES
-// â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+// -"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"--"-
 
-section('1. CALCULATEBUDGET â€” LÃ³gica de OrÃ§amento Base');
+section('1. CALCULATEBUDGET - Lógica de Orçamento Base');
 (() => {
   const b = engine.calculateBudget();
   assert('1.1 fixedExpenses = 600',            Math.abs(b.fixedExpenses - 600) < 0.01, 600, b.fixedExpenses);
@@ -154,24 +154,24 @@ section('1. CALCULATEBUDGET â€” LÃ³gica de OrÃ§amento Base');
   assert('1.5 leftover = 725 (1200-275-200)',  Math.abs(b.leftover - 725) < 0.01, 725, b.leftover);
   assert('1.6 revolutAllocation = 435 (60%)', Math.abs(b.revolutAllocation - 435) < 0.01, 435, b.revolutAllocation);
   assert('1.7 xtbAllocation = 290 (40%)',     Math.abs(b.xtbAllocation - 290) < 0.01, 290, b.xtbAllocation);
-  assert('1.8 revolutInterest â‰ˆ 8.265',       Math.abs(b.revolutInterest - 8.265) < 0.01, 8.265, b.revolutInterest);
+  assert('1.8 revolutInterest -0- 8.265',       Math.abs(b.revolutInterest - 8.265) < 0.01, 8.265, b.revolutInterest);
   assert('1.9 dailyBudget = 40 (Abril=30 dias)', Math.abs(b.dailyBudget - 40) < 0.01, 40, b.dailyBudget);
 })();
 
-section('2. PATRIMÃ”NIO LÃQUIDO â€” Saldo Total e RecebÃ­veis');
+section('2. PATRIM-NIO LÍQUIDO - Saldo Total e Recebíveis');
 (() => {
   // Conta: acc-main=2000, acc-revolut=800, acc-xtb=1200 = 4000 (saldos static de accounts[].balance)
-  // Cash do Ãºltimo snapshot (dia 15): 30 â†’ getGlobalAccountsTotal retorna 4000+30=4030
+  // Cash do último snapshot (dia 15): 30 -  getGlobalAccountsTotal retorna 4000+30=4030
   // Mas para isto funcionar, o engine tem de ter os account.balance actualizados pelos snapshots
   // Verificar diretamente o que o engine retorna:
   const total = engine.calculateFinancialRunway()?.netWorth || 0;
   assert('2.1 netWorth = 4030 (contas + cash snapshot dia 15)', Math.abs(total - 4030) < 0.01, 4030, total);
 
   const recPending = S.receivables.filter(r=>r.status!=='received').reduce((s,r)=>s+Number(r.amount),0);
-  assert('2.2 Recebíveis pendentes = 500 (separados do netWorth)', Math.abs(recPending - 500) < 0.01, 500, recPending);
+  assert('2.2 Receb-veis pendentes = 500 (separados do netWorth)', Math.abs(recPending - 500) < 0.01, 500, recPending);
 })();
 
-section('3. GETCYCLEANALYSIS — Análise de Ciclo Mensal');
+section('3. GETCYCLEANALYSIS  An-lise de Ciclo Mensal');
 (() => {
   const analysis = engine.getCycleAnalysis();
   assert('3.1 hasProgressSnapshot = true',         analysis.hasProgressSnapshot === true, true, analysis.hasProgressSnapshot);
@@ -182,38 +182,38 @@ section('3. GETCYCLEANALYSIS — Análise de Ciclo Mensal');
   assert('3.6 actualSpent = 420', Math.abs(analysis.actualSpent - 420) < 0.01, 420, analysis.actualSpent);
 })();
 
-section('4. RUNWAY — Autonomia Financeira');
+section('4. RUNWAY  Autonomia Financeira');
 (() => {
   const r = engine.calculateFinancialRunway();
-  assert('4.1 runway não é null', r !== null, 'objeto', r);
+  assert('4.1 runway n-o - null', r !== null, 'objeto', r);
   if (r) {
     const expected = 4030 / 875;
-    assert('4.2 months ≈ 4.606 (4030/875)',  Math.abs(r.months - expected) < 0.01, expected.toFixed(3), r.months.toFixed(3));
+    assert('4.2 months H 4.606 (4030/875)',  Math.abs(r.months - expected) < 0.01, expected.toFixed(3), r.months.toFixed(3));
     assert('4.3 monthlyCost = 875',           Math.abs(r.monthlyCost - 875) < 0.01, 875, r.monthlyCost);
     assert('4.4 netWorth = 4030',             Math.abs(r.netWorth - 4030) < 0.01, 4030, r.netWorth);
   }
 })();
 
-section('5. FUNDO DE EMERGÊNCIA — Meta 6 Meses');
+section('5. FUNDO DE EMERG-NCIA  Meta 6 Meses');
 (() => {
   const ef = engine.calculateEmergencyFundProgress(6);
   const expectedMonths = 4030 / 875;
   const expectedPct = Math.min((expectedMonths / 6) * 100, 100);
-  assert('5.1 pct ≈ 76.8%', Math.abs(ef.pct - expectedPct) < 0.1, expectedPct.toFixed(1), ef.pct.toFixed(1));
+  assert('5.1 pct H 76.8%', Math.abs(ef.pct - expectedPct) < 0.1, expectedPct.toFixed(1), ef.pct.toFixed(1));
   assert('5.2 ok = false (4.6 < 6)', ef.ok === false, false, ef.ok);
   assert('5.3 target = 6', ef.target === 6, 6, ef.target);
   const ef3 = engine.calculateEmergencyFundProgress(3);
   assert('5.4 Meta 3 meses: ok = true (4.6 > 3)', ef3.ok === true, true, ef3.ok);
 })();
 
-section('6. TAXA DE POUPANÇA — Savings Rate');
+section('6. TAXA DE POUPAN-A  Savings Rate');
 (() => {
   const rate = engine.calculateSavingsRate();
   // incomeTotal = 1500+300 = 1800; totalSaved = transfers(200)+leftover(725) = 925
   const expected = (925 / 1800) * 100;
-  assert('6.1 Taxa ≈ 51.4%', Math.abs(rate - expected) < 0.1, expected.toFixed(1), rate.toFixed(1));
-  assert('6.2 Taxa ≤ 100%', rate <= 100, '<= 100', rate);
-  // Testar divisão por zero: rendimento 0
+  assert('6.1 Taxa H 51.4%', Math.abs(rate - expected) < 0.1, expected.toFixed(1), rate.toFixed(1));
+  assert('6.2 Taxa d 100%', rate <= 100, '<= 100', rate);
+  // Testar divis-o por zero: rendimento 0
   const origSalary = S.salary;
   const origIncomes = S.incomes;
   S.salary = 0; S.incomes = [];
@@ -222,22 +222,22 @@ section('6. TAXA DE POUPANÇA — Savings Rate');
   S.salary = origSalary; S.incomes = origIncomes;
 })();
 
-section('7. AUDITORIA DE FLUXO — Leakage');
+section('7. AUDITORIA DE FLUXO  Leakage');
 (() => {
   const status = engine.getLeakageStatus();
   assert('7.1 getLeakageStatus retorna objeto', status !== null, 'objeto', status);
   if (status) {
-    assert('7.2 type = info (excesso de 55€)', status.type === 'info', 'info', status.type);
+    assert('7.2 type = info (excesso de 55-)', status.type === 'info', 'info', status.type);
     assert('7.3 message inclui "Excesso Registado"', status.message.includes('Excesso Registado'), true, status.message);
   }
-  // Sem snapshot intermédio
+  // Sem snapshot interm-dio
   const origSnaps = S.snapshots;
   S.snapshots = S.snapshots.filter(s => s.day === 1 && s.monthKey === BASE_MONTH);
   const statusNull = engine.getLeakageStatus();
   S.snapshots = origSnaps;
 })();
 
-section('8. AUTO-PREENCHER â€” Saldo do MÃªs Anterior');
+section('8. AUTO-PREENCHER - Saldo do Mês Anterior');
 (() => {
   const prev = engine.getPreviousMonthLastBalance();
   assert('8.1 Retorna dados de 2026-02', Boolean(prev) && String((prev||{}).monthKey||'').indexOf('2026-02') >= 0, '2026-02', String((prev||{}).monthKey));
@@ -249,14 +249,14 @@ section('8. AUTO-PREENCHER â€” Saldo do MÃªs Anterior');
   const origSnaps = S.snapshots;
   S.snapshots = S.snapshots.filter(s => s.monthKey === BASE_MONTH);
   const prevEmpty = engine.getPreviousMonthLastBalance();
-  assert('8.5 Sem mÃªs anterior, retorna null', prevEmpty === null, null, prevEmpty);
+  assert('8.5 Sem mês anterior, retorna null', prevEmpty === null, null, prevEmpty);
   S.snapshots = origSnaps;
 })();
 
-section('9. RECONCILIAÃ‡ÃƒO BANCÃRIA â€” getReconciliationHistory');
+section('9. RECONCILIA-!ÒO BANCÁRIA - getReconciliationHistory');
 (() => {
   const history = engine.getReconciliationHistory();
-  assert('9.1 1 intervalo (dia 1 â†’ dia 15)', history.length === 1, 1, history.length);
+  assert('9.1 1 intervalo (dia 1 -  dia 15)', history.length === 1, 1, history.length);
   if (history.length >= 1) {
     const h = history[0];
     // (2800+50) - (2100+30) = 720
@@ -270,38 +270,38 @@ section('9. RECONCILIAÃ‡ÃƒO BANCÃRIA â€” getReconciliationHistory')
   }
 })();
 
-section('10. CASOS DE BORDA â€” Robustez');
+section('10. CASOS DE BORDA - Robustez');
 (() => {
-  // 10.1: salary=0, sem snapshot â†’ budget >= 0
+  // 10.1: salary=0, sem snapshot -  budget >= 0
   const origSal = S.salary; const origSnaps = S.snapshots;
   S.salary = 0; S.snapshots = [];
   const b = engine.calculateBudget();
   assert('10.1 Budget >= 0 com salary=0 e sem snapshots', b.disposableMonthlyBudget >= 0, '>= 0', b.disposableMonthlyBudget);
   S.salary = origSal; S.snapshots = origSnaps;
 
-  // 10.2: amount=undefined nÃ£o crashe
+  // 10.2: amount=undefined não crashe
   const origExp = S.expenses;
   S.expenses = [...origExp, { id:'bad', monthKey:BASE_MONTH, name:'X', amount:undefined, day:5, kind:'variable' }];
   let ok = true;
   try { engine.calculateBudget(); } catch(e) { ok = false; }
-  assert('10.2 amount=undefined nÃ£o crashe em calculateBudget', ok, 'sem erro', ok?'ok':'CRASH');
+  assert('10.2 amount=undefined não crashe em calculateBudget', ok, 'sem erro', ok?'ok':'CRASH');
   S.expenses = origExp;
 
-  // 10.3: taxa de poupanÃ§a com transferÃªncias gigantes <= 100
+  // 10.3: taxa de poupança com transferências gigantes <= 100
   const origTrans = S.transfers;
   S.transfers = [...origTrans, { id:'th', monthKey:BASE_MONTH, name:'Mega', amount:99999, day:1, dateLabel:'2026-04-01' }];
   const hugRate = engine.calculateSavingsRate();
-  assert('10.3 Taxa de poupanÃ§a <= 100% mesmo com transferÃªncias gigantes', hugRate <= 100, '<= 100', hugRate);
+  assert('10.3 Taxa de poupança <= 100% mesmo com transferências gigantes', hugRate <= 100, '<= 100', hugRate);
   S.transfers = origTrans;
 
-  // 10.4: shares=0 nÃ£o divide por zero
+  // 10.4: shares=0 não divide por zero
   const origRS = S.revolutShare; const origXS = S.xtbShare;
   S.revolutShare = 0; S.xtbShare = 0;
   const bz = engine.calculateBudget();
-  assert('10.4 revolutShare=xtbShare=0: sem divisÃ£o por zero', isFinite(bz.revolutAllocation), true, isFinite(bz.revolutAllocation));
+  assert('10.4 revolutShare=xtbShare=0: sem divisão por zero', isFinite(bz.revolutAllocation), true, isFinite(bz.revolutAllocation));
   S.revolutShare = origRS; S.xtbShare = origXS;
 
-  // 10.5: MÃªs sem despesas
+  // 10.5: Mês sem despesas
   const origExpOrig = S.expenses;
   S.expenses = [];
   const bEmpty = engine.calculateBudget();
@@ -309,19 +309,19 @@ section('10. CASOS DE BORDA â€” Robustez');
   S.expenses = origExpOrig;
 })();
 
-section('11. LÃ“GICA DE ORÃ‡AMENTO â€” Casos Especiais');
+section('11. L-GICA DE OR-!AMENTO - Casos Especiais');
 (() => {
-  // 11.1: Se salÃ¡rio = 0 mas hÃ¡ saldo inicial, usa-o como base
+  // 11.1: Se salário = 0 mas há saldo inicial, usa-o como base
   const eng2 = createEngine({ salary: 0, snapshots: [
     { id:'sx1', monthKey:BASE_MONTH, day:1, accountId:'acc-main', bankBalance:1000, cashBalance:50, date:'2026-04-01' }
   ], accounts: BASE_STATE.accounts });
   const b2 = eng2.calculateBudget();
-  assert('11.1 Com salary=0, usa startBalance(1050) como orÃ§amento base', b2.disposableMonthlyBudget > 0, '> 0', b2.disposableMonthlyBudget);
+  assert('11.1 Com salary=0, usa startBalance(1050) como orçamento base', b2.disposableMonthlyBudget > 0, '> 0', b2.disposableMonthlyBudget);
 })();
 
-section('12. DESPESAS MULTI-FREQUÊNCIA — Provisionamento');
+section('12. DESPESAS MULTI-FREQU-NCIA  Provisionamento');
 (() => {
-  // 12.1: Despesa anual de 1200€ deve ter peso de 100€
+  // 12.1: Despesa anual de 1200- deve ter peso de 100-
   const eng3 = createEngine({ 
     salary: 2000, 
     incomes: [], // Limpar incomes do BASE_STATE
@@ -330,10 +330,10 @@ section('12. DESPESAS MULTI-FREQUÊNCIA — Provisionamento');
     ]
   });
   const b3 = eng3.calculateBudget();
-  // disposBudget = 2000 - 100(provisão) = 1900
-  assert('12.1 Despesa anual de 1200€ provisiona 100€ mensalmente', Math.abs(b3.disposableMonthlyBudget - 1900) < 0.01, 1900, b3.disposableMonthlyBudget);
+  // disposBudget = 2000 - 100(provis-o) = 1900
+  assert('12.1 Despesa anual de 1200- provisiona 100- mensalmente', Math.abs(b3.disposableMonthlyBudget - 1900) < 0.01, 1900, b3.disposableMonthlyBudget);
 
-  // 12.2: Despesa semestral de 600€ deve ter peso de 100€
+  // 12.2: Despesa semestral de 600- deve ter peso de 100-
   const eng4 = createEngine({ 
     salary: 2000, 
     incomes: [], // Limpar incomes do BASE_STATE
@@ -342,30 +342,30 @@ section('12. DESPESAS MULTI-FREQUÊNCIA — Provisionamento');
     ]
   });
   const b4 = eng4.calculateBudget();
-  // disposBudget = 2000 - 100(provisão) = 1900
-  assert('12.2 Despesa semestral de 600€ provisiona 100€ mensalmente', Math.abs(b4.disposableMonthlyBudget - 1900) < 0.01, 1900, b4.disposableMonthlyBudget);
+  // disposBudget = 2000 - 100(provis-o) = 1900
+  assert('12.2 Despesa semestral de 600- provisiona 100- mensalmente', Math.abs(b4.disposableMonthlyBudget - 1900) < 0.01, 1900, b4.disposableMonthlyBudget);
 })();
 
-// â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• 
-// RELATÃ“RIO FINAL
-// â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• â• 
-console.log('\n' + 'â• '.repeat(65));
-console.log('  RELATÃ“RIO DE AUDITORIA â€” CONTROLO FINANCEIRO');
-console.log('â• '.repeat(65));
+// -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" 
+// RELAT-RIO FINAL
+// -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" -" 
+console.log('\n' + '-" '.repeat(65));
+console.log('  RELAT-RIO DE AUDITORIA - CONTROLO FINANCEIRO');
+console.log('-" '.repeat(65));
 results.forEach(r => {
-  if (r.status === 'SECTION') { console.log('\nâ”€â”€ ' + r.desc + ' ' + 'â”€'.repeat(Math.max(0, 52-r.desc.length))); return; }
-  const icon = r.status === 'PASS' ? 'âœ…' : 'â Œ';
+  if (r.status === 'SECTION') { console.log('\n---- ' + r.desc + ' ' + '--'.repeat(Math.max(0, 52-r.desc.length))); return; }
+  const icon = r.status === 'PASS' ? '-S&' : '- R';
   console.log(`${icon} ${r.desc}`);
   if (r.status === 'FAIL') {
     console.log(`     Esperado : ${JSON.stringify(r.expected)}`);
     console.log(`     Obtido   : ${JSON.stringify(r.actual)}`);
   }
 });
-console.log('\n' + 'â•'.repeat(65));
-console.log(` TOTAL: ${passed+failed} testes | âœ… ${passed} PASS | âŒ ${failed} FAIL`);
-console.log('â•'.repeat(65) + '\n');
-if (failed > 0) console.log('âŒ ANOMALIAS DETETADAS. VER DETALHES ACIMA.\n');
-else console.log('âœ… TODOS OS TESTES PASSARAM. MOTOR ÃNTEGRO.\n');
+console.log('\n' + '-"-'.repeat(65));
+console.log(` TOTAL: ${passed+failed} testes | -S& ${passed} PASS | -R ${failed} FAIL`);
+console.log('-"-'.repeat(65) + '\n');
+if (failed > 0) console.log('-R ANOMALIAS DETETADAS. VER DETALHES ACIMA.\n');
+else console.log('-S& TODOS OS TESTES PASSARAM. MOTOR ÍNTEGRO.\n');
 process.exit(failed > 0 ? 1 : 0);
 
 

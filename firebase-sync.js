@@ -1,4 +1,4 @@
-﻿/**
+-/**
  * Firebase Sync Engine - Controlo Financeiro
  * Arquitetura resiliente baseada em Firestore
  */
@@ -23,7 +23,7 @@ const FIREBASE_DOC_ID = "main_state";
 let db, auth, user;
 
 const updateUIStatus = (status, color = "var(--text-main)", className = "") => {
-    // 1. Atualizar Painel de ConfiguraÃ§Ãµes (Se existir)
+    // 1. Atualizar Painel de Configurações (Se existir)
     const el = document.getElementById('firebaseStatus');
     const panelDot = document.querySelector('#firebaseStatusPanel .status-dot');
     if (el) {
@@ -34,7 +34,7 @@ const updateUIStatus = (status, color = "var(--text-main)", className = "") => {
         panelDot.className = `status-dot ${className}`;
     }
 
-    // 2. Atualizar PÃ­lula Global Premium
+    // 2. Atualizar Pílula Global Premium
     let container = document.getElementById('cloudStatusContainer');
     if (!container) {
         container = document.createElement('div');
@@ -44,7 +44,7 @@ const updateUIStatus = (status, color = "var(--text-main)", className = "") => {
     }
 
     container.innerHTML = `
-        <div class="cloud-pill" title="Estado da SincronizaÃ§Ã£o Firebase">
+        <div class="cloud-pill" title="Estado da Sincronização Firebase">
             <div class="status-dot ${className}"></div>
             <span>Cloud: ${status}</span>
         </div>
@@ -53,8 +53,8 @@ const updateUIStatus = (status, color = "var(--text-main)", className = "") => {
 
 async function initFirebase() {
   if (!window.firebaseConfig || window.firebaseConfig.apiKey === "COLA_AQUI") {
-    console.warn("[Firebase] ConfiguraÃ§Ãµes pendentes.");
-    updateUIStatus("ConfiguraÃ§Ã£o Pendente", "#f59e0b", "pending");
+    console.warn("[Firebase] Configurações pendentes.");
+    updateUIStatus("Configuração Pendente", "#f59e0b", "pending");
     return;
   }
 
@@ -63,7 +63,7 @@ async function initFirebase() {
     db = getFirestore(app);
     auth = getAuth(app);
 
-    // Login AnÃ³nimo
+    // Login Anónimo
     await signInAnonymously(auth);
     
     onAuthStateChanged(auth, async (u) => {
@@ -73,16 +73,16 @@ async function initFirebase() {
         updateUIStatus("Ligado e Seguro", "#10b981", "online");
         
         try {
-            // VerificaÃ§Ã£o Inicial: Se a nuvem estiver vazia, subir o local
+            // Verificação Inicial: Se a nuvem estiver vazia, subir o local
             const docRef = doc(db, FIREBASE_COLLECTION, FIREBASE_DOC_ID);
             const snap = await getDoc(docRef);
             
             if (!snap.exists() && window.state) {
-                console.log("[Firebase] Nuvem vazia. A realizar migraÃ§Ã£o inicial...");
+                console.log("[Firebase] Nuvem vazia. A realizar migração inicial...");
                 await window.syncToFirebase(window.state);
             }
         } catch (e) {
-            console.warn("[Firebase] Falha na leitura inicial (possÃ­vel API desativa):", e.message);
+            console.warn("[Firebase] Falha na leitura inicial (possível API desativa):", e.message);
             if (e.code === "permission-denied") {
                 updateUIStatus("API Pendente", "#f59e0b", "pending");
             }
@@ -94,9 +94,9 @@ async function initFirebase() {
 
   } catch (error) {
     console.error("[Firebase] Erro:", error);
-    updateUIStatus("Erro na LigaÃ§Ã£o", "#ef4444", "error");
+    updateUIStatus("Erro na Ligação", "#ef4444", "error");
     if (error.code === "auth/operation-not-allowed") {
-        alert("âš ï¸ Firebase: Deves ativar o 'Anonymous Auth' na consola do Firebase (AutenticaÃ§Ã£o > Sign-in Method).");
+        alert("-a-️ Firebase: Deves ativar o 'Anonymous Auth' na consola do Firebase (Autenticação > Sign-in Method).");
     }
   }
 }
@@ -110,11 +110,11 @@ function startRealtimeSync() {
       const lastLocalSync = localStorage.getItem('last_firebase_sync') || 0;
       
       if (cloudData.updatedAt > lastLocalSync) {
-        console.log("[Firebase] SincronizaÃ§Ã£o Cloud -> Local");
+        console.log("[Firebase] Sincronização Cloud -> Local");
         localStorage.setItem('finance-control-app', JSON.stringify(cloudData.state));
         localStorage.setItem('last_firebase_sync', cloudData.updatedAt);
         
-        // Se estivermos na dashboard ou noutra pÃ¡gina, avisar o motor
+        // Se estivermos na dashboard ou noutra página, avisar o motor
         if (window.state) {
             window.state = cloudData.state;
             if (typeof render === 'function') render();
@@ -144,7 +144,7 @@ window.syncToFirebase = async function(state) {
     }, { merge: true });
 
     localStorage.setItem('last_firebase_sync', timestamp);
-    console.log("[Firebase] SincronizaÃ§Ã£o Local -> Cloud concluÃ­da.");
+    console.log("[Firebase] Sincronização Local -> Cloud concluída.");
     
   } catch (error) {
     console.error("[Firebase] Erro ao gravar:", error);
