@@ -116,6 +116,54 @@ body::before {
   .sync-nav-btn { padding: 10px; width: 44px; height: 44px; justify-content: center; }
 }
 
+/* Cloud Status Pill */
+.cloud-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--border-subtle);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    transition: var(--transition);
+    margin-left: 8px;
+}
+
+.cloud-pill::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #94a3b8;
+}
+
+.cloud-pill.online {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.2);
+    color: #059669;
+}
+
+.cloud-pill.online::before { background: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.5); }
+
+.cloud-pill.error {
+    background: rgba(244, 63, 94, 0.1);
+    border-color: rgba(244, 63, 94, 0.2);
+    color: #e11d48;
+}
+
+.cloud-pill.error::before { background: #f43f5e; }
+
+.cloud-pill.pending {
+    background: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.2);
+    color: #d97706;
+}
+
+.cloud-pill.pending::before { background: #f59e0b; }
+
 /* Hero Section */
 .hero { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 20px; align-items: stretch; margin-bottom: 24px; }
 @media (max-width: 1024px) {

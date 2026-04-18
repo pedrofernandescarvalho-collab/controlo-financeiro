@@ -80,6 +80,7 @@
           <span class="sync-icon">🔄</span>
           <span class="sync-text">Sincronizar</span>
         </button>
+        <div id="cloudStatusPill" class="cloud-pill">Cloud: Desligada</div>
     </nav>
 
         <header class="hero compact-hero">
@@ -341,6 +342,7 @@
             switchTab(active);
         });
     </script>
-<script src="google-drive-sync.js"></script>
+<script src="firebase-config.js"></script>
+<script type="module" src="firebase-sync.js"></script>
 </body>
 </html>

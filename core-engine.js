@@ -1664,12 +1664,15 @@ function renderExpenses() {
 
   const allMonthExpenses = state.expenses
     .filter((expense) => activePeriodKeys.includes(normalize(getItemMonthKey(expense))))
-    .sort((a, b) => (getItemMonthKey(a) + String(a.day).padStart(2,'0')).localeCompare(getItemMonthKey(b) + String(b.day).padStart(2,'0')));
+    .sort((a, b) => {
+       const keyA = (getItemMonthKey(a) || "0000-00") + String(a.day || 0).padStart(2, "0");
+       const keyB = (getItemMonthKey(b) || "0000-00") + String(b.day || 0).padStart(2, "0");
+       return keyA.localeCompare(keyB);
+    });
 
   if (allMonthExpenses.length === 0) {
     if (variableContainer) {
-      variableContainer.classList.add("item-list", "empty-state");
-      variableContainer.textContent = "Ainda não existem despesas registadas para este mês.";
+      variableContainer.innerHTML = `<div class="empty-state">Ainda não existem despesas registadas para este período.</div>`;
     }
     return;
   }
@@ -1685,9 +1688,11 @@ function renderExpenses() {
 
     node.querySelector(".ghost-btn").addEventListener("click", (e) => {
       e.stopPropagation();
-      state.expenses = state.expenses.filter((item) => item.id !== expense.id);
-      saveState();
-      render();
+      if(confirm(`Eliminar despesa "${expense.name}"?`)) {
+          state.expenses = state.expenses.filter((item) => item.id !== expense.id);
+          saveState();
+          render();
+      }
     });
 
     node.addEventListener("click", (e) => {
@@ -1703,11 +1708,67 @@ function renderExpenses() {
       setStatus("#expenseStatus", `A editar ${expense.name}.`);
     });
 
-    // Distribuir para o contentor correto baseado no tipo
     if (expense.kind !== "fixed" && variableContainer) {
-        variableContainer.classList.remove("empty-state");
         variableContainer.appendChild(node);
     }
+  });
+
+  // Chamar renderização de obrigações fixas se o contentor existir
+  renderFixedObligations();
+}
+
+function renderFixedObligations() {
+  const container = document.querySelector("#fixedExpensesList");
+  if (!container) return;
+  container.innerHTML = "";
+  
+  const monthKey = getMonthKey();
+  const freqLabels = { monthly: "Mensal", annual: "Anual", "semi-annual": "Semestral" };
+
+  // 1. Obrigações Ativas (state.recurringFixed)
+  state.recurringFixed.forEach(item => {
+      const month = Number(getMonthKey().split("-")[1]);
+      const sm = Number(item.startMonth) || 1;
+      
+      const isCurrentPayment = item.frequency === 'monthly' ||
+        (item.frequency === 'annual' && month === sm) ||
+        (item.frequency === 'semi-annual' && (month === sm || month === (sm + 6 > 12 ? sm - 6 : sm + 6)));
+
+      const paid = state.expenses.find(e => e.kind === 'fixed' && getItemMonthKey(e) === monthKey && (e.linkedObligationId === item.id || e.name === item.name));
+
+      const node = template.content.firstElementChild.cloneNode(true);
+      node.querySelector(".item-title").textContent = item.name;
+      
+      if (isCurrentPayment) {
+          node.querySelector(".item-subtitle").textContent = `${freqLabels[item.frequency] || "Fixa"} | Vence dia ${item.day}`;
+          node.querySelector(".item-value").textContent = formatCurrency(item.amount);
+          
+          if (paid) {
+              node.classList.add("paid");
+              node.querySelector(".item-title").innerHTML += ` <span class="badge badge-success">Paga ✅</span>`;
+              node.style.opacity = "0.7";
+          }
+      } else {
+          // Provisionamento para análise
+          const div = item.frequency === 'annual' ? 12 : 6;
+          const prov = item.amount / div;
+          node.querySelector(".item-subtitle").textContent = `Provisão (${freqLabels[item.frequency]})`;
+          node.querySelector(".item-value").textContent = formatCurrency(prov);
+          node.style.opacity = "0.5";
+          node.style.fontStyle = "italic";
+      }
+
+      // Handler para eliminar a obrigação recorrente
+      node.querySelector(".ghost-btn").addEventListener("click", (e) => {
+          e.stopPropagation();
+          if(confirm(`Eliminar obrigação recorrente "${item.name}"?`)) {
+              state.recurringFixed = state.recurringFixed.filter(f => f.id !== item.id);
+              saveState();
+              render();
+          }
+      });
+
+      container.appendChild(node);
   });
 }
 
@@ -2165,7 +2226,7 @@ function importData(event) {
   reader.readAsText(file);
 }
 
-// Configuração de botões de Soberania
+// Configuração de botões de Soberania (Export / Import)
 document.addEventListener('click', (e) => {
     if (e.target.id === 'exportBackupBtn') exportData();
     if (e.target.id === 'importBackupBtn') {
@@ -2174,12 +2235,13 @@ document.addEventListener('click', (e) => {
     }
 });
 
+// Listener vital para o processamento do ficheiro selecionado
 document.addEventListener('change', (e) => {
-    if (e.target.id === 'importFile') importData(e);
+    if (e.target.id === 'importFile') {
+        importData(e);
+    }
 });
 
-// â”€â”€ Auto-Preencher Saldo Inicial â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Definido como funÇÃo normal â€” chamado após o state ser inicializado
 function initAutofillBanner() {
   if (typeof document === 'undefined') return;
   const banner = document.getElementById('autofillBanner');
@@ -2194,23 +2256,26 @@ function initAutofillBanner() {
   const hasCurrentStart = getStartingSnapshot && getStartingSnapshot();
   if (prev && !hasCurrentStart) {
     banner.style.display = 'flex';
-    const fmt = typeof formatCurrency === 'function' ? formatCurrency : v => v.toFixed(2) + 'EUR';
+    const fmt = formatCurrency;
     const totalBank = Object.values(prev.accountTotals).reduce((s, v) => s + v, 0);
     if (desc) {
       desc.textContent = `Saldo final de ${prev.monthKey}: ${fmt(totalBank)} banco + ${fmt(prev.totalCash)} carteira. Usar como ponto de partida?`;
     }
-    btn.addEventListener('click', () => {
+    btn.onclick = () => {
       const accountIds = Object.keys(prev.accountTotals);
       const firstAccId = accountIds[0];
       const bankVal = prev.accountTotals[firstAccId] || 0;
+      
       const bankInput = document.getElementById('startBankBalance');
       const cashInput = document.getElementById('startCashBalance');
       const accSelect = document.getElementById('startAccountId');
       const dateInput = document.getElementById('startDate');
+      
       if (bankInput) bankInput.value = bankVal;
       if (cashInput) cashInput.value = prev.totalCash || 0;
       if (accSelect && firstAccId) accSelect.value = firstAccId;
       if (dateInput) dateInput.value = getDefaultMonthDate(1);
+      
       banner.style.display = 'none';
       showToast('Campos pre-preenchidos com o saldo de ' + prev.monthKey + '. Confirma e guarda!');
     });
@@ -2292,21 +2357,23 @@ function getRealSpentEfficiency(targetDay = null) {
   return Math.max(realFlexibleSpent, recordedFlexibleSpent);
 }
 
+function calculateTotalIncome(monthKey = null) {
+  const mk = monthKey || getMonthKey();
+  const salary = Number(state.salary) || 0;
+  const extraIncomes = state.incomes
+    .filter(i => getItemMonthKey(i) === mk && !i.name.includes("Transição Excedente"))
+    .reduce((sum, i) => sum + Number(i.amount || 0), 0);
+  return salary + extraIncomes;
+}
+
 // KPI: Taxa de Poupança (Savings Rate)
 function calculateSavingsRate() {
   const budget = calculateBudget();
+  const incomeTotalFresh = calculateTotalIncome();
   
-  // RENDIMENTO FRESCO: Apenas o que ganhou este mês (Salário + Extras Reais), 
-  // excluindo a "TransiÇÃo Excedente" de meses passados para não inflacionar o denominador.
-  const salary = Number(state.salary) || 0;
-  const extraIncomesFresh = state.incomes
-    .filter(i => getItemMonthKey(i) === getMonthKey() && !i.name.includes("TransiÇÃo Excedente"))
-    .reduce((sum, i) => sum + Number(i.amount || 0), 0);
-    
-  const incomeTotalFresh = salary + extraIncomesFresh;
   if (incomeTotalFresh <= 0) return 0;
   
-  // ECONOMIA REAL = Rendimento Fresco - Gasto Real (VariaÇÃo de Saldo + Fixas provisionadas)
+  // ECONOMIA REAL = Rendimento Fresco - Gasto Real (Variação de Saldo + Fixas provisionadas)
   const realFlexSpent = getRealSpentEfficiency();
   const fixedProvision = budget.fixedExpenses || 0;
   
@@ -2461,8 +2528,131 @@ function renderGlobalExtract() {
 }
 
 function getGlobalAccountsTotal() {
-  if (typeof state === 'undefined' || !state || !Array.isArray(state.accounts)) return 0;
-  return state.accounts.reduce((sum, acc) => sum + (Number(acc.balance) || 0), 0);
+  if (typeof state === 'undefined' || !state) return 0;
+  
+  // 1. Bancos e Poupanças (Contas explícitas)
+  let total = Array.isArray(state.accounts) ? state.accounts.reduce((sum, acc) => sum + (Number(acc.balance) || 0), 0) : 0;
+  
+  // 2. Dinheiro em Mão (Último snapshot registado)
+  const snapshots = getSnapshotsForMonth();
+  if (snapshots.length > 0) {
+      const latestSnap = snapshots.sort((a,b) => b.day - a.day)[0];
+      // Apenas adicionamos se não estiver já refletido num saldo de conta (geralmente cash é id 'cash')
+      total += (Number(latestSnap.cashBalance) || 0);
+  }
+
+  // 3. Investimentos (Ativos no Pro 360)
+  if (Array.isArray(state.investments)) {
+      state.investments.forEach(asset => {
+          const price = (state.priceCache && state.priceCache[asset.ticker.toUpperCase()]) || asset.avgPrice;
+          total += (Number(asset.qty) || 0) * (Number(price) || 0);
+      });
+  }
+  
+  return total;
+}
+
+function renderNetWorth() {
+  const el = document.querySelector("#globalNetWorthDisplay");
+  const cockpitEl = document.querySelector("#cockpitNetWorth");
+  if (!el && !cockpitEl) return;
+  
+  const totalWealth = getGlobalAccountsTotal();
+  const receivablesTotal = state.receivables
+    .filter(r => r.status !== "received")
+    .reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+    
+  const globalTotal = totalWealth + receivablesTotal;
+  const formatted = formatCurrency(globalTotal);
+  
+  if (el) el.textContent = formatted;
+  if (cockpitEl) cockpitEl.textContent = formatted;
+}
+
+function render() {
+  if (typeof syncForms === 'function') syncForms();
+  
+  renderNetWorth();
+  
+  // Renderizadores de Listas (Existentes no core ou backup)
+function renderSummary() {
+    const budget = calculateBudget();
+    
+    const incomeEl = document.querySelector("#summaryIncome");
+    const fixedEl = document.querySelector("#summaryFixed");
+    const variableEl = document.querySelector("#summaryVariable");
+    const leftoverEl = document.querySelector("#summaryLeftover");
+    
+    if (incomeEl) incomeEl.textContent = formatCurrency(budget.income);
+    if (fixedEl) fixedEl.textContent = formatCurrency(budget.fixedExpenses);
+    if (variableEl) variableEl.textContent = formatCurrency(budget.variableExpenses);
+    if (leftoverEl) {
+        leftoverEl.textContent = formatCurrency(budget.leftover);
+        leftoverEl.className = `value ${budget.leftover >= 0 ? "positive" : "negative"}`;
+    }
+
+    // Auditoria: Mostrar aviso se houver discrepância (Leakage)
+    renderLeakageWarning();
+}
+
+function renderLeakageWarning() {
+    const container = document.querySelector("#leakageAlertContainer");
+    if (!container) return;
+    
+    const status = getLeakageStatus();
+    if (!status || status.type === 'success') {
+        container.style.display = "none";
+        return;
+    }
+    
+    container.style.display = "flex";
+    container.className = `alert-box alert-${status.type}`;
+    container.innerHTML = `<strong>Atenção:</strong> ${status.message}`;
+}
+
+function renderAnalysis() {
+    const budget = calculateBudget();
+    const efficiency = calculateSavingsRate();
+    const runway = calculateFinancialRunway();
+    const emergency = calculateEmergencyFundProgress();
+    
+    const efficiencyEl = document.querySelector("#analysisEfficiency");
+    const runwayEl = document.querySelector("#analysisRunway");
+    const emergencyEl = document.querySelector("#emergencyFundBar");
+    const emergencyText = document.querySelector("#emergencyFundText");
+    
+    if (efficiencyEl) {
+        efficiencyEl.textContent = `${efficiency.toFixed(1)}%`;
+        efficiencyEl.className = `value ${efficiency >= 20 ? "positive" : (efficiency > 0 ? "neutral" : "negative")}`;
+    }
+    
+    if (runwayEl) {
+        if (runway && runway.months !== null) {
+            runwayEl.textContent = runway.months === Infinity ? "∞ Meses" : `${runway.months.toFixed(1)} Meses`;
+            runwayEl.title = `Baseado em: ${runway.basedOn}`;
+        } else {
+            runwayEl.textContent = "N/D";
+        }
+    }
+
+    if (emergencyEl && emergency) {
+        emergencyEl.style.width = `${emergency.pct}%`;
+        emergencyEl.className = `progress-bar ${emergency.ok ? "bg-success" : "bg-warning"}`;
+        if (emergencyText) {
+            emergencyText.textContent = `${emergency.months.toFixed(1)} de ${emergency.target} meses (Meta)`;
+        }
+    }
+}
+  if (typeof renderSnapshots === 'function') renderSnapshots();
+  if (typeof renderCategories === 'function') renderCategories();
+  if (typeof renderAccounts === 'function') renderAccounts();
+  if (typeof renderReceivables === 'function') renderReceivables();
+  if (typeof renderExpenses === 'function') renderExpenses();
+  if (typeof renderTransfers === 'function') renderTransfers();
+  if (typeof renderIncomes === 'function') renderIncomes();
+  
+  // Compatibilidade com Dashboard (KPIs em charts.js disparados por evento ou observador)
+  window.dispatchEvent(new CustomEvent('stateUpdated', { detail: state }));
 }
 if (typeof window !== 'undefined') {
   window.getGlobalAccountsTotal = getGlobalAccountsTotal;

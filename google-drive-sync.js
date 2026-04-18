@@ -70,7 +70,8 @@ function gisLoaded() {
             localStorage.setItem('google_drive_token', driveAccessToken);
             _safeToast("Ligado ao Google Drive!");
             checkSyncStatus();
-            if (window.restoreDataFromDrive) window.restoreDataFromDrive(true);
+            // Desativado: restauro silencioso no login causava perda de dados
+            // if (window.restoreDataFromDrive) window.restoreDataFromDrive(true);
         },
     });
     gisInited = true;
@@ -233,10 +234,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Tentar aplicar múltiplas vezes para contornar latência de carregamento do core-engine.js
-    applyHook();
-    setTimeout(applyHook, 1000);
-    setTimeout(applyHook, 3000);
+    // Desativado o Hook de Auto-Sincronização para evitar sobreposições acidentais durante a migração para Firebase
+    // applyHook();
+    // setTimeout(applyHook, 1000);
+    // setTimeout(applyHook, 3000);
 });
 
 // Polling para ligar botões da barra de navegação que aparecem em múltiplas páginas

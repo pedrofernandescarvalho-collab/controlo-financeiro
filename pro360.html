@@ -159,10 +159,11 @@
         <a href="extrato.html" class="nav-link">Extrato</a>
         <a href="investimentos.html" class="nav-link active">Investimentos</a>
         <a href="configuracao.html" class="nav-link">Configuração</a>
-        <button id="syncNowBtnNav" class="sync-nav-btn" title="Sincronizar com Google Drive">
-          <span class="sync-icon">🔄</span>
-          <span class="sync-text">Sincronizar</span>
+        <button id="syncNowBtnNav" class="sync-nav-btn" title="Sincronizar Cloud">
+            <span class="sync-icon">🔄</span>
+            <span class="sync-text">Sincronizar</span>
         </button>
+        <div id="cloudStatusPill" class="cloud-pill">Cloud: Desligada</div>
     </nav>
 
     <header class="terminal-header">
@@ -340,7 +341,8 @@
   };
   </script>
   <script src="pro360.js?v=4.3.1"></script>
-  <script src="google-drive-sync.js"></script>
+  <script src="firebase-config.js"></script>
+<script type="module" src="firebase-sync.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {

@@ -23,11 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const detailEl = document.getElementById('savingsRateDetail');
       if (detailEl) {
-        const budget = calculateBudget();
-        const income = (Number(state.salary) || 0) + state.incomes
-          .filter(i => getItemMonthKey(i) === getMonthKey() && !i.name.includes("Transição Excedente"))
-          .reduce((s, i) => s + Number(i.amount || 0), 0);
-        const spent = getRealSpentEfficiency() + (budget.fixedExpenses || 0);
+        const income = calculateTotalIncome();
+        const spent = getRealSpentEfficiency() + (calculateBudget().fixedExpenses || 0);
         const saved = Math.max(income - spent, 0);
         detailEl.innerHTML = `Poupado: ${formatCurrency(saved)} <br> (Ganho: ${formatCurrency(income)} | Gasto: ${formatCurrency(spent)})`;
       }
@@ -45,12 +42,27 @@ document.addEventListener('DOMContentLoaded', () => {
 
   } catch (e) {
     console.error('Dashboard error:', e);
-    const main = document.querySelector('main');
-    if (main) main.insertAdjacentHTML('afterbegin', `
-      <div class="panel config-panel" style="border:2px solid #ef4444; color:#dc2626; padding:20px; margin-bottom:20px;">
-        <strong>⚠ Erro ao carregar gráficos:</strong> ${e.message}
-      </div>`);
   }
+});
+
+// Sincronização automática quando o motor central atualiza o estado
+window.addEventListener('stateUpdated', () => {
+    try {
+        if (typeof calculateSavingsRate === 'function') {
+            const rate = calculateSavingsRate();
+            const el = document.getElementById('savingsRateDisplay');
+            if (el) el.textContent = rate.toFixed(1) + '%';
+        }
+        renderRadar();
+        renderTopExpenses();
+        drawCategoryChart();
+        drawBurnRateChart();
+        drawNetWorthChart();
+        _renderGlobalAnalyticTable();
+        // Recarregar outras visualizações se necessário
+    } catch (e) {
+        console.warn('Erro ao atualizar gráficos via evento:', e);
+    }
 });
 
 // ════════════════════════════════════════════════════════════
