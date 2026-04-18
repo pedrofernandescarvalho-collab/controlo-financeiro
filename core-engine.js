@@ -2528,3 +2528,16 @@ if (typeof render === 'function' && typeof document !== 'undefined' && document.
   initAutofillBanner();
 }
 
+function getCalendarSlices() {
+  const { year, month } = getActiveMonthParts();
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const slices = [];
+  let currentStart = 1;
+  while (currentStart <= daysInMonth) {
+    let currentEnd = currentStart + 6;
+    if (currentEnd > daysInMonth) { currentEnd = daysInMonth; }
+    slices.push({ start: currentStart, end: currentEnd });
+    currentStart = currentEnd + 1;
+  }
+  return slices;
+}

@@ -23,8 +23,8 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const detailEl = document.getElementById('savingsRateDetail');
       if (detailEl) {
-        const income = calculateTotalIncome();
-        const spent = getRealSpentEfficiency() + (calculateBudget().fixedExpenses || 0);
+        const income = typeof sumIncomes === 'function' ? sumIncomes() : 0;
+        const spent = typeof getRealSpentEfficiency === 'function' ? getRealSpentEfficiency() : (typeof sumVariableExpenses === 'function' ? sumVariableExpenses() : 0) + (typeof calculateBudget === 'function' && calculateBudget() ? calculateBudget().fixedExpenses || 0 : 0);
         const saved = Math.max(income - spent, 0);
         detailEl.innerHTML = `Poupado: ${formatCurrency(saved)} <br> (Ganho: ${formatCurrency(income)} | Gasto: ${formatCurrency(spent)})`;
       }
@@ -492,6 +492,7 @@ function renderWeeklyApanhado() {
     dailyDisp.textContent = formatCurrency(dailyBudget);
 
     let currentSlice = slices.find(s => currentDay >= s.start && currentDay <= s.end) || slices[slices.length - 1];
+    if (!currentSlice) currentSlice = { start: 1, end: daysInMonth };
     const totalSliceBudget = dailyBudget * (currentSlice.end - currentSlice.start + 1);
 
     weeklyDisp.textContent = formatCurrency(totalSliceBudget);
