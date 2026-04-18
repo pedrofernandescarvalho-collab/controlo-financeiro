@@ -1,6 +1,14 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-PT">
 <head>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.getRegistrations().then(function(r) {
+                for(let i=0; i<r.length; i++) r[i].unregister();
+            });
+            if (caches) { caches.keys().then(k => Promise.all(k.map(c => caches.delete(c)))); }
+        }
+    </script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Investimentos Inteligentes â€” Controlo Financeiro</title>
