@@ -246,7 +246,7 @@ window.viewFullStudy = async function(ticker) {
             <div class="report-section" style="grid-column:span 2;background:linear-gradient(135deg,rgba(56,189,248,.08) 0%,rgba(56,189,248,.02) 100%);padding:25px;border-radius:16px;border:1px solid rgba(56,189,248,.2);">
                 <header style="display:flex;align-items:center;gap:10px;margin-bottom:15px;">
                     <span style="font-size:1.3rem;">🌍</span>
-                    <strong style="font-size:.75rem;text-transform:uppercase;color:var(--trading-blue);letter-spacing:.05em;">Análise Macro & Sentimento</strong>
+                    <strong style="font-size:.75rem;text-transform:uppercase;color:var(--trading-blue);letter-spacing:.05em;">Análise Macro &amp; Sentimento</strong>
                 </header>
                 <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:15px;">
                     ${sentiment.trends.map(t => `<span style="font-size:.7rem;background:#fff;padding:4px 12px;border-radius:99px;border:1px solid var(--trading-blue);font-weight:700;">${t}</span>`).join('')}
@@ -798,57 +798,33 @@ function renderAssets() {
         
         const currentValue = asset.qty * currentPrice;
         totalInvestedValue += currentValue;
+        allocationData[asset.category] = (allocationData[asset.category] || 0) + currentValue;
+
+        const profitPct = (((currentPrice - asset.avgPrice) / asset.avgPrice) * 100);
+        const profitClass = profitPct >= 0 ? 'value-up' : 'value-down';
         
-        if (asset.category) {
-            allocationData[asset.category] += currentValue;
-        }
+        // Alerta de Queda de Risco
+        const alertBadge = profitPct < -10 ? `<span style="background:var(--trading-red); color:white; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px; font-weight:800;">ALERTA DE QUEDA</span>` : '';
 
-        const profit = currentValue - (asset.qty * asset.avgPrice);
-        const profitPercent = (profit / (asset.qty * asset.avgPrice)) * 100;
-        const color = profit >= 0 ? 'var(--trading-green)' : 'var(--trading-red)';
-
-        const card = document.createElement('div');
-        card.className = 'asset-card';
-        card.innerHTML = `
-            <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                <div>
-                    <span class="ticker-badge">${asset.ticker}</span>
-                    <strong style="display:block; margin-top:8px; font-size:1.1rem;">${asset.name}</strong>
-                    <span style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase;">${asset.category || 'Outros'}</span>
-                </div>
-                <div style="text-align:right;">
-                    <div style="font-size:1.2rem; font-weight:700;">${window.formatCurrency(currentValue)}</div>
-                    <div style="color:${color}; font-size:0.85rem; font-weight:700;">
-                        ${profit >= 0 ? '+' : ''}${window.formatCurrency(profit)} (${profitPercent.toFixed(2)}%)
-                    </div>
+        const item = document.createElement('article');
+        item.className = 'asset-item';
+        
+        item.innerHTML = `
+            <div style="min-width: 0; flex: 1;">
+                <span class="ticker-badge">${asset.ticker}</span>
+                <strong style="margin-left: 10px;">${asset.name}</strong> ${alertBadge}
+                <div style="margin-top: 5px; font-size: 0.8rem;">
+                  <span class="type-pill">${asset.category}</span>
+                  <small style="color: var(--text-muted); margin-left: 8px;">${asset.qty} unids @ ${window.formatCurrency(asset.avgPrice)}</small>
                 </div>
             </div>
-            
-            <div style="margin-top:15px; padding-top:15px; border-top:1px solid var(--border-subtle); display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <div>
-                    <small style="display:block; opacity:0.5; font-size:0.65rem;">QUANTIDADE</small>
-                    <strong style="font-size:0.9rem;">${asset.qty}</strong>
-                </div>
-                <div>
-                    <small style="display:block; opacity:0.5; font-size:0.65rem;">PREÇO MÉDIO</small>
-                    <strong style="font-size:0.9rem;">${window.formatCurrency(asset.avgPrice)}</strong>
-                </div>
-            </div>
-
-            ${profitPercent < -10 ? `
-                <div style="margin-top:12px; background:rgba(239,68,68,0.1); color:#ef4444; padding:8px; border-radius:8px; font-size:0.75rem; font-weight:700; text-align:center; border:1px solid rgba(239,68,68,0.2);">
-                    ⚠️ ALERTA DE QUEDA: Valorização negativa significativa.
-                </div>
-            ` : ''}
-
-            <div style="display:flex; gap:8px; margin-top:15px;">
-                <button class="secondary-btn" style="flex:1; font-size:0.75rem; padding:8px;" onclick="window.viewFullStudy('${asset.ticker}')">Análise 360º</button>
-                <button class="ghost-btn" style="color:var(--trading-red); padding:8px;" onclick="window.removeAsset(${index})">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-                </button>
+            <div style="text-align: right;">
+                <div style="font-weight: 700;">${window.formatCurrency(currentValue)}</div>
+                <small class="${profitClass}">${profitPct.toFixed(2)}% ${profitPct >= 0 ? '▲' : '▼'}</small>
+                <button class="ghost-btn" style="padding: 4px; font-size: 0.7rem; display: block; margin-left: auto; margin-top: 4px; color: var(--error);" onclick="window.removeAsset(${index})">Remover</button>
             </div>
         `;
-        list.appendChild(card);
+        list.appendChild(item);
     });
 
     renderAllocationChart(allocationData, totalInvestedValue);
@@ -977,15 +953,44 @@ function generateAiOpportunities() {
         });
         container.appendChild(section);
     });
+
+    const status = document.createElement('div');
+    status.style.cssText = 'font-size: 0.65rem; text-align: center; color: var(--text-muted); margin-top: 20px; font-weight: 600; padding: 12px; background: rgba(13,148,136,0.05); border-radius: 8px;';
+    status.textContent = '🤖 IA Scanner Ativo — Varrimento de 60+ ativos globais em tempo real';
+    container.appendChild(status);
 }
 
 function updateAllocationTargets() {
-    const goals = { dividends: 40, growth: 40, crypto: 10, reit: 10 };
-    Object.keys(goals).forEach(cat => {
-        const el = document.getElementById(`target-${cat}`);
-        if (el) el.textContent = `${goals[cat]}%`;
-    });
+    const targets = window.state.investmentTargets;
+    if (targets) {
+        if (document.getElementById('targetDivDisplay')) document.getElementById('targetDivDisplay').textContent = `${targets.dividends}%`;
+        if (document.getElementById('targetCryptoDisplay')) document.getElementById('targetCryptoDisplay').textContent = `${targets.crypto}%`;
+        if (document.getElementById('targetGrowthDisplay')) document.getElementById('targetGrowthDisplay').textContent = `${targets.growth}%`;
+    }
 }
 
+// Lógica de Submissão Segura
+document.addEventListener('submit', (e) => {
+    if (e.target.id === 'asset-form') {
+        e.preventDefault();
+        const ticker = document.getElementById('assetTicker').value.toUpperCase();
+        const name = document.getElementById('assetName').value;
+        const qty = Number(document.getElementById('assetQty').value);
+        const avgPrice = Number(document.getElementById('assetAvgPrice').value);
+        const category = document.getElementById('assetCategory').value;
 
-document.addEventListener('DOMContentLoaded', initInvestments);
+        const newAsset = { id: Date.now(), ticker, name, qty, avgPrice, category };
+        window.state.investments.push(newAsset);
+        
+        if (typeof saveState === 'function') saveState();
+        renderAssets();
+        generateAiOpportunities();
+        window.closeAssetModal();
+        e.target.reset();
+    }
+});
+
+// Inicialização com atraso de segurança
+window.addEventListener('load', () => {
+    setTimeout(initInvestments, 200);
+});
