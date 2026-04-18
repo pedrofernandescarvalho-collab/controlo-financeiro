@@ -1194,12 +1194,12 @@ function renderAccounts() {
   container.innerHTML = "";
 
   if (!state.accounts.length) {
-    container.className = "item-list empty-state";
+    container.className = "item-list item-list-container empty-state";
     container.textContent = "Ainda nao existem contas registadas.";
     return;
   }
 
-  container.className = "item-list";
+  container.className = "item-list item-list-container";
   const snapshots = getMonthSnapshotsRaw();
   const latestSnapshotByAccount = new Map();
 
@@ -1240,10 +1240,10 @@ function renderRecurring() {
   if (masterContainer) {
     masterContainer.innerHTML = "";
     if (state.recurringFixed.length === 0) {
-      masterContainer.className = "item-list empty-state";
+      masterContainer.className = "item-list item-list-container empty-state";
       masterContainer.textContent = "Não há despesas fixas globais configuradas.";
     } else {
-      masterContainer.className = "item-list";
+      masterContainer.className = "item-list item-list-container";
       state.recurringFixed.forEach((item) => {
         const node = template.content.firstElementChild.cloneNode(true);
         node.querySelector(".item-title").textContent = item.name;
@@ -1271,10 +1271,10 @@ function renderRecurring() {
     
     const allFixed = state.recurringFixed;
     if (allFixed.length === 0) {
-      monthlyContainer.className = "item-list empty-state";
+      monthlyContainer.className = "item-list item-list-container empty-state";
       monthlyContainer.textContent = "Não existem despesas fixas configuradas.";
     } else {
-      monthlyContainer.className = "item-list";
+      monthlyContainer.className = "item-list item-list-container";
       allFixed.forEach((item) => {
         const sm = Number(item.startMonth) || 1;
         const isCurrentPayment = (!item.frequency || item.frequency === 'monthly') ||
@@ -1328,12 +1328,12 @@ function renderReceivables() {
   }
 
   if (!receivables.length) {
-    container.className = "item-list empty-state";
+    container.className = "item-list item-list-container empty-state";
     container.textContent = "Ainda nao existem valores em aberto registados.";
     return;
   }
 
-  container.className = "item-list";
+  container.className = "item-list item-list-container";
 
   receivables.forEach((receivable) => {
     const node = template.content.firstElementChild.cloneNode(true);
@@ -1447,11 +1447,11 @@ function renderExpenses() {
 
   const allMonthExpenses = state.expenses
     .filter((expense) => activePeriodKeys.includes(normalize(getItemMonthKey(expense))))
-    .sort((a, b) => (getItemMonthKey(a) + String(a.day).padStart(2,'0')).localeCompare(getItemMonthKey(b) + String(b.day).padStart(2,'0')));
+    .sort((a, b) => (getItemMonthKey(b) + String(b.day).padStart(2,'0')).localeCompare(getItemMonthKey(a) + String(a.day).padStart(2,'0')));
 
   if (allMonthExpenses.length === 0) {
     if (variableContainer) {
-      variableContainer.className = "item-list empty-state";
+      variableContainer.className = "item-list item-list-container empty-state";
       variableContainer.textContent = "Ainda não existem despesas registadas para este mês.";
     }
     return;
@@ -1485,10 +1485,10 @@ function renderExpenses() {
 
     // Distribuir para o contentor correto baseado no tipo
     if (expense.kind === "fixed" && fixedContainer) {
-        fixedContainer.className = "item-list";
+        fixedContainer.className = "item-list item-list-container";
         fixedContainer.appendChild(node);
     } else if (variableContainer) {
-        variableContainer.className = "item-list";
+        variableContainer.className = "item-list item-list-container";
         variableContainer.appendChild(node);
     }
   });
@@ -1504,12 +1504,12 @@ function renderCategories() {
   container.innerHTML = "";
 
   if (!state.categories.length) {
-    container.className = "item-list empty-state";
+    container.className = "item-list item-list-container empty-state";
     container.textContent = "Ainda nao existem categorias registadas.";
     return;
   }
 
-  container.className = "item-list";
+  container.className = "item-list item-list-container";
 
   state.categories.forEach((category) => {
     const node = template.content.firstElementChild.cloneNode(true);
@@ -1542,12 +1542,12 @@ function renderReconciliationHistory() {
   const history = getReconciliationHistory();
 
   if (!history.length) {
-    container.className = "item-list empty-state";
+    container.className = "item-list item-list-container empty-state";
     container.textContent = "Ainda nao existem intervalos suficientes para reconciliar.";
     return;
   }
 
-  container.className = "item-list";
+  container.className = "item-list item-list-container";
 
   history.forEach((entry) => {
     const node = template.content.firstElementChild.cloneNode(true);
@@ -1569,12 +1569,12 @@ function renderSnapshots() {
   const snapshots = getSnapshotsForMonth();
 
   if (!snapshots.length) {
-    container.className = "item-list empty-state";
+    container.className = "item-list item-list-container empty-state";
     container.textContent = "Ainda nao existem registos guardados.";
     return;
   }
 
-  container.className = "item-list";
+  container.className = "item-list item-list-container";
 
   snapshots.forEach((snapshot) => {
     const node = template.content.firstElementChild.cloneNode(true);
@@ -1610,15 +1610,15 @@ function renderTransfers() {
   const transfers = state.transfers
     .slice()
     .filter((transfer) => activePeriodKeys.includes(normalize(getItemMonthKey(transfer))))
-    .sort((a, b) => (getItemMonthKey(a) + String(a.day).padStart(2,'0')).localeCompare(getItemMonthKey(b) + String(b.day).padStart(2,'0')));
+    .sort((a, b) => (getItemMonthKey(b) + String(b.day).padStart(2,'0')).localeCompare(getItemMonthKey(a) + String(a.day).padStart(2,'0')));
 
   if (!transfers.length) {
-    container.className = "item-list empty-state";
+    container.className = "item-list item-list-container empty-state";
     container.textContent = "Ainda nao existem depositos registados.";
     return;
   }
 
-  container.className = "item-list";
+  container.className = "item-list item-list-container";
 
   transfers.forEach((transfer) => {
       const node = template.content.firstElementChild.cloneNode(true);
@@ -1644,14 +1644,14 @@ function renderIncomes() {
   const incomes = state.incomes
     .slice()
     .filter((income) => activePeriodKeys.includes(normalize(getItemMonthKey(income))))
-    .sort((a, b) => (getItemMonthKey(a) + String(a.day).padStart(2,'0')).localeCompare(getItemMonthKey(b) + String(b.day).padStart(2,'0')));
+    .sort((a, b) => (getItemMonthKey(b) + String(b.day).padStart(2,'0')).localeCompare(getItemMonthKey(a) + String(a.day).padStart(2,'0')));
 
   if (!incomes.length) {
-    container.className = "item-list empty-state";
+    container.className = "item-list item-list-container empty-state";
     container.textContent = "Ainda nao existem ganhos extra registados.";
     return;
   }
-  container.className = "item-list";
+  container.className = "item-list item-list-container";
 
   incomes.forEach((income) => {
     const node = template.content.firstElementChild.cloneNode(true);
