@@ -2587,11 +2587,11 @@ function getFlexibleSpentInPeriod(startDay, endDay) {
 
 // Cálculo do estado de obrigações fixas do mês
 function calculateObligationsStatus() {
-  const totalProvision = getMonthlyProvisionForFixedExpenses();
+  const totalDueThisMonth = sumFixedMonthlyExpenses();
   const paidAmount = sumFixedExpensesUntil(31);
-  const pendingAmount = Math.max(0, totalProvision - paidAmount);
-  const progressPercent = totalProvision > 0 ? Math.min((paidAmount / totalProvision) * 100, 100) : 0;
-  return { totalProvision, paidAmount, pendingAmount, progressPercent };
+  const pendingAmount = Math.max(0, totalDueThisMonth - paidAmount);
+  const progressPercent = totalDueThisMonth > 0 ? Math.min((paidAmount / totalDueThisMonth) * 100, 100) : 0;
+  return { totalProvision: totalDueThisMonth, paidAmount, pendingAmount, progressPercent };
 }
 
 // Total gasto de forma real (variáveis + transferências) no mês ativo
