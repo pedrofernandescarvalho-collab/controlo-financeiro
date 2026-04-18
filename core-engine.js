@@ -2249,14 +2249,22 @@ function importState(event) {
   reader.onload = function(e) {
     try {
       const imported = JSON.parse(e.target.result);
-      if (!imported.expenses || !imported.accounts) throw new Error("Formato inválido");
+      // Validação flexível: deve ter pelo menos accounts ou expenses
+      if (!imported.expenses && !imported.accounts) throw new Error("Ficheiro JSON não parece ser um backup válido deste sistema.");
       
-      if (confirm("Isto irá substituir os teus dados atuais e recarregar a página. Continuar?")) {
+      if (confirm("Tens a certeza? Isto irá substituir todos os teus dados atuais e recarregar a página com o backup escolhido.")) {
+        // 1. Guardar os novos dados
         localStorage.setItem(STORAGE_KEY, JSON.stringify(imported));
+        
+        // 2. Marcar como a versão mais recente para o Firebase não a sobrepor
+        // Definimos o last_firebase_sync para AGORA, assim a Cloud (que é antiga) não ganha
+        localStorage.setItem('last_firebase_sync', Date.now());
+        
+        // 3. Recarregar
         location.reload();
       }
     } catch (err) {
-      alert("Erro ao importar backup: Ficheiro inválido ou corrompido.");
+      alert("Erro ao importar backup: " + err.message);
     }
   };
   reader.readAsText(file);
@@ -2502,6 +2510,8 @@ if (typeof window !== 'undefined') {
   window.getReconciliationHistory = getReconciliationHistory;
   window.renderGlobalExtract = renderGlobalExtract;
   window.renderNetWorth = renderNetWorth;
+  window.importState = importState;
+  window.exportState = exportState;
 }
 
 if (typeof render === 'function' && typeof document !== 'undefined' && document.querySelector) {
