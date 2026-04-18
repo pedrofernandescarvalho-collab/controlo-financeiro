@@ -94,6 +94,7 @@ function loadState() {
   }
 }
 
+window.saveState = saveState;
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   // Notificar outros componentes (ex: Firebase Sync, Charts)
