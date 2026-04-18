@@ -3,36 +3,64 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Extrato Global — Controlo Financeiro</title>
-  <meta name="description" content="Extrato cronológico completo de todos os movimentos financeiros com saldo acumulado.">
+  <title>Investimentos Pro 360 — Terminal de Ativos</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0d9488">
   <style>
-    .extract-filters {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 24px;
-      flex-wrap: wrap;
+    :root {
+      --trading-bg: #0b0e11;
+      --trading-panel: #161a1e;
+      --trading-card: #1e2329;
+      --trading-blue: #0267ff;
+      --trading-green: #0ecb81;
+      --trading-red: #f6465d;
+      --trading-text: #eaecef;
     }
-    .badge-income { color: var(--primary); font-weight: 700; }
-    .badge-expense { color: #ef4444; font-weight: 700; }
-    .badge-transfer { color: var(--accent); font-weight: 700; }
-    .extract-balance { text-align: right; font-weight: 700; font-size: 1.1rem; }
-    .extract-search {
-      margin-bottom: 20px;
-      width: 100%;
-      padding: 12px 16px;
-      border: 1px solid var(--border-subtle);
-      border-radius: var(--radius-sm);
-      background: var(--panel-strong);
+    body.dark-mode {
+      background-color: var(--trading-bg);
+      color: var(--trading-text);
+    }
+    .trading-shell {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 24px;
+      padding-top: 20px;
+    }
+    .portfolio-card {
+      background: var(--trading-panel);
+      border: 1px solid rgba(255,255,255,0.05);
+      border-radius: 20px;
+      padding: 24px;
+    }
+    .asset-row {
+      display: grid;
+      grid-template-columns: 60px 1fr 120px 120px 120px auto;
+      align-items: center;
+      padding: 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      transition: background 0.2s;
+    }
+    .asset-row:hover { background: var(--trading-card); }
+    .ticker-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      background: var(--trading-card);
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 0.8rem; border: 1px solid rgba(255,255,255,0.1);
+    }
+    .badge-market { padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: 700; }
+    .btn-analyze {
+      background: var(--trading-blue); color: white; border: none;
+      padding: 8px 16px; border-radius: 8px; font-weight: 700; cursor: pointer;
+    }
+    .ai-bubble {
+      background: linear-gradient(135deg, #0267ff 0%, #7000ff 100%);
+      color: white; padding: 20px; border-radius: 20px; position: relative;
     }
   </style>
 </head>
-<body>
+<body class="dark-mode">
   <div class="app-shell">
         <nav class="top-nav">
         <a href="index.html" class="nav-link">Registos</a>
@@ -47,66 +75,175 @@
         <div id="cloudStatusPill" class="cloud-pill">Cloud: Desligada</div>
     </nav>
 
-    <header class="hero">
+    <header class="hero compact-hero" style="border-bottom: 1px solid rgba(255,255,255,0.1);">
       <div>
-        <p class="eyebrow">Análise Cronológica Global</p>
-        <h1>Extrato de Movimentos</h1>
-        <p class="hero-copy">
-          Consulta todos os teus ganhos, despesas e transferências por ordem cronológica com o saldo acumulado total.
-        </p>
+        <p class="eyebrow" style="color: var(--trading-blue);">Asset Intelligence Terminal</p>
+        <h1 style="color: white;">Pro 360 Ecosystem</h1>
+        <p class="hero-copy" style="color: #848e9c;">Gestão de portfólio de alta performance com dados de mercado em tempo real.</p>
       </div>
-      <div class="hero-card accent strong-card">
-        <p>Património Atual (Banco + Cash + Recebíveis)</p>
-        <strong id="globalNetWorthDisplay">A calcular...</strong>
-        <div id="netWorthDetail" class="mt-10" style="opacity: 0.8; font-size: 0.85rem; color: #94a3b8;">
-           <!-- Detalhes preenchidos pelo script.js -->
-        </div>
+      <div class="portfolio-card" style="min-width: 280px; text-align: right;">
+        <span style="font-size: 0.75rem; color: #848e9c; text-transform: uppercase; font-weight: 700;">Equity Total (Live)</span>
+        <h2 id="totalEquityDisplay" style="font-size: 2.2rem; color: var(--trading-green); margin: 4px 0;">0,00 €</h2>
+        <div id="totalChangeDisplay" style="font-size: 0.9rem; font-weight: 700;">+0.00% (Today)</div>
       </div>
     </header>
 
-    <main class="dashboard-layout">
-      <div class="dashboard-col config-panel span-all" style="padding: 30px;">
-        <section class="panel">
-          <div class="panel-heading">
-            <h2>Timeline Completa</h2>
-            <p>Filtra e pesquisa movimentos em todo o teu histórico.</p>
+    <main class="trading-shell">
+      <section>
+        <div class="portfolio-card">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+            <h2>As Minhas Posições</h2>
+            <button class="primary-btn" onclick="openAssetModal()">+ Registar Ativo</button>
+          </div>
+          
+          <div id="assetTableHeader" class="asset-row" style="background: rgba(255,255,255,0.02); font-size: 0.7rem; font-weight: 700; text-transform: uppercase; color: #848e9c;">
+            <span>Ticker</span>
+            <span>Nome do Ativo</span>
+            <span>Posição</span>
+            <span>Preço Atual</span>
+            <span>Resultado</span>
+            <span></span>
+          </div>
+          
+          <div id="investmentsList" class="stack" style="min-height: 400px;">
+            <!-- Render dinâmico -->
+          </div>
+        </div>
+
+        <div class="portfolio-card" style="margin-top: 24px; background: transparent; border: 1px dashed rgba(255,255,255,0.2);">
+             <p style="font-size: 0.8rem; text-align: center; color: #848e9c;">Dados fornecidos por <strong>Finnhub.io</strong> e <strong>CoinGecko</strong>. Atualização a cada 60s.</p>
+        </div>
+      </section>
+
+      <aside>
+        <div class="ai-bubble">
+          <h3 style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px; font-size: 1.1rem;">
+            <span style="font-size: 1.4rem;">💡</span> AI Opportunities Hub
+          </h3>
+          <p style="font-size: 0.85rem; opacity: 0.8; line-height: 1.4;">Analista virtual ativo. Cruzando dados de mercado com o seu perfil de dividendos e crescimento.</p>
+          
+          <div id="aiDiscoveryList" class="stack" style="margin-top: 20px;">
+            <!-- Sugestões da IA aqui -->
           </div>
 
-          <div class="extract-filters">
-            <button class="period-btn active" data-filter="all" id="btn-filter-all">Tudo</button>
-            <button class="period-btn" data-filter="income" id="btn-filter-income">Só Entradas</button>
-            <button class="period-btn" data-filter="variable" id="btn-filter-expense">Só Saídas</button>
-            <button class="period-btn" data-filter="transfer" id="btn-filter-transfer">Só Poupanças/Transf.</button>
+          <div style="margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border-subtle);">
+            <h4 style="font-size: 0.75rem; text-transform: uppercase; margin-bottom: 12px; color: var(--text-muted); letter-spacing: 0.05em;">Estudar Novo Ticker</h4>
+            <div style="display: flex; gap: 8px;">
+              <input id="tickerInput" type="text" placeholder="Ex: VUAA, O, BTC">
+              <button class="btn-analyze" onclick="analyzeTicker()">Analisar</button>
+            </div>
           </div>
+        </div>
 
-          <div class="table-wrapper">
-            <table class="analytic-table">
-              <thead>
-                <tr>
-                  <th>Data</th>
-                  <th>Descrição</th>
-                  <th>Categoria</th>
-                  <th>Tipo</th>
-                  <th class="text-right">Valor</th>
-                  <th class="text-right">Saldo Acumulado</th>
-                </tr>
-              </thead>
-              <tbody id="extractTableBody">
-                <tr>
-                  <td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted); font-style: italic;">
-                    Carregando movimentos...
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+        <div class="portfolio-card" style="margin-top: 24px;">
+          <h3 style="margin-bottom: 16px;">Alocação Estratégica</h3>
+          <div id="allocationChartPlaceholder" style="background: rgba(0,0,0,0.02); border-radius: 16px; padding: 20px; text-align: center; border: 1px solid var(--border-subtle); position: relative;">
+             <p style="opacity: 0.5; font-size: 0.85rem; margin-bottom: 15px;">Distribuição por Classe</p>
+             <div id="dynamicAllocationChart" style="margin: 0 auto; width: 140px; height: 140px; border-radius: 50%; background: conic-gradient(var(--trading-blue) 0%, var(--accent) 0%, var(--trading-green) 0%, #eee 0%); transition: background 0.5s ease;"></div>
+             <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, 0); font-weight: 700; font-size: 1.2rem;" id="totalInvestedSmall">0€</div>
           </div>
-        </section>
-      </div>
+          <div class="stack" style="margin-top: 20px;">
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; padding: 4px 0;">
+              <span style="display: flex; align-items: center; gap: 6px;"><span style="width:8px; height:8px; background:var(--trading-blue); border-radius:2px;"></span> Dividendos</span>
+              <strong id="targetDivDisplay">80%</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; padding: 4px 0;">
+              <span style="display: flex; align-items: center; gap: 6px;"><span style="width:8px; height:8px; background:var(--accent); border-radius:2px;"></span> Cripto</span>
+              <strong id="targetCryptoDisplay">5%</strong>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-size: 0.85rem; padding: 4px 0;">
+              <span style="display: flex; align-items: center; gap: 6px;"><span style="width:8px; height:8px; background:var(--trading-green); border-radius:2px;"></span> Outros</span>
+              <strong id="targetGrowthDisplay">15%</strong>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
     </main>
   </div>
 
-  
-  <script src="core-engine.js?v=4.3.2"></script>
+  <!-- Modal Adicionar Ativo -->
+  <div id="assetModal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; padding: 20px;">
+    <div class="panel" style="width: 100%; max-width: 480px; box-shadow: var(--shadow-lg);">
+      <h2 style="margin-top:0;">Registar Ativo XTB</h2>
+      <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 24px;">Adicione os detalhes da sua posição para que a IA possa analisar o seu portfólio.</p>
+      
+      <form id="asset-form" class="stack">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <label class="field-block">Ticker <input id="assetTicker" type="text" placeholder="Ex: VWCE.DE" required></label>
+          <label class="field-block">Quantidade <input id="assetQty" type="number" step="0.0001" placeholder="0.00" required></label>
+        </div>
+        <label class="field-block">Nome do Ativo <input id="assetName" type="text" placeholder="Ex: Vanguard FTSE All-World" required></label>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+          <label class="field-block">Preço Médio (EUR) <input id="assetAvgPrice" type="number" step="0.01" placeholder="0,00" required></label>
+          <label class="field-block">Categoria 
+            <select id="assetCategory">
+              <option value="dividends">Ações/ETFs Dividendos</option>
+              <option value="growth">Crescimento/Growth</option>
+              <option value="reit">REITs (Imobiliário)</option>
+              <option value="crypto">Criptomoedas</option>
+            </select>
+          </label>
+        </div>
+        <div style="display: flex; gap: 12px; margin-top: 16px;">
+          <button type="submit" class="primary-btn">Guardar Ativo</button>
+          <button type="button" class="ghost-btn" onclick="closeAssetModal()">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Estudo de IA Modal -->
+  <div id="studyModal" style="display:none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); backdrop-filter: blur(12px); z-index: 1100; align-items: center; justify-content: center; padding: 20px;">
+    <div class="panel" style="width: 100%; max-width: 600px; max-height: 85vh; overflow-y: auto;">
+      <div id="studyContent">
+        <!-- Conteúdo do estudo gerado aqui -->
+      </div>
+      <button class="secondary-btn" style="margin-top: 24px;" onclick="closeStudyModal()">Fechar Estudo</button>
+    </div>
+  </div>
+
+  <script src="core-engine.js?v=4.3.0"></script>
+  <script>
+  window.fetchYahooFallback = async function(ticker) {
+    const YAHOO_MAP = {'VUAA.IT':'VUAA.MI','VWCE.DE':'VWCE.DE','IUSE.L':'IUSE.L'};
+    const yt = YAHOO_MAP[ticker] || ticker;
+    const baseUrl = 'https://query1.finance.yahoo.com/v8/finance/chart/' + yt + '?range=1y&interval=1d';
+    const PROXIES = [
+      'https://corsproxy.io/?' + encodeURIComponent(baseUrl),
+      'https://api.allorigins.win/raw?url=' + encodeURIComponent(baseUrl),
+      'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent(baseUrl),
+    ];
+    for (const url of PROXIES) {
+      try {
+        console.log('[Pro 360 inline] Yahoo via proxy:', url.substring(0,60)+'...');
+        const res = await fetch(url);
+        if (!res.ok) { console.warn('[Pro 360 inline] Proxy status:', res.status); continue; }
+        const data = await res.json();
+        const result = data?.chart?.result?.[0];
+        if (!result) continue;
+        const meta = result.meta || {};
+        const q = result.indicators?.quote?.[0] || {};
+        const closes = (q.close||[]).filter(v=>v!=null);
+        const highs  = (q.high||[]).filter(v=>v!=null);
+        const lows   = (q.low||[]).filter(v=>v!=null);
+        const price = meta.regularMarketPrice || closes[closes.length-1] || null;
+        const prev  = meta.chartPreviousClose || meta.previousClose || (closes.length>1?closes[closes.length-2]:null);
+        const h52   = highs.length ? Math.max(...highs) : null;
+        const l52   = lows.length  ? Math.min(...lows)  : null;
+        console.log('[Pro 360 inline] Yahoo OK:', ticker, ' ', price, 'EUR');
+        return {price, prevClose:prev, high52:h52, low52:l52,
+          changePercent: (price&&prev) ? ((price-prev)/prev*100) : null,
+          marketCap: meta.marketCap||null, name: meta.shortName||meta.longName||null};
+      } catch(e) { console.warn('[Pro 360 inline] Proxy falhou:', e.message); }
+    }
+    return null;
+  };
+  </script>
+  <script src="pro360.js?v=4.3.1"></script>
+  <script src="firebase-config.js"></script>
+<script type="module" src="firebase-sync.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
