@@ -25,17 +25,30 @@ let db, auth, user;
 const updateUIStatus = (status, color = "var(--text-main)", className = "") => {
     // 1. Atualizar Painel de Configurações (Se existir)
     const el = document.getElementById('firebaseStatus');
+    const panelDot = document.querySelector('#firebaseStatusPanel .status-dot');
     if (el) {
         el.textContent = status;
         el.style.color = color;
     }
-
-    // 2. Atualizar Pílula Global na Navegação
-    const pill = document.getElementById('cloudStatusPill');
-    if (pill) {
-        pill.textContent = `Cloud: ${status}`;
-        pill.className = `cloud-pill ${className}`;
+    if (panelDot) {
+        panelDot.className = `status-dot ${className}`;
     }
+
+    // 2. Atualizar Pílula Global Premium
+    let container = document.getElementById('cloudStatusContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'cloudStatusContainer';
+        container.className = 'cloud-status-container';
+        document.body.appendChild(container);
+    }
+
+    container.innerHTML = `
+        <div class="cloud-pill" title="Estado da Sincronização Firebase">
+            <div class="status-dot ${className}"></div>
+            <span>Cloud: ${status}</span>
+        </div>
+    `;
 };
 
 async function initFirebase() {

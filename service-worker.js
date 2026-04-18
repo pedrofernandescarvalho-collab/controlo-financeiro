@@ -7,8 +7,7 @@ const ASSETS = [
   'configuracao.html',
   'extrato.html',
   'style.css',
-  'core-engine.js',
-  'google-drive-sync.js'
+  'core-engine.js'
 ];
 
 self.addEventListener('install', event => {

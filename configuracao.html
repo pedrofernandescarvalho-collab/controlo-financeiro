@@ -137,44 +137,20 @@
             PWA Versão 2.1.1 — Sync Engine Refined
         </div>
 
-        <h3 class="section-title-sm" style="margin-top: 32px; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">Sincronização Cloud (Google Drive)</h3>
-        
-        <div id="googleDrivePanel" class="summary-card" style="grid-column: 1 / -1; background: linear-gradient(145deg, #ffffff, #f1f5f9); border: 1px solid var(--border-subtle); padding: 24px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="background: white; padding: 8px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M9 3H15L22 15L19 21H5L2 15L9 3Z" stroke="#0d9488" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <span id="googleDriveStatus" style="display: block; font-size: 0.9rem; font-weight: 700; color: var(--text-main); text-transform: none; letter-spacing: 0;">Drive Desligado</span>
-                        <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">Sincroniza os teus dados entre o PC e o iPhone.</p>
-                    </div>
-                </div>
-                <button id="googleLogoutBtn" class="ghost-btn" style="display:none; color: #ef4444; padding: 6px 12px;" onclick="handleGoogleLogout()">Desligar</button>
-            </div>
-
-            <div id="syncActions" style="display: flex; gap: 12px; flex-wrap: wrap;">
-                <button id="googleLoginBtn" class="primary-btn" style="width: auto; padding: 12px 24px; background: var(--text-main); color: white;" onclick="handleGoogleLogin()">
-                    Ligar Google Drive
-                </button>
-                
-                <div id="syncButtonsGroup" style="display: none; gap: 12px; flex-wrap: wrap; width: 100%;">
-                    <button id="googleSyncBtn" class="primary-btn" style="width: auto; min-width: 180px; background: #0f172a; color: white; display: flex;" onclick="syncDataToDrive(true)">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                        Sincronizar Agora (PC ➔ Cloud)
-                    </button>
-                    
-                    <button id="googleRestoreBtn" class="secondary-btn" style="width: auto; min-width: 180px; background: white; color: var(--text-main); display: flex;" onclick="restoreDataFromDrive()">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                        Restaurar da Nuvem (Cloud ➔ PC)
-                    </button>
+      <section class="panel config-panel">
+        <div class="panel-heading">
+          <h2>Sincronização Cloud (Firebase)</h2>
+          <p>O Google Drive foi desativado. Agora os teus dados são seguros e sincronizados instantaneamente via Firebase.</p>
+        </div>
+        <div id="firebaseStatusPanel" style="padding: 20px; background: rgba(16, 185, 129, 0.05); border-radius: 12px; border: 1px solid rgba(16, 185, 129, 0.2);">
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div class="status-dot online"></div>
+                <div>
+                    <span id="firebaseStatus" style="font-weight: 700; color: var(--success);">Ligado e Seguro</span>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">Sincronização em tempo real ativa.</p>
                 </div>
             </div>
         </div>
-        
-        <p id="backupStatus" class="goal-label">A nuvem sincroniza automaticamente após cada alteração guardada.</p>
       </section>
 
       <!-- ── CONFIGURAÇÁO DE APIS ────────────────────────────────────── -->

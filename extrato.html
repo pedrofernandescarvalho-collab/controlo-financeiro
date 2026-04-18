@@ -40,11 +40,6 @@
         <a href="extrato.html" class="nav-link active">Extrato</a>
         <a href="investimentos.html" class="nav-link">Investimentos</a>
         <a href="configuracao.html" class="nav-link">Configuração</a>
-        <button id="syncNowBtnNav" class="sync-nav-btn" title="Sincronizar com Google Drive">
-          <span class="sync-icon">🔄</span>
-          <span class="sync-text">Sincronizar</span>
-        </button>
-        <div id="cloudStatusPill" class="cloud-pill">Cloud: Desligada</div>
     </nav>
 
     <header class="hero">
@@ -136,12 +131,9 @@
         if (typeof renderNetWorth === 'function') renderNetWorth();
       }, 50);
     });
-
-    // Botão de Sincronização na Nav
-    
   </script>
-<script src="core-engine.js?v=4.3.0"></script>
-<script src="firebase-config.js"></script>
-<script type="module" src="firebase-sync.js"></script>
+  <script src="core-engine.js?v=4.3.0"></script>
+  <script src="firebase-config.js"></script>
+  <script type="module" src="firebase-sync.js"></script>
 </body>
 </html>
