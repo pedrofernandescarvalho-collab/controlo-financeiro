@@ -1,335 +1,244 @@
 <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Configuração Financeira — Controlo Financeiro</title>
-  <meta name="description" content="Configura o teu salário, metas, despesas recorrentes e gerir backups da app de controlo financeiro.">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0d9488">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Configuração — Controlo Financeiro</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0d9488">
+    <style>
+        .config-panel { margin-bottom: 28px; }
+        .goal-label { font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-top: 10px; }
+        code { background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 4px; font-family: monospace; }
+        .text-btn { background: none; border: none; color: var(--primary); font-weight: 700; cursor: pointer; font-size: 0.8rem; padding: 0; }
+        .text-btn:hover { text-decoration: underline; }
+    </style>
 </head>
 <body>
-  <div class="app-shell">
-    <nav class="top-nav">
-        <a href="index.html" class="nav-link">Registos</a>
-        <a href="dashboard.html" class="nav-link">Dashboards</a>
-        <a href="extrato.html" class="nav-link">Extrato</a>
-        <a href="investimentos.html" class="nav-link">Investimentos</a>
-        <a href="configuracao.html" class="nav-link active">Configuração</a>
-        <button id="syncNowBtnNav" class="sync-nav-btn" title="Sincronizar com Google Drive">
-          <span class="sync-icon">🔄</span>
-          <span class="sync-text">Sincronizar</span>
-        </button>
-    </nav>
+    <div class="app-shell">
+        <nav class="top-nav">
+            <a href="index.html" class="nav-link">Registos</a>
+            <a href="dashboard.html" class="nav-link">Dashboards</a>
+            <a href="extrato.html" class="nav-link">Extrato</a>
+            <a href="pro360.html" class="nav-link">Investimentos</a>
+            <a href="configuracao.html" class="nav-link active">Configuração</a>
+            <button id="syncNowBtnNav" class="sync-nav-btn" title="Sincronizar Cloud">
+                <span class="sync-icon">🔄</span>
+                <span class="sync-text">Sincronizar</span>
+            </button>
+            <div id="cloudStatusPill" class="cloud-pill">Cloud: Desligada</div>
+        </nav>
 
-    <header class="hero compact-hero">
-      <div>
-        <p class="eyebrow">Gestão e metas</p>
-        <h1>Configuração e administração</h1>
-        <p class="hero-copy">
-          Define o teu rendimento base, despesas fixas mensais recorrentes, categorias e faz a gestão dos teus backups.
-        </p>
-      </div>
-      <div class="hero-card accent strong-card">
-        <p>Património Líquido Global</p>
-        <strong id="globalNetWorthDisplay">A calcular...</strong>
-      </div>
-    </header>
-
-    <main class="grid">
-
-      <!-- ── SALDO INICIAL DO MÊS ─────────────────────────────────── -->
-      <section class="panel config-panel" style="grid-column: 1 / -1;">
-        <div class="panel-heading">
-          <h2>Saldo Inicial do Mês</h2>
-          <p>Regista apenas <strong>uma vez</strong> por mês o saldo do dia 1 de cada conta. Este é o ponto de partida de todos os cálculos de orçamento, autonomia financeira e reconciliação bancária.</p>
-        </div>
-
-        <div class="summary-grid" style="margin-bottom: 20px;">
-          <article class="summary-card accent strong-card">
-            <span>Ponto de partida</span>
-            <strong id="startOfMonthBalanceDisplay">0,00 EUR</strong>
-          </article>
-          <article class="summary-card">
-            <span>Última análise guardada</span>
-            <strong id="latestSnapshotDisplay">Sem registo</strong>
-          </article>
-        </div>
-
-        <!-- Banner auto-preenchimento do mês anterior -->
-        <div id="autofillBanner" style="display:none; margin-bottom: 16px; padding: 14px 18px; background: rgba(13,148,136,0.05); border: 1px solid rgba(13,148,136,0.25); border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px;">
-          <div>
-            <strong style="font-size: 0.9rem; color: var(--primary);">✦ Início de Mês Detetado</strong>
-            <p style="margin: 4px 0 0; font-size: 0.82rem; color: var(--text-muted);" id="autofillDesc">Detetei o saldo final do mês anterior. Queres usá-lo como ponto de partida?</p>
-          </div>
-          <button type="button" id="autofillBtn" class="secondary-btn" style="width: auto; white-space: nowrap; min-width: 160px;">
-            Auto-Preencher
-          </button>
-        </div>
-
-        <form id="start-form" class="inline-form inline-form-3">
-          <label class="field-block">
-            Conta analisada
-            <select id="startAccountId" required></select>
-          </label>
-          <label class="field-block">
-            Data inicial
-            <input id="startDate" type="date" required>
-          </label>
-          <label class="field-block">
-            Saldo inicial da conta
-            <input id="startBankBalance" type="number" min="0" step="0.01" placeholder="Saldo no dia 1" required>
-          </label>
-          <button type="submit" class="secondary-btn">Guardar saldo inicial</button>
-        </form>
-
-        <p id="bankStatus" class="goal-label">O ponto de partida do mês fica guardado aqui. Regista o dia 1 de cada conta para o sistema funcionar com precisão.</p>
-      </section>
-
-      <!-- ── RENDIMENTO FIXO E METAS ───────────────────────────────── -->
-      <section class="panel config-panel">
-        <div class="panel-heading">
-          <h2>Rendimento Fixo e Metas</h2>
-          <p>Configura o teu rendimento base e as regras do teu excedente corrente.</p>
-        </div>
-
-        <form id="settings-form" class="stack">
-
-          <label>
-            Salário líquido mensal
-            <input id="salary" name="salary" type="number" min="0" step="0.01" placeholder="Ex: 1250">
-          </label>
-
-          <label>
-            Percentagem do excedente para Revolut
-            <input id="revolutShare" name="revolutShare" type="number" min="0" max="100" step="0.1" placeholder="Ex: 60">
-          </label>
-
-          <label>
-            Percentagem do excedente para XTB
-            <input id="xtbShare" name="xtbShare" type="number" min="0" max="100" step="0.1" placeholder="Ex: 40">
-          </label>
-
-          <label>
-            Objetivo da conta Revolut
-            <input id="revolutGoal" name="revolutGoal" type="text" maxlength="80" placeholder="Ex: Fundo de emergência / viagem">
-          </label>
-
-          <button type="submit" class="primary-btn">Guardar configuração</button>
-        </form>
-
-        <p id="settingsStatus" class="goal-label">A base do mês usa sempre o saldo do dia 1.</p>
-      </section>
-
-      <!-- ── GESTÁO DE DADOS ────────────────────────────────────────── -->
-      <section class="panel config-panel">
-        <div class="panel-heading">
-          <h2>Gestão de Dados e Backups</h2>
-          <p>Exporta os teus dados ou usa a nuvem para manter tudo seguro.</p>
-        </div>
-
-        <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.05); opacity: 0.4; font-size: 0.7rem;">
-            PWA Versão 2.1.1 — Sync Engine Refined
-        </div>
-
-        <h3 class="section-title-sm" style="margin-top: 32px; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">Sincronização Cloud (Google Drive)</h3>
-        
-        <div id="googleDrivePanel" class="summary-card" style="grid-column: 1 / -1; background: linear-gradient(145deg, #ffffff, #f1f5f9); border: 1px solid var(--border-subtle); padding: 24px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <div style="background: white; padding: 8px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M9 3H15L22 15L19 21H5L2 15L9 3Z" stroke="#0d9488" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <span id="googleDriveStatus" style="display: block; font-size: 0.9rem; font-weight: 700; color: var(--text-main); text-transform: none; letter-spacing: 0;">Drive Desligado</span>
-                        <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">Sincroniza os teus dados entre o PC e o iPhone.</p>
-                    </div>
-                </div>
-                <button id="googleLogoutBtn" class="ghost-btn" style="display:none; color: #ef4444; padding: 6px 12px;" onclick="handleGoogleLogout()">Desligar</button>
+        <header class="hero compact-hero">
+            <div>
+                <p class="eyebrow">Sistema & Preferências</p>
+                <h1>Configurações</h1>
+                <p class="hero-copy">Gere as tuas contas, categorias e chaves de segurança para garantir a integridade dos teus dados.</p>
             </div>
+            <div class="hero-card accent strong-card">
+                <p>Estado da Cloud</p>
+                <strong id="firebaseStatusDisplay">Firebase Ativo</strong>
+            </div>
+        </header>
 
-            <div id="syncActions" style="display: flex; gap: 12px; flex-wrap: wrap;">
-                <button id="googleLoginBtn" class="primary-btn" style="width: auto; padding: 12px 24px; background: var(--text-main); color: white;" onclick="handleGoogleLogin()">
-                    Ligar Google Drive
-                </button>
+        <main class="inner-dashboard-grid">
+            
+            <!-- CONTAS BANCÁRIAS -->
+            <section class="panel config-panel">
+                <div class="panel-heading">
+                    <h2>Contas e Ativos Líquidos</h2>
+                    <p>Adiciona as tuas contas correntes, poupanças ou cartões.</p>
+                </div>
+                <form id="account-form" class="inline-form inline-form-3">
+                    <input id="accountName" type="text" placeholder="Nome da Conta" required>
+                    <input id="accountBalance" type="number" step="0.01" placeholder="Saldo Inicial €" required>
+                    <button type="submit" class="secondary-btn">Adicionar Conta</button>
+                </form>
+                <p id="accountStatus" class="goal-label">Estas contas são usadas para o teu Snapshot Global.</p>
+                <div id="accountList" class="item-list empty-state item-list-container">Ainda não configuraste contas bancárias.</div>
+            </section>
+
+            <!-- NUVEM E SINCRONIZAÇÃO -->
+            <section class="panel config-panel">
+                <div class="panel-heading">
+                    <h2>Sincronização Cloud</h2>
+                    <p>Exporta os teus dados ou usa a nuvem para manter tudo seguro.</p>
+                </div>
+
+                <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid rgba(0,0,0,0.05); opacity: 0.4; font-size: 0.7rem;">
+                    PWA Versão 2.1.1 - Sync Engine Refined
+                </div>
+
+                <h3 class="section-title-sm" style="margin-top: 32px; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">Sincronização Cloud (Firebase)</h3>
                 
-                <div id="syncButtonsGroup" style="display: none; gap: 12px; flex-wrap: wrap; width: 100%;">
-                    <button id="googleSyncBtn" class="primary-btn" style="width: auto; min-width: 180px; background: #0f172a; color: white; display: flex;" onclick="syncDataToDrive(true)">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-                        Sincronizar Agora (PC ➔ Cloud)
-                    </button>
-                    
-                    <button id="googleRestoreBtn" class="secondary-btn" style="width: auto; min-width: 180px; background: white; color: var(--text-main); display: flex;" onclick="restoreDataFromDrive()">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                        Restaurar da Nuvem (Cloud ➔ PC)
-                    </button>
+                <div id="firebasePanel" class="summary-card" style="grid-column: 1 / -1; background: linear-gradient(145deg, #ffffff, #fff7ed); border: 1px solid #fed7aa; padding: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <div style="display: flex; align-items: center; gap: 12px;">
+                            <div style="background: white; padding: 8px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M3.89 15.55L11 2.45C11.38 1.74 12.62 1.74 13 2.45L20.11 15.55C20.46 16.19 19.99 17 19.26 17H4.74C4.01 17 3.54 16.19 3.89 15.55Z" fill="#F58220"/>
+                                    <path d="M4.74 17L11 2.45L11 17H4.74Z" fill="#FFA000"/>
+                                </svg>
+                            </div>
+                            <div>
+                                <span id="firebaseStatus" style="display: block; font-size: 0.9rem; font-weight: 700; color: var(--text-main); text-transform: none; letter-spacing: 0;">Cloud Desligada</span>
+                                <p style="font-size: 0.75rem; color: var(--text-muted); margin: 0;">Sincronização em tempo real via Firebase.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="firebaseActions" style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <p style="font-size: 0.85rem; color: var(--text-main); margin-bottom: 15px; border-left: 3px solid #f58220; padding-left: 10px;">
+                            A sincronização funciona automaticamente assim que as credenciais em <code>firebase-config.js</code> forem preenchidas.
+                        </p>
+                    </div>
                 </div>
+                
+                <p id="backupStatus" class="goal-label">A nuvem sincroniza automaticamente após cada alteração guardada.</p>
+            </section>
+
+            <!-- CONFIGURAÇÃO DE APIS -->
+            <section class="panel config-panel">
+                <div class="panel-heading">
+                    <h2>Conectividade e Dados Reais</h2>
+                    <p>Configura as tuas chaves de API para obteres cotações de mercado em tempo real.</p>
+                </div>
+
+                <form id="api-settings-form" class="stack">
+                    <label>
+                        Finnhub API Key (Ações/ETFs)
+                        <input id="finnhubApiKey" name="finnhubApiKey" type="password" placeholder="Cola aqui a tua chave da Finnhub">
+                        <small style="opacity: 0.6; font-size: 0.75rem;">Obtém uma chave gratuita em <a href="https://finnhub.io/" target="_blank" style="color: var(--primary);">finnhub.io</a></small>
+                    </label>
+
+                    <div style="padding: 12px; background: rgba(16, 185, 129, 0.05); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">
+                        <p style="margin: 0; font-size: 0.8rem; color: var(--success);"><strong>V CoinGecko (Cripto)</strong> ativo via rede pública (sem necessidade de chave).</p>
+                    </div>
+
+                    <button type="submit" class="primary-btn">Guardar chaves</button>
+                </form>
+                <p id="apiStatus" class="goal-label">As chaves são guardadas apenas no teu navegador.</p>
+            </section>
+
+            <!-- CATEGORIAS -->
+            <section class="panel config-panel">
+                <div class="panel-heading">
+                    <h2>Categorias de despesa</h2>
+                    <p>Adiciona e gere as categorias usadas nas despesas.</p>
+                </div>
+
+                <form id="category-form" class="inline-form inline-form-3">
+                    <input id="categoryName" type="text" maxlength="40" placeholder="Nova categoria" required>
+                    <button type="submit" class="secondary-btn">Adicionar categoria</button>
+                </form>
+
+                <p id="categoryStatus" class="goal-label">As categorias criadas aparecem depois no formulário das despesas.</p>
+                <div id="categoryList" class="item-list empty-state item-list-container">
+                    Ainda não existem categorias registadas.
+                </div>
+            </section>
+
+            <!-- BACKUP LOCAL (SOBERANIA) -->
+            <section class="panel config-panel">
+                <div class="panel-heading">
+                    <h2>Soberania de Dados (Backup Local)</h2>
+                    <p>Exporta ou importa os teus dados manualmente num ficheiro JSON.</p>
+                </div>
+
+                <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 15px;">
+                    <button id="exportBackupBtn" class="secondary-btn" style="flex: 1; min-width: 150px;">
+                        Exportar JSON
+                    </button>
+                    <button id="importBackupBtn" class="secondary-btn" style="flex: 1; min-width: 150px;">
+                        Importar JSON
+                    </button>
+                    <input type="file" id="importFile" style="display: none;" accept=".json">
+                </div>
+                <p class="goal-label">Utiliza esta opção se preferires não usar a nuvem.</p>
+            </section>
+
+        </main>
+    </div>
+
+    <template id="item-template">
+        <article class="item-card">
+            <div>
+                <strong class="item-title"></strong>
+                <p class="item-subtitle"></p>
             </div>
-        </div>
-        
-        <p id="backupStatus" class="goal-label">A nuvem sincroniza automaticamente após cada alteração guardada.</p>
-      </section>
+            <div class="item-actions">
+                <span class="item-value"></span>
+                <button type="button" class="ghost-btn">Remover</button>
+            </div>
+        </article>
+    </template>
 
-      <!-- ── CONFIGURAÇÁO DE APIS ────────────────────────────────────── -->
-      <section class="panel config-panel">
-        <div class="panel-heading">
-          <h2>Conectividade e Dados Reais</h2>
-          <p>Configura as tuas chaves de API para obteres cotações de mercado em tempo real.</p>
-        </div>
-
-        <form id="api-settings-form" class="stack">
-          <label>
-            Finnhub API Key (Ações/ETFs)
-            <input id="finnhubApiKey" name="finnhubApiKey" type="password" placeholder="Cola aqui a tua chave da Finnhub">
-            <small style="opacity: 0.6; font-size: 0.75rem;">Obtém uma chave gratuita em <a href="https://finnhub.io/" target="_blank" style="color: var(--primary);">finnhub.io</a></small>
-          </label>
-
-          <div style="padding: 12px; background: rgba(16, 185, 129, 0.05); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">
-            <p style="margin: 0; font-size: 0.8rem; color: var(--success);"><strong>✓ CoinGecko (Cripto)</strong> ativo via rede pública (sem necessidade de chave).</p>
-          </div>
-
-          <button type="submit" class="primary-btn">Guardar chaves</button>
-        </form>
-        <p id="apiStatus" class="goal-label">As chaves são guardadas apenas no teu navegador.</p>
-      </section>
-
-      <!-- ── CATEGORIAS ─────────────────────────────────────────────── -->
-      <section class="panel config-panel">
-        <div class="panel-heading">
-          <h2>Categorias de despesa</h2>
-          <p>Adiciona e gere as categorias usadas nas despesas.</p>
-        </div>
-
-        <form id="category-form" class="inline-form inline-form-3">
-          <input id="categoryName" type="text" maxlength="40" placeholder="Nova categoria" required>
-          <button type="submit" class="secondary-btn">Adicionar categoria</button>
-        </form>
-
-        <p id="categoryStatus" class="goal-label">As categorias criadas aparecem depois no formulário das despesas.</p>
-        <div id="categoryList" class="item-list empty-state item-list-container">
-          Ainda não existem categorias registadas.
-        </div>
-      </section>
-
-      <!-- ── BACKUP LOCAL (SOBERANIA) ────────────────────────────────── -->
-      <section class="panel config-panel">
-        <div class="panel-heading">
-          <h2>Soberania de Dados (Backup Local)</h2>
-          <p>Exporta ou importa os teus dados manualmente num ficheiro JSON.</p>
-        </div>
-
-        <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-top: 15px;">
-          <button id="exportBackupBtn" class="secondary-btn" style="flex: 1; min-width: 150px;">
-            Exportar JSON
-          </button>
-          <button id="importBackupBtn" class="secondary-btn" style="flex: 1; min-width: 150px;">
-            Importar JSON
-          </button>
-          <input type="file" id="importFile" style="display: none;" accept=".json">
-        </div>
-        <p class="goal-label">Utiliza esta opção se preferires não usar a nuvem do Google Drive.</p>
-      </section>
-
-    </main>
-  </div>
-
-  <template id="item-template">
-    <article class="item-card">
-      <div>
-        <strong class="item-title"></strong>
-        <p class="item-subtitle"></p>
-      </div>
-      <div class="item-actions">
-        <span class="item-value"></span>
-        <button type="button" class="ghost-btn">Remover</button>
-      </div>
-    </article>
-  </template>
-
-  
     <script src="core-engine.js?v=4.3.0"></script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('service-worker.js');
-      });
-    }
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('service-worker.js');
+            });
+        }
+    </script>
+    <script src="firebase-config.js"></script>
+    <script type="module" src="firebase-sync.js"></script>
+    <script>
+    (function() {
+        const apiForm = document.getElementById('api-settings-form');
+        if (!apiForm) return;
 
-    // Botão de Sincronização na Nav
-    
-  </script>
-<script src="google-drive-sync.js"></script>
+        try {
+            const raw = localStorage.getItem('finance-control-app');
+            if (raw) {
+                const parsed = JSON.parse(raw);
+                if (parsed.finnhubApiKey) {
+                    const input = document.getElementById('finnhubApiKey');
+                    if (input) input.value = parsed.finnhubApiKey;
+                }
+            }
+        } catch(e) {}
 
-<script>
-// ── Guardar Chave API (inline, sem depender de cache) ──
-(function() {
-  const apiForm = document.getElementById('api-settings-form');
-  if (!apiForm) return;
+        apiForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const input = document.getElementById('finnhubApiKey');
+            const apiKey = (input ? input.value : '').trim();
+            
+            if (!apiKey) {
+                alert('⚠️ Introduza uma chave API válida.');
+                return;
+            }
 
-  // Pré-preencher o campo se já existir chave guardada
-  try {
-    const raw = localStorage.getItem('finance-control-app');
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (parsed.finnhubApiKey) {
-        const input = document.getElementById('finnhubApiKey');
-        if (input) input.value = parsed.finnhubApiKey;
-      }
-    }
-  } catch(e) {}
+            try {
+                const STORAGE_KEY = 'finance-control-app';
+                const raw = localStorage.getItem(STORAGE_KEY);
+                const data = raw ? JSON.parse(raw) : {};
+                data.finnhubApiKey = apiKey;
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+                if (window.state) window.state.finnhubApiKey = apiKey;
 
-  apiForm.addEventListener('submit', function(e) {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const input = document.getElementById('finnhubApiKey');
-    const apiKey = (input ? input.value : '').trim();
-    
-    if (!apiKey) {
-      alert('⚠️ Introduza uma chave API válida.');
-      return;
-    }
-
-    // Guardar directamente no localStorage
-    try {
-      const STORAGE_KEY = 'finance-control-app';
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const data = raw ? JSON.parse(raw) : {};
-      data.finnhubApiKey = apiKey;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-
-      // Atualizar estado em memória se existir
-      if (window.state) window.state.finnhubApiKey = apiKey;
-
-      // Feedback visual
-      const btn = apiForm.querySelector('button[type="submit"]');
-      if (btn) {
-        btn.textContent = '✅ Chave Guardada!';
-        btn.style.background = '#10b981';
-        btn.disabled = true;
-      }
-      const status = document.getElementById('apiStatus');
-      if (status) {
-        status.textContent = '✅ Chave Finnhub persistida com sucesso. A redirecionar...';
-        status.style.color = '#10b981';
-        status.style.fontWeight = '700';
-      }
-
-      // Redirecionar para o terminal após 1s
-      setTimeout(function() {
-        window.location.href = 'pro360.html';
-      }, 1000);
-    } catch(err) {
-      alert('Erro ao guardar: ' + err.message);
-    }
-  });
-})();
-</script>
+                const btn = apiForm.querySelector('button[type="submit"]');
+                if (btn) {
+                    btn.textContent = '✅ Chave Guardada!';
+                    btn.style.background = '#10b981';
+                    btn.disabled = true;
+                }
+                const status = document.getElementById('apiStatus');
+                if (status) {
+                    status.textContent = '✅ Chave Finnhub persistida com sucesso. A redirecionar...';
+                    status.style.color = '#10b981';
+                    status.style.fontWeight = '700';
+                }
+                setTimeout(() => { window.location.href = 'pro360.html'; }, 1000);
+            } catch(err) {
+                alert('Erro ao guardar: ' + err.message);
+            }
+        });
+    })();
+    </script>
 </body>
 </html>
