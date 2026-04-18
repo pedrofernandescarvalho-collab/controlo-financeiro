@@ -1,4 +1,4 @@
-console.log("[Core] Motor Central v4.1.0 Ativo");
+console.log("[Core] Motor Central v4.3.2 Ativo");
 const STORAGE_KEY = "finance-control-app";
 
 function parseFormattedNumber(val) {
