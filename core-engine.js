@@ -2565,3 +2565,22 @@ function getDailySpendingData() {
   });
   return result;
 }
+
+// Gasto flexível (variável + transferências) entre dois dias do mês ativo
+function getFlexibleSpentInPeriod(startDay, endDay) {
+  return sumExpensesBetween(startDay - 1, endDay) + sumTransfersBetween(startDay - 1, endDay);
+}
+
+// Cálculo do estado de obrigações fixas do mês
+function calculateObligationsStatus() {
+  const totalProvision = getMonthlyProvisionForFixedExpenses();
+  const paidAmount = sumFixedExpensesUntil(31);
+  const pendingAmount = Math.max(0, totalProvision - paidAmount);
+  const progressPercent = totalProvision > 0 ? Math.min((paidAmount / totalProvision) * 100, 100) : 0;
+  return { totalProvision, paidAmount, pendingAmount, progressPercent };
+}
+
+// Total gasto de forma real (variáveis + transferências) no mês ativo
+function getRealSpentEfficiency() {
+  return sumVariableExpenses() + sumTransfers();
+}
