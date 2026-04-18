@@ -122,8 +122,8 @@ function _renderRunway() {
   }
 
   if (hint) {
-    const baselineText = runway.basedOn === \"Salário (Estilo de Vida)\" ? \"Estimativa por Salário\" : \"Gasto Real do Mês\";
-    hint.innerHTML = `Liquidez: ${fmt(runway.netWorth)} | Custo Médio: ${fmt(runway.monthlyCost)} <br><small style=\"opacity:0.7\">${baselineText}</small>`;
+    const baselineText = runway.basedOn === "Salário (Estilo de Vida)" ? "Estimativa por Salário" : "Gasto Real do Mês";
+    hint.innerHTML = `Liquidez: ${fmt(runway.netWorth)} | Custo Médio: ${fmt(runway.monthlyCost)} <br><small style="opacity:0.7">${baselineText}</small>`;
   }
 }
 
@@ -433,7 +433,7 @@ function _renderGlobalAnalyticTable() {
   });
 
   if (!months.size) {
-    tbody.innerHTML = '<tr><td colspan=\"6\" style=\"text-align:center;font-style:italic;color:var(--text-muted);\">Sem dados históricos ainda.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;font-style:italic;color:var(--text-muted);">Sem dados históricos ainda.</td></tr>';
     return;
   }
 
@@ -444,7 +444,7 @@ function _renderGlobalAnalyticTable() {
   tbody.innerHTML = sortedMonths.map(mk => {
     // Filtro de ganhos: excluir transição excedente para não inflacionar o histórico
     const incomes = state.incomes
-      .filter(i => (typeof getItemMonthKey === 'function' ? getItemMonthKey(i) : i.monthKey) === mk && !i.name.includes(\"Transição Excedente\") && !i.linkedReceivableId)
+      .filter(i => (typeof getItemMonthKey === 'function' ? getItemMonthKey(i) : i.monthKey) === mk && !i.name.includes("Transição Excedente") && !i.linkedReceivableId)
       .reduce((s, i) => s + Number(i.amount||0), 0);
     
     // Custo fixo agora usa a lógica provisionada do motor central
@@ -461,24 +461,24 @@ function _renderGlobalAnalyticTable() {
     const totalIn = salary + incomes;
     const totalOut = fixed + variable + transfers;
     const monthBalance = totalIn - totalOut;
-    const balanceClass = monthBalance >= 0 ? 'style=\"color: var(--success, #10b981); font-weight: 700;\"' : 'style=\"color: #ef4444; font-weight: 700;\"';
+    const balanceClass = monthBalance >= 0 ? 'style="color: var(--success, #10b981); font-weight: 700;"' : 'style="color: #ef4444; font-weight: 700;"';
 
     return `<tr>
       <td><strong>${mk}</strong></td>
-      <td class=\"text-right\">${fmt(incomes)}</td>
-      <td class=\"text-right\">${fmt(fixed)}</td>
-      <td class=\"text-right\">${fmt(variable)}</td>
-      <td class=\"text-right\">${fmt(transfers)}</td>
-      <td class=\"text-right\" ${balanceClass}>${monthBalance >= 0 ? '+' : ''}${fmt(monthBalance)}</td>
+      <td class="text-right">${fmt(incomes)}</td>
+      <td class="text-right">${fmt(fixed)}</td>
+      <td class="text-right">${fmt(variable)}</td>
+      <td class="text-right">${fmt(transfers)}</td>
+      <td class="text-right" ${balanceClass}>${monthBalance >= 0 ? '+' : ''}${fmt(monthBalance)}</td>
     </tr>`;
   }).join('');
 }
 
 function renderWeeklyApanhado() {
-    const dailyDisp = document.getElementById(\"dailyBudgetDisplay\");
-    const weeklyDisp = document.getElementById(\"weeklySliceBudgetDisplay\");
-    const surplusDisp = document.getElementById(\"sliceSurplusDisplay\");
-    const listDisp = document.getElementById(\"weeklySlicesList\");
+    const dailyDisp = document.getElementById("dailyBudgetDisplay");
+    const weeklyDisp = document.getElementById("weeklySliceBudgetDisplay");
+    const surplusDisp = document.getElementById("sliceSurplusDisplay");
+    const listDisp = document.getElementById("weeklySlicesList");
 
     if (!dailyDisp || !state) return;
 
@@ -506,15 +506,15 @@ function renderWeeklyApanhado() {
     surplusDisp.textContent = formatCurrency(sliceSurplus);
 
     // Detalhe matemático explícito (Pedido pelo Utilizador)
-    const mathEl = document.getElementById(\"weeklySliceMath\");
+    const mathEl = document.getElementById("weeklySliceMath");
     if (mathEl) {
         mathEl.textContent = `${formatCurrency(totalSliceBudget)} - ${formatCurrency(sliceSpent)} = ${formatCurrency(sliceSurplus)}`;
     }
 
     // Renderizar a lista de fatias
     if (listDisp) {
-        listDisp.innerHTML = \"\";
-        listDisp.className = \"item-list\";
+        listDisp.innerHTML = "";
+        listDisp.className = "item-list";
         
         slices.forEach((slice, idx) => {
             const isPast = slice.end < currentDay;
@@ -522,10 +522,10 @@ function renderWeeklyApanhado() {
             const sliceDays = slice.end - slice.start + 1;
             const sliceBudget = dailyBudget * sliceDays;
             
-            const card = document.createElement(\"div\");
-            card.className = \"item-card\";
-            if (isCurrent) card.style.borderColor = \"var(--primary)\";
-            if (isPast) card.style.opacity = \"0.7\";
+            const card = document.createElement("div");
+            card.className = "item-card";
+            if (isCurrent) card.style.borderColor = "var(--primary)";
+            if (isPast) card.style.opacity = "0.7";
 
             // Cálculo do gasto e excedente específico desta fatia
             const sBudget = dailyBudget * sliceDays;
@@ -537,12 +537,12 @@ function renderWeeklyApanhado() {
 
             card.innerHTML = `
                 <div>
-                    <strong class=\"item-title\">Fatia ${idx + 1}: Dia ${slice.start} ao ${slice.end}</strong>
-                    <p class=\"item-subtitle\" style=\"margin-bottom: 2px;\">${isCurrent ? '⚡ Fatia em curso' : (isPast ? '✅ Concluída' : '⏳ Agendada')}</p>
-                    <p style=\"font-size: 0.65rem; color: var(--text-muted); font-family: monospace;\">${sMath}</p>
+                    <strong class="item-title">Fatia ${idx + 1}: Dia ${slice.start} ao ${slice.end}</strong>
+                    <p class="item-subtitle" style="margin-bottom: 2px;">${isCurrent ? '⚡ Fatia em curso' : (isPast ? '✅ Concluída' : '⏳ Agendada')}</p>
+                    <p style="font-size: 0.65rem; color: var(--text-muted); font-family: monospace;">${sMath}</p>
                 </div>
-                <div class=\"item-actions\">
-                    <span class=\"item-value\" style=\"${surplusClass} font-weight: 700;\">${formatCurrency(sSurplus)}</span>
+                <div class="item-actions">
+                    <span class="item-value" style="${surplusClass} font-weight: 700;">${formatCurrency(sSurplus)}</span>
                 </div>
             `;
             listDisp.appendChild(card);
@@ -611,8 +611,8 @@ function drawDailyPerformanceChart() {
 }
 
 function renderObligationsReserves() {
-    const pendingDisp = document.getElementById(\"obligationsPendingDisplay\");
-    const detailEl = document.getElementById(\"obligationsDetail\");
+    const pendingDisp = document.getElementById("obligationsPendingDisplay");
+    const detailEl = document.getElementById("obligationsDetail");
     if (!pendingDisp || typeof calculateObligationsStatus !== 'function') return;
 
     const stats = calculateObligationsStatus();
@@ -624,8 +624,8 @@ function renderObligationsReserves() {
         detailEl.innerHTML = `
             Fixo Pago: ${formatCurrency(stats.paidAmount)} <br>
             Total Mês: ${formatCurrency(stats.totalProvision)}
-            <div style=\"height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: 8px;\">
-                <div style=\"height: 100%; width: ${stats.progressPercent}%; background: var(--success); border-radius: 2px;\"></div>
+            <div style="height: 4px; background: rgba(255,255,255,0.1); border-radius: 2px; margin-top: 8px;">
+                <div style="height: 100%; width: ${stats.progressPercent}%; background: var(--success); border-radius: 2px;"></div>
             </div>
         `;
     }
