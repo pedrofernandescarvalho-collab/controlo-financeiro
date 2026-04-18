@@ -2460,7 +2460,12 @@ function renderGlobalExtract() {
   });
 }
 
-// getGlobalAccountsTotal removido (duplicado e obsoleto nesta posiÇÃo)
+window.getGlobalAccountsTotal = function() {
+  return state.accounts.reduce((sum, acc) => sum + (Number(acc.balance) || 0), 0);
+};
+function getGlobalAccountsTotal() {
+  return window.getGlobalAccountsTotal();
+}
 
 
 
