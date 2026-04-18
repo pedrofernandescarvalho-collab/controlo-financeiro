@@ -1,4 +1,4 @@
--/**
+/**
  * Firebase Sync Engine - Controlo Financeiro
  * Arquitetura resiliente baseada em Firestore
  */
