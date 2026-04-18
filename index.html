@@ -3,14 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registo Financeiro — Controlo Financeiro</title>
-    <meta name="description" content="Registo diário de despesas, gestão de ativos e reconciliação bancária global.">
+    <title>Registos Financeiros — Controlo Financeiro</title>
+    <meta name="description" content="Registo diário de despesas, ganhos e fotografias globais de saldo.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#0d9488">
+    <style>
+        /* Cockpit Design System - Refined for clarity and flow */
+        .cockpit-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+            gap: 28px;
+            align-items: start;
+            width: 100%;
+        }
+
+        @media (min-width: 1300px) {
+            .cockpit-grid {
+                grid-template-columns: 340px 1fr 340px;
+            }
+        }
+
+        .compact-form-section {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .panel-heading.compact {
+            margin-bottom: 16px;
+        }
+
+        .panel-heading.compact h2 {
+            font-size: 1.2rem;
+            margin-bottom: 2px;
+            letter-spacing: -0.02em;
+            color: var(--text-main);
+        }
+
+        .item-list-container {
+            max-height: 480px;
+            overflow-y: auto;
+            border-radius: var(--radius-sm);
+            padding-right: 8px;
+            margin-top: 12px;
+        }
+
+        .section-title-sm {
+            display: block;
+            width: 100%;
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--text-muted);
+            margin: 32px 0 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-subtle);
+            font-weight: 700;
+        }
+
+        /* Prevent form compression */
+        form label { margin-bottom: 4px; }
+        .primary-btn { margin-top: 8px; }
+    </style>
 </head>
 <body>
     <div class="app-shell">
@@ -29,77 +85,68 @@
 
         <header class="hero compact-hero">
             <div>
-                <p class="eyebrow">Registo e Operação</p>
-                <h1>Painel de Lançamentos</h1>
-                <p class="hero-copy">Insere as tuas despesas diárias, faz a reconciliação bancária e gere os teus valores por receber.</p>
+                <p class="eyebrow">Operações Diárias</p>
+                <h1>Cockpit de Registos</h1>
+                <p class="hero-copy">Gere o teu dia financeiro com precisão milimétrica.</p>
             </div>
             <div class="hero-card accent strong-card">
-                <p>Património Global</p>
-                <strong id="globalNetWorthDisplay">0,00 €</strong>
+                <p>Património Líquido Global</p>
+                <strong id="globalNetWorthDisplay">0,00 EUR</strong>
+                <div id="netWorthDetail" class="mt-10" style="opacity: 0.8; font-size: 0.85rem; color: #94a3b8;">
+                   <!-- Detalhes preenchidos pelo script.js -->
+                </div>
             </div>
         </header>
 
-        <div class="tabs-nav">
-            <button class="tab-btn active" data-tab="tab-snapshots" onclick="switchTab('tab-snapshots')">Controle Bancário</button>
-            <button class="tab-btn" data-tab="tab-daily" onclick="switchTab('tab-daily')">Registos Diários</button>
-            <button class="tab-btn" data-tab="tab-receivables" onclick="switchTab('tab-receivables')">Dívidas (Split)</button>
-        </div>
-
         <main>
-            <!-- TAB 1: CONTROLE BANCÁRIO (SNAPSHOTS) -->
+            <nav class="tab-nav">
+                <button class="tab-btn active" data-tab="tab-snapshots" onclick="switchTab('tab-snapshots')">📸 Snapshots</button>
+                <button class="tab-btn" data-tab="tab-movimentos" onclick="switchTab('tab-movimentos')">💸 Movimentos Diários</button>
+                <button class="tab-btn" data-tab="tab-receivables" onclick="switchTab('tab-receivables')">🤝 Dívidas</button>
+            </nav>
+
+            <!-- TAB 1: SNAPSHOT -->
             <div id="tab-snapshots" class="tab-content active">
                 <div class="inner-dashboard-grid">
                     <section class="panel">
                         <div class="panel-heading">
-                            <h2>Snapshot Financeiro Global</h2>
-                            <p>Atualiza os valores das tuas contas e o dinheiro físico para auditoria.</p>
+                            <h2>Snapshot Global</h2>
+                            <p>Regista os teus saldos reais de hoje.</p>
                         </div>
                         <form id="snapshot-form" class="stack">
-                            <label>Data do Snapshot
+                            <label>Data do Registo
                                 <input id="snapshotDate" type="date" required>
                             </label>
                             
-                            <div id="snapshotAccountsInputs" class="stack" style="gap: 12px; margin: 10px 0;">
+                            <div id="snapshotAccountsInputs" class="stack" style="gap: 12px; margin: 15px 0;">
                                 <!-- Gerado dinamicamente -->
                             </div>
 
-                            <button type="submit" class="primary-btn">Gravar Snapshot Global</button>
+                            <button type="submit" class="primary-btn">Arquivar Snapshot</button>
                             <p id="snapshotStatus" class="status-msg"></p>
                         </form>
                     </section>
+
                     <section class="panel">
                         <div class="panel-heading">
-                            <h2>Conciliação de Fluxo</h2>
-                            <p>Verificação se os gastos registados batem certo com o saldo bancário real.</p>
+                            <h2>Histórico do Mês</h2>
+                            <p>Visualiza snapshots anteriores.</p>
                         </div>
-                        <div class="summary-grid mb-20">
-                            <article class="summary-card"><span>Diferença Real (Saldo)</span><strong id="bankDifference">0,00 €</strong></article>
-                            <article class="summary-card accent"><span>Total Registado</span><strong id="bankReconciledTotal">0,00 €</strong></article>
-                        </div>
-                        <div style="background: rgba(0,0,0,0.02); padding: 15px; border-radius: var(--radius-sm); border-left: 4px solid var(--primary);">
-                             <p id="bankStatus" style="font-size:0.85rem; color: var(--text-main); font-weight:600;"></p>
-                        </div>
-                        <div class="mt-20">
-                            <h3 class="section-title-sm">KPIs de Conciliação</h3>
-                            <div class="grid mt-10" style="font-size: 0.8rem; gap: 8px;">
-                                <div class="item-card"><span>Saldo Inicial</span> <strong id="bankStartBalance" style="font-size:0.9rem;">0€</strong></div>
-                                <div class="item-card"><span>Saldo Atual</span> <strong id="bankCurrentBalance" style="font-size:0.9rem;">0€</strong></div>
-                                <div class="item-card"><span>Justificação</span> <strong id="bankUnexplained" style="font-size:0.9rem;">0€</strong></div>
-                            </div>
-                        </div>
+                        <div id="snapshotList" class="item-list item-list-container"></div>
                     </section>
                 </div>
             </div>
 
-            <!-- TAB 2: REGISTOS DIÁRIOS -->
-            <div id="tab-daily" class="tab-content">
-                <div class="registos-grid">
-                    <!-- COLUNA 1: RECORRENTES (ESQUERDA) -->
-                    <div class="stack" style="gap: 28px;">
+            <!-- TAB 2: MOVIMENTOS (COCKPIT FINAL) -->
+            <div id="tab-movimentos" class="tab-content">
+                <div class="cockpit-grid">
+                    
+                    <!-- COLUNA 1: CONFIGURAÇÁO / SETUP -->
+                    <div class="compact-form-section">
                         <section class="panel">
                             <div class="panel-heading compact">
                                 <h2>Configurar Obrigações</h2>
-                                <p>Add despesas fixas (Luz, Renda, etc).</p>
+                                <p>Define as regras de faturas fixas.</p>
                             </div>
                             <form id="recurring-form" class="stack" style="gap: 12px;">
                                 <label>Descrição
@@ -268,8 +315,13 @@
     </template>
 
     <script src="core-engine.js?v=4.3.0"></script>
+    <script src="firebase-config.js"></script>
+    <script type="module" src="firebase-sync.js"></script>
     
     <script>
+        // Botão de Sincronização na Nav
+        
+
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(c => {
                 c.classList.remove('active');
@@ -292,7 +344,6 @@
             switchTab(active);
         });
     </script>
-<script src="firebase-config.js"></script>
-<script type="module" src="firebase-sync.js"></script>
+<script src="google-drive-sync.js"></script>
 </body>
 </html>
