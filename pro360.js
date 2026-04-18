@@ -573,11 +573,13 @@ function calculateGrowthScore(metrics, type, sentiment) {
     let score = 50;
     
     if (type === 'ETF') {
-        // Função de score simplificada para ETFs (baseada em performance e yield)
-        score = 75; // Base sólida — ETFs diversificados têm risco estruturalmente menor
-        if (metrics.vsHigh !== null && metrics.vsHigh < -10) score += 8; // bom ponto de entrada
+        // Score dinâmico para ETFs — começa em 65 (não 75) para permitir sinalizações de risco
+        score = 65;
+        if (metrics.vsHigh !== null && metrics.vsHigh < -10) score += 10; // bom ponto de entrada
+        else if (metrics.vsHigh !== null && metrics.vsHigh > -3) score -= 5; // próximo dos máximos = prudência
         if (metrics.yield && metrics.yield > 1) score += 5;
         if (metrics.changePercent < -3) score += 5; // correcção recente = oportunidade
+        if (metrics.changePercent < -10) score -= 10; // queda forte = risco
     } else if (type === 'Crypto') {
         score = 55;
         if (metrics.vsHigh !== null && metrics.vsHigh < -40) score += 20; // muito abaixo do ATH
@@ -792,19 +794,25 @@ function renderAssets() {
     const allocationData = { dividends: 0, growth: 0, crypto: 0, reit: 0 };
 
     investments.forEach((asset, index) => {
-        const currentPrice = window.state.priceCache && window.state.priceCache[asset.ticker.toUpperCase()] 
-            ? window.state.priceCache[asset.ticker.toUpperCase()] 
+        const hasCachedPrice = window.state.priceCache && window.state.priceCache[asset.ticker.toUpperCase()];
+        const currentPrice = hasCachedPrice
+            ? window.state.priceCache[asset.ticker.toUpperCase()]
             : asset.avgPrice;
+        // Indicador visual: preço sem cotação real
+        const stalePriceTag = !hasCachedPrice
+            ? `<span style="background:#f59e0b; color:white; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px; font-weight:800;" title="Preço de compra — sem cotação de mercado">🕐 SEM COTAÇÃO</span>`
+            : '';
         
         const currentValue = asset.qty * currentPrice;
         totalInvestedValue += currentValue;
         allocationData[asset.category] = (allocationData[asset.category] || 0) + currentValue;
 
-        const profitPct = (((currentPrice - asset.avgPrice) / asset.avgPrice) * 100);
-        const profitClass = profitPct >= 0 ? 'value-up' : 'value-down';
+        const profitPct = hasCachedPrice ? (((currentPrice - asset.avgPrice) / asset.avgPrice) * 100) : null;
+        const profitClass = (profitPct === null || profitPct >= 0) ? 'value-up' : 'value-down';
+        const profitStr = profitPct !== null ? `${profitPct.toFixed(2)}% ${profitPct >= 0 ? '▲' : '▼'}` : '— sem cotação';
         
         // Alerta de Queda de Risco
-        const alertBadge = profitPct < -10 ? `<span style="background:var(--trading-red); color:white; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px; font-weight:800;">ALERTA DE QUEDA</span>` : '';
+        const alertBadge = (profitPct !== null && profitPct < -10) ? `<span style="background:var(--trading-red); color:white; padding:2px 6px; border-radius:4px; font-size:10px; margin-left:8px; font-weight:800;">ALERTA DE QUEDA</span>` : '';
 
         const item = document.createElement('article');
         item.className = 'asset-item';
@@ -812,7 +820,7 @@ function renderAssets() {
         item.innerHTML = `
             <div style="min-width: 0; flex: 1;">
                 <span class="ticker-badge">${asset.ticker}</span>
-                <strong style="margin-left: 10px;">${asset.name}</strong> ${alertBadge}
+                <strong style="margin-left: 10px;">${asset.name}</strong> ${alertBadge} ${stalePriceTag}
                 <div style="margin-top: 5px; font-size: 0.8rem;">
                   <span class="type-pill">${asset.category}</span>
                   <small style="color: var(--text-muted); margin-left: 8px;">${asset.qty} unids @ ${window.formatCurrency(asset.avgPrice)}</small>
@@ -820,7 +828,7 @@ function renderAssets() {
             </div>
             <div style="text-align: right;">
                 <div style="font-weight: 700;">${window.formatCurrency(currentValue)}</div>
-                <small class="${profitClass}">${profitPct.toFixed(2)}% ${profitPct >= 0 ? '▲' : '▼'}</small>
+                <small class="${profitClass}">${profitStr}</small>
                 <button class="ghost-btn" style="padding: 4px; font-size: 0.7rem; display: block; margin-left: auto; margin-top: 4px; color: var(--error);" onclick="window.removeAsset(${index})">Remover</button>
             </div>
         `;

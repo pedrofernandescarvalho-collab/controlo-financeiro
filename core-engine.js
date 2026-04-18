@@ -38,7 +38,11 @@ const defaultState = {
   incomes: [],
   receivables: [],
   snapshots: [],
-  recurringFixed: []
+  recurringFixed: [],
+  investments: [],
+  priceCache: {},
+  finnhubApiKey: "",
+  investmentTargets: { dividends: 40, growth: 40, crypto: 10, reit: 10 }
 };
 
 
@@ -78,7 +82,11 @@ function loadState() {
       incomes: Array.isArray(parsed.incomes) ? parsed.incomes : [],
       receivables: Array.isArray(parsed.receivables) ? parsed.receivables : [],
       snapshots: Array.isArray(parsed.snapshots) ? parsed.snapshots : [],
-      recurringFixed: Array.isArray(parsed.recurringFixed) ? parsed.recurringFixed : []
+      recurringFixed: Array.isArray(parsed.recurringFixed) ? parsed.recurringFixed : [],
+      investments: Array.isArray(parsed.investments) ? parsed.investments : [],
+      priceCache: (parsed.priceCache && typeof parsed.priceCache === 'object') ? parsed.priceCache : {},
+      finnhubApiKey: parsed.finnhubApiKey || "",
+      investmentTargets: parsed.investmentTargets || { dividends: 40, growth: 40, crypto: 10, reit: 10 }
     };
   } catch (e) {
     console.error("Erro ao carregar dados:", e);
@@ -155,9 +163,14 @@ function sumExpensesUntil(day) {
 }
 
 
-function sumFixedMonthlyExpenses() {
-  const { year, month } = getActiveMonthParts();
-  
+function sumFixedMonthlyExpenses(overrideMonthKey) {
+  // Aceita monthKey explícito (ex: "2026-02") para cálculos históricos
+  let month;
+  if (overrideMonthKey && typeof overrideMonthKey === 'string' && overrideMonthKey.includes('-')) {
+    month = Number(overrideMonthKey.split('-')[1]);
+  } else {
+    month = getActiveMonthParts().month;
+  }
   return state.recurringFixed
     .filter(rf => {
       if (!rf.frequency || rf.frequency === 'monthly') return true;
