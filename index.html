@@ -106,6 +106,7 @@
                 <button class="tab-btn active" data-tab="tab-snapshots" onclick="switchTab('tab-snapshots')">Snapshots</button>
                 <button class="tab-btn" data-tab="tab-movimentos" onclick="switchTab('tab-movimentos')">Movimentos Diários</button>
                 <button class="tab-btn" data-tab="tab-receivables" onclick="switchTab('tab-receivables')">Dívidas e Empréstimos</button>
+                <button class="tab-btn" data-tab="tab-fixed" onclick="switchTab('tab-fixed')">Obrigações Fixas</button>
             </nav>
 
             <!-- TAB 1: SNAPSHOT -->
@@ -228,9 +229,17 @@
                     </div>
                 </div>
 
-                <div style="margin-top: 40px; padding-top: 40px; border-top: 1px dashed var(--border-subtle);">
-                    <section class="panel" style="max-width: 800px; margin: 0 auto;">
-                        <div class="panel-heading compact">
+                        <h3 class="section-title-sm" style="margin-top: 30px;">Catálogo de Obrigações Ativas</h3>
+                        <div id="recurringList" class="item-list-container" style="max-height: 400px; border: 1px solid var(--border-subtle); padding: 10px;"></div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- TAB 4: OBRIGAÇÕES FIXAS -->
+            <div id="tab-fixed" class="tab-content">
+                <div class="inner-dashboard-grid">
+                    <section class="panel">
+                        <div class="panel-heading">
                             <h2>⚙️ Gestão de Obrigações Fixas</h2>
                             <p>Configura aqui rendas, seguros, Netflix (faturas que caem sozinhas). O sistema fará a provisão mensal automaticamente.</p>
                         </div>
@@ -262,11 +271,12 @@
                             </select>
                             <button type="submit" class="secondary-btn" style="width: auto; align-self: flex-start; margin-top: 10px;">Gravar Regra</button>
                         </form>
-                        
-                        <h3 class="section-title-sm" style="margin-top: 30px;">Catálogo de Obrigações Ativas</h3>
-                        <div id="recurringList" class="item-list-container" style="max-height: 400px; border: 1px solid var(--border-subtle); padding: 10px;"></div>
                     </section>
-                </div>
+                    
+                    <section class="panel">
+                        <div class="panel-heading"><h2>Catálogo de Obrigações Ativas</h2></div>
+                        <div id="recurringList" class="item-list item-list-container" style="max-height: 480px;"></div>
+                    </section>
             </div>
 
             <!-- TAB 3: DÍVIDAS -->
