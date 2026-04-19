@@ -4,96 +4,121 @@
 <meta charset="UTF-8">
 <title>Diagnóstico · Controlo Financeiro</title>
 <style>
-  body { font-family: monospace; background: #0f172a; color: #e2e8f0; padding: 2rem; }
+  body { font-family: monospace; background: #0f172a; color: #e2e8f0; padding: 2rem; font-size: 14px; }
   h1 { color: #7c3aed; }
-  h2 { color: #38bdf8; border-bottom: 1px solid #334155; padding-bottom: .5rem; }
+  h2 { color: #38bdf8; border-bottom: 1px solid #334155; padding-bottom: .5rem; margin-top: 2rem; }
   .block { background: #1e293b; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
   .ok { color: #10b981; }
-  .warn { color: #f59e0b; }
-  .err { color: #ef4444; }
-  table { border-collapse: collapse; width: 100%; }
+  .warn { color: #f59e0b; font-weight: bold; }
+  .err { color: #ef4444; font-weight: bold; }
+  table { border-collapse: collapse; width: 100%; margin-top: .5rem; }
   td, th { border: 1px solid #334155; padding: 6px 10px; text-align: left; }
-  th { background: #1e293b; color: #94a3b8; font-size: .75rem; text-transform: uppercase; }
+  th { background: #0f172a; color: #94a3b8; font-size: .75rem; text-transform: uppercase; }
   td:nth-child(2) { color: #fbbf24; }
+  .highlight { background: #312e81; }
+  .mismatch { background: #7f1d1d; }
 </style>
 </head>
 <body>
-<h1>🔍 Diagnóstico do Estado</h1>
-<div id="output">A ler dados...</div>
+<h1>🔍 Diagnóstico Completo</h1>
+<p style="color:#94a3b8">Lê localStorage E carrega o motor real para comparar os dois.</p>
+
+<!-- Parte 1: leitura direta do localStorage -->
+<div id="raw-output">A ler localStorage...</div>
+
+<!-- Parte 2: vai carregar core-engine.js e correr o calculateBudget() real -->
+<div id="engine-output"></div>
 
 <script>
+// ─── PARTE 1: Leitura directa do localStorage ───────────────────────────────
 const raw = localStorage.getItem('finance-control-app');
-const out = document.getElementById('output');
+const rawOut = document.getElementById('raw-output');
 
 if (!raw) {
-  out.innerHTML = '<p class="err">❌ Nenhum dado em localStorage. A app não foi carregada neste browser.</p>';
+  rawOut.innerHTML = '<p class="err">❌ Nenhum dado em localStorage. Abre a app principal primeiro.</p>';
 } else {
-  try {
-    const s = JSON.parse(raw);
+  const s = JSON.parse(raw);
 
-    // Calcular totais
-    const aprInc = (s.incomes || []).filter(i => (i.monthKey || '') === '2026-04');
-    const aprExp = (s.expenses || []).filter(e => (e.monthKey || '') === '2026-04');
-    const aprFixed = (s.recurringFixed || []);
-    const totalInc = aprInc.reduce((t,i) => t + (+i.amount||0), 0);
-    const totalVar = aprExp.filter(e => e.kind !== 'fixed').reduce((t,e) => t + (+e.amount||0), 0);
-    const totalFix = aprExp.filter(e => e.kind === 'fixed').reduce((t,e) => t + (+e.amount||0), 0);
-    const provMensal = aprFixed.reduce((t,rf) => {
-      const a = +rf.amount||0;
-      if (!rf.frequency || rf.frequency==='monthly') return t+a;
-      if (rf.frequency==='semi-annual') return t+(a/6);
-      if (rf.frequency==='annual') return t+(a/12);
-      return t+a;
-    }, 0);
-    const disposable = (+s.salary||0) + totalInc - provMensal;
-    const daily = disposable / 30;
+  const allIncomes  = s.incomes || [];
+  const aprInc      = allIncomes.filter(i => (i.monthKey || getKeyFromLabel(i.dateLabel)) === '2026-04');
+  const otherInc    = allIncomes.filter(i => !((i.monthKey || getKeyFromLabel(i.dateLabel)) === '2026-04'));
+  const fixedArr    = s.recurringFixed || [];
+  const snapshots   = (s.snapshots || []).filter(sn => (sn.monthKey || '') === '2026-04');
 
-    out.innerHTML = `
+  function getKeyFromLabel(lbl) {
+    if (!lbl) return '';
+    const parts = lbl.split('-');
+    if (parts.length >= 2) return parts[0] + '-' + parts[1];
+    return '';
+  }
+
+  const totalAprInc = aprInc.reduce((t,i) => t + (+i.amount||0), 0);
+  const provMensal  = fixedArr.reduce((t,rf) => {
+    const a = +rf.amount||0;
+    if (!rf.frequency || rf.frequency==='monthly') return t+a;
+    if (rf.frequency==='semi-annual') return t+(a/6);
+    if (rf.frequency==='annual') return t+(a/12);
+    return t+a;
+  }, 0);
+
+  // Calcular startBalance (primeiro snapshot de Abril)
+  const aprSnaps = snapshots.slice().sort((a,b) => a.day - b.day);
+  const day1Snaps = aprSnaps.filter(sn => sn.day === (aprSnaps[0]?.day ?? 1));
+  const startBalance = day1Snaps.reduce((t,sn) => t + (+sn.bankBalance||0) + (+sn.cashBalance||0), 0);
+  const salary = (+s.salary || 0) || startBalance;
+
+  const disposable = salary + totalAprInc - provMensal;
+  const daily      = disposable / 30;
+
+  rawOut.innerHTML = `
 <div class="block">
-  <h2>📊 Valores Chave de Orçamento (Abril 2026)</h2>
+  <h2>📊 Dados do localStorage (leitura direta)</h2>
   <table>
     <tr><th>Campo</th><th>Valor</th><th>Nota</th></tr>
-    <tr><td>state.salary</td><td>${s.salary ?? 'NULL'}</td><td>${s.salary ? '✅' : '❌ Salário não definido'}</td></tr>
-    <tr><td>Rendimentos Abril (state.incomes)</td><td>${totalInc.toFixed(2)} €</td><td>${aprInc.length} registo(s)</td></tr>
-    <tr><td>Provisionamento fixo mensal</td><td>${provMensal.toFixed(2)} €</td><td>média mensal das obrigações</td></tr>
-    <tr><td><strong>Disponível Mensal calculado</strong></td><td><strong>${disposable.toFixed(2)} €</strong></td><td>salary + incomes - provision</td></tr>
-    <tr><td><strong>Orçamento diário calculado</strong></td><td><strong>${daily.toFixed(2)} €</strong></td><td>disposable / 30</td></tr>
-    <tr><td>Despesas variáveis Abril</td><td>${totalVar.toFixed(2)} €</td><td>${aprExp.filter(e=>e.kind!=='fixed').length} registos</td></tr>
-    <tr><td>Despesas fixas pagas Abril</td><td>${totalFix.toFixed(2)} €</td><td>${aprExp.filter(e=>e.kind==='fixed').length} registos</td></tr>
+    <tr><td>state.salary</td><td>${s.salary ?? 'NULL/undefined'}</td><td>${s.salary ? '✅ definido' : '⚠️ NÃO DEFINIDO → usa startBalance'}</td></tr>
+    <tr><td>startBalance (1º snapshot Abril)</td><td>${startBalance.toFixed(2)} €</td><td>Dia ${aprSnaps[0]?.day ?? '?'}</td></tr>
+    <tr><td><strong>salary usado no cálculo</strong></td><td><strong>${salary.toFixed(2)} €</strong></td><td>${s.salary ? 'state.salary' : 'startBalance (fallback)'}</td></tr>
+    <tr><td>Rendimentos Abril (todos)</td><td>${totalAprInc.toFixed(2)} €</td><td>${aprInc.length} entradas</td></tr>
+    <tr><td>Provisionamento fixo mensal</td><td>${provMensal.toFixed(2)} €</td><td>${fixedArr.length} obrigações</td></tr>
+    <tr class="highlight"><td><strong>Disponível mensal</strong></td><td><strong>${disposable.toFixed(2)} €</strong></td><td>salary + incomes - provision</td></tr>
+    <tr class="highlight"><td><strong>Diário calculado</strong></td><td><strong>${daily.toFixed(2)} €/dia</strong></td><td>÷ 30 dias em Abril</td></tr>
   </table>
 </div>
 
 <div class="block">
-  <h2>💶 Rendimentos de Abril (state.incomes)</h2>
+  <h2>💶 TODOS os Rendimentos em Abril (filtro: monthKey OU dateLabel)</h2>
   <table>
-    <tr><th>#</th><th>Nome</th><th>Valor</th><th>Dia</th><th>monthKey</th></tr>
-    ${aprInc.length === 0 ? '<tr><td colspan="5" class="warn">⚠️ Nenhum rendimento registado em Abril.</td></tr>' : ''}
-    ${aprInc.map((i,idx) => `<tr><td>${idx+1}</td><td>${i.name||'?'}</td><td>${(+i.amount||0).toFixed(2)} €</td><td>${i.day||'?'}</td><td>${i.monthKey||'?'}</td></tr>`).join('')}
-    ${(s.incomes||[]).filter(i=>(i.monthKey||'')!=='2026-04').length > 0 ? 
-      `<tr><td colspan="5" class="warn">⚠️ Outros meses: ${(s.incomes||[]).filter(i=>(i.monthKey||'')!=='2026-04').map(i=>i.monthKey+':'+i.name+'='+i.amount+'€').join(', ')}</td></tr>` : ''}
+    <tr><th>#</th><th>Nome</th><th>Valor</th><th>Dia</th><th>monthKey</th><th>dateLabel</th></tr>
+    ${aprInc.length === 0
+        ? '<tr><td colspan="6" class="warn">⚠️ Nenhum rendimento encontrado em Abril.</td></tr>'
+        : aprInc.map((i,idx) => `
+            <tr>
+              <td>${idx+1}</td>
+              <td>${i.name||'?'}</td>
+              <td>${(+i.amount||0).toFixed(2)} €</td>
+              <td>${i.day||'?'}</td>
+              <td>${i.monthKey||'<em style="color:#ef4444">ausente</em>'}</td>
+              <td>${i.dateLabel||'?'}</td>
+            </tr>
+          `).join('')}
   </table>
+  ${otherInc.length > 0
+      ? `<p class="warn">⚠️ Outros rendimentos (outros meses): ${otherInc.map(i=>`${i.monthKey||getKeyFromLabel(i.dateLabel)||'?'}: ${i.name}=${i.amount}€`).join(', ')}</p>`
+      : '<p class="ok">✅ Não há rendimentos de outros meses.</p>'}
 </div>
 
 <div class="block">
-  <h2>📋 Obrigações Fixas (state.recurringFixed)</h2>
+  <h2>📋 Obrigações Fixas</h2>
   <table>
-    <tr><th>#</th><th>Nome</th><th>Valor</th><th>Frequência</th><th>Contribuição Mensal</th></tr>
-    ${aprFixed.map((rf,idx) => {
-      const a = +rf.amount||0;
-      let contrib = a;
-      if (rf.frequency==='semi-annual') contrib = a/6;
-      if (rf.frequency==='annual') contrib = a/12;
-      return `<tr><td>${idx+1}</td><td>${rf.name||'?'}</td><td>${a.toFixed(2)} €</td><td>${rf.frequency||'monthly'}</td><td>${contrib.toFixed(2)} €/mês</td></tr>`;
+    <tr><th>Nome</th><th>Valor</th><th>Frequência</th><th>Contribuição/Mês</th></tr>
+    ${fixedArr.map(rf => {
+        const a = +rf.amount||0;
+        let c = a;
+        if (rf.frequency==='semi-annual') c = a/6;
+        if (rf.frequency==='annual') c = a/12;
+        return `<tr><td>${rf.name||'?'}</td><td>${a.toFixed(2)}€</td><td>${rf.frequency||'monthly'}</td><td>${c.toFixed(2)}€/mês</td></tr>`;
     }).join('')}
-    <tr><td colspan="4"><strong>TOTAL PROVISIONAMENTO</strong></td><td><strong>${provMensal.toFixed(2)} €/mês</strong></td></tr>
-  </table>
-</div>
-
-<div class="block">
-  <h2>📸 Snapshots (state.snapshots filtrados Abril)</h2>
-  <table>
-    <tr><th>Dia</th><th>Conta</th><th>Banco</th><th>Cash</th><th>monthKey</th></tr>
-    ${(s.snapshots||[]).filter(sn=>(sn.monthKey||'')==='2026-04').slice(0,20).map(sn=>`<tr><td>${sn.day}</td><td>${sn.accountName||sn.accountId||'legacy'}</td><td>${(+sn.bankBalance||0).toFixed(2)} €</td><td>${(+sn.cashBalance||0).toFixed(2)} €</td><td>${sn.monthKey}</td></tr>`).join('')}
+    <tr><td colspan="3"><strong>TOTAL</strong></td><td><strong>${provMensal.toFixed(2)} €/mês</strong></td></tr>
   </table>
 </div>
 
@@ -101,14 +126,71 @@ if (!raw) {
   <h2>🔄 Firebase Sync</h2>
   <table>
     <tr><th>Campo</th><th>Valor</th></tr>
-    <tr><td>last_firebase_sync</td><td>${localStorage.getItem('last_firebase_sync') || 'não definido'}</td></tr>
-    <tr><td>last_firebase_sync (data)</td><td>${localStorage.getItem('last_firebase_sync') ? new Date(+localStorage.getItem('last_firebase_sync')).toISOString() : 'N/A'}</td></tr>
+    <tr><td>last_firebase_sync</td><td>${localStorage.getItem('last_firebase_sync') || '❌ não definido'}</td></tr>
+    <tr><td>last_firebase_sync (data)</td><td>${localStorage.getItem('last_firebase_sync') ? new Date(+localStorage.getItem('last_firebase_sync')).toLocaleString('pt-PT') : 'N/A'}</td></tr>
   </table>
 </div>
-    `;
-  } catch(e) {
-    out.innerHTML = `<p class="err">❌ Erro ao ler estado: ${e.message}</p>`;
-  }
+  `;
+}
+</script>
+
+<!-- Parte 2: Carregar core-engine e calcular com o código real -->
+<script>
+// Vamos carregar o core-engine.js como script e depois chamar calculateBudget()
+// Mas primeiro precisamos de um estado a partir do localStorage
+window.__diagPhase2 = true;
+</script>
+<script src="core-engine.js" onerror="document.getElementById('engine-output').innerHTML='<p class=err>❌ Erro ao carregar core-engine.js</p>'"></script>
+<script>
+const engOut = document.getElementById('engine-output');
+try {
+  if (typeof calculateBudget !== 'function') throw new Error('calculateBudget não encontrado');
+
+  const budget = calculateBudget();
+  const slices = typeof getCalendarSlices === 'function' ? getCalendarSlices() : [];
+  const activeKey = typeof getActiveMonthKey === 'function' ? getActiveMonthKey() : '?';
+  const allInc    = typeof sumIncomes === 'function' ? sumIncomes(false) : '?';
+  const allIncEx  = typeof sumIncomes === 'function' ? sumIncomes(true) : '?';
+  const provision = typeof getMonthlyProvisionForFixedExpenses === 'function' ? getMonthlyProvisionForFixedExpenses() : '?';
+
+  // Verificar correspondência
+  const rawS = JSON.parse(localStorage.getItem('finance-control-app') || '{}');
+  const rawSalary = rawS.salary;
+  const salaryMatch = Math.abs((rawSalary ?? 0) - ((typeof state !== 'undefined' ? state.salary : 0))) < 0.01;
+
+  engOut.innerHTML = `
+<div class="block">
+  <h2>🔧 Motor Real (calculateBudget() chamado directamente)</h2>
+  <table>
+    <tr><th>Campo</th><th>Valor do Motor</th><th>Nota</th></tr>
+    <tr><td>Mês activo (getActiveMonthKey)</td><td>${activeKey}</td><td></td></tr>
+    <tr><td>state.salary (no motor)</td><td>${typeof state !== 'undefined' ? state.salary : '?'}</td><td>${salaryMatch ? '✅ bate com localStorage' : '⚠️ diferente do localStorage'}</td></tr>
+    <tr><td>sumIncomes(true) – excl. reembolsos</td><td>${allIncEx}</td><td></td></tr>
+    <tr><td>sumIncomes(false) – todos</td><td>${allInc}</td><td></td></tr>
+    <tr><td>getMonthlyProvisionForFixedExpenses()</td><td>${typeof provision === 'number' ? provision.toFixed(2) : provision} €</td><td></td></tr>
+    <tr class="highlight"><td><strong>disposableMonthlyBudget</strong></td><td><strong>${budget.disposableMonthlyBudget.toFixed(2)} €</strong></td><td></td></tr>
+    <tr class="highlight"><td><strong>dailyBudget (do motor)</strong></td><td><strong>${budget.dailyBudget.toFixed(2)} €/dia</strong></td><td></td></tr>
+    <tr><td>fixedExpenses (provision)</td><td>${budget.fixedExpenses.toFixed(2)} €</td><td></td></tr>
+    <tr><td>fixedExpensesReal (pago este mês)</td><td>${budget.fixedExpensesReal.toFixed(2)} €</td><td></td></tr>
+    <tr><td>variableExpenses</td><td>${budget.variableExpenses.toFixed(2)} €</td><td></td></tr>
+    <tr><td>leftover</td><td>${budget.leftover.toFixed(2)} €</td><td></td></tr>
+  </table>
+</div>
+
+<div class="block">
+  <h2>📅 Fatias do Apanhado Semanal (getCalendarSlices)</h2>
+  <table>
+    <tr><th>Fatia</th><th>Início</th><th>Fim</th><th>Dias</th><th>Orçamento</th></tr>
+    ${slices.map((sl, i) => {
+        const days = sl.end - sl.start + 1;
+        const budget_sl = budget.dailyBudget * days;
+        return `<tr><td>Fatia ${i+1}</td><td>Dia ${sl.start}</td><td>Dia ${sl.end}</td><td>${days} dias</td><td>${typeof formatCurrency === 'function' ? formatCurrency(budget_sl) : budget_sl.toFixed(2)+'€'}</td></tr>`;
+    }).join('')}
+  </table>
+</div>
+  `;
+} catch(e) {
+  engOut.innerHTML = `<div class="block"><p class="err">❌ Erro no motor: ${e.message}</p></div>`;
 }
 </script>
 </body>
