@@ -10,86 +10,108 @@
   table { border-collapse: collapse; width: 100%; }
   td, th { border: 1px solid #334155; padding: 8px 12px; }
   th { background: #0f172a; color: #94a3b8; font-size: .75rem; text-transform: uppercase; }
-  button { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
-  .btn-del { background: #dc2626; color: white; }
+  .btn-del { background: #dc2626; color: white; border: none; border-radius: 5px; padding: 6px 14px; cursor: pointer; font-size: 13px; }
   .btn-del:hover { background: #b91c1c; }
-  .btn-save { background: #10b981; color: white; margin-top: 1rem; padding: 12px 24px; font-size: 16px; display: none; }
-  .ok { color: #10b981; }
-  .warn { color: #f59e0b; font-weight: bold; }
-  #status { margin-top: 1rem; padding: 1rem; border-radius: 8px; }
+  .btn-save { background: #10b981; color: white; border: none; border-radius: 6px; margin-top: 1rem; padding: 12px 24px; font-size: 16px; cursor: pointer; }
+  .deleted { text-decoration: line-through; opacity: 0.4; }
+  #status { margin-top: 1rem; padding: 1rem; border-radius: 8px; background: #14532d; display: none; }
+  #error  { margin-top: 1rem; padding: 1rem; border-radius: 8px; background: #7f1d1d; display: none; }
 </style>
 </head>
 <body>
 <h1>🧹 Limpeza de Rendimentos</h1>
-<p>Mostra todos os rendimentos registados. Apaga os que são de teste ou incorretos e guarda.</p>
 
 <div class="block">
-  <h2 style="color:#38bdf8">Todos os Rendimentos (estado atual)</h2>
-  <table id="tbl">
-    <thead><tr><th>#</th><th>Nome</th><th>Valor</th><th>Mês</th><th>Dia</th><th>Ação</th></tr></thead>
-    <tbody id="tbody"></tbody>
-  </table>
-  <button class="btn-save" id="btnSave" onclick="guardar()">💾 Guardar alterações e sincronizar</button>
+  <div id="tbody-wrap">A carregar...</div>
+  <br>
+  <button class="btn-save" id="btnSave" style="display:none">💾 Guardar e ir para o Dashboard</button>
 </div>
 
-<div id="status"></div>
+<div id="status">✅ Guardado com sucesso! A redirecionar...</div>
+<div id="error"></div>
 
 <script>
-const raw = localStorage.getItem('finance-control-app');
-if (!raw) {
-  document.getElementById('tbl').innerHTML = '<p style="color:red">❌ Nenhum dado no localStorage.</p>';
-} else {
-  const state = JSON.parse(raw);
-  window._state = state;
+(function() {
+  var raw = localStorage.getItem('finance-control-app');
+  if (!raw) {
+    document.getElementById('tbody-wrap').innerHTML = '<p style="color:red">❌ Sem dados em localStorage. Abre a app principal primeiro.</p>';
+    return;
+  }
+
+  var state = JSON.parse(raw);
+  var incomes = state.incomes || [];
+  var toDelete = {}; // índices marcados para apagar
+
+  function render() {
+    if (incomes.length === 0) {
+      document.getElementById('tbody-wrap').innerHTML = '<p style="color:#94a3b8">Sem rendimentos registados.</p>';
+      return;
+    }
+
+    var html = '<table><thead><tr><th>#</th><th>Nome</th><th>Valor</th><th>Mês</th><th>Dia</th><th>Ação</th></tr></thead><tbody>';
+    for (var i = 0; i < incomes.length; i++) {
+      var inc = incomes[i];
+      var del = toDelete[i];
+      html += '<tr class="' + (del ? 'deleted' : '') + '">'
+        + '<td>' + (i+1) + '</td>'
+        + '<td><strong>' + (inc.name || '?') + '</strong></td>'
+        + '<td style="color:#fbbf24">' + Number(inc.amount || 0).toFixed(2) + ' €</td>'
+        + '<td>' + (inc.monthKey || '<em style="color:#ef4444">sem mês</em>') + '</td>'
+        + '<td>' + (inc.day || '?') + '</td>'
+        + '<td>' + (del
+            ? '<span style="color:#94a3b8">Marcado p/ apagar</span> <button class="btn-del" style="background:#555" data-undo="' + i + '">↩ Desfazer</button>'
+            : '<button class="btn-del" data-idx="' + i + '">🗑️ Apagar</button>')
+        + '</td></tr>';
+    }
+    html += '</tbody></table>';
+    document.getElementById('tbody-wrap').innerHTML = html;
+
+    // Event listeners nos botões de apagar
+    var delBtns = document.querySelectorAll('[data-idx]');
+    for (var j = 0; j < delBtns.length; j++) {
+      delBtns[j].addEventListener('click', function() {
+        var idx = parseInt(this.getAttribute('data-idx'));
+        toDelete[idx] = true;
+        document.getElementById('btnSave').style.display = 'inline-block';
+        render();
+      });
+    }
+
+    // Event listeners nos botões de desfazer
+    var undoBtns = document.querySelectorAll('[data-undo]');
+    for (var k = 0; k < undoBtns.length; k++) {
+      undoBtns[k].addEventListener('click', function() {
+        var idx = parseInt(this.getAttribute('data-undo'));
+        delete toDelete[idx];
+        if (Object.keys(toDelete).length === 0) {
+          document.getElementById('btnSave').style.display = 'none';
+        }
+        render();
+      });
+    }
+  }
 
   render();
 
-  function render() {
-    const tbody = document.getElementById('tbody');
-    const incomes = state.incomes || [];
-    if (incomes.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="6" style="color:#94a3b8">Nenhum rendimento registado.</td></tr>';
-      return;
+  document.getElementById('btnSave').addEventListener('click', function() {
+    // Remover os marcados (em ordem decrescente para não baralhar índices)
+    var indices = Object.keys(toDelete).map(Number).sort(function(a,b){ return b-a; });
+    for (var i = 0; i < indices.length; i++) {
+      state.incomes.splice(indices[i], 1);
     }
-    tbody.innerHTML = incomes.map((inc, idx) => `
-      <tr id="row-${idx}" style="${idx % 2 === 0 ? '' : 'background:#1a2332'}">
-        <td>${idx + 1}</td>
-        <td><strong>${inc.name || '?'}</strong></td>
-        <td style="color:#fbbf24">${Number(inc.amount || 0).toFixed(2)} €</td>
-        <td>${inc.monthKey || '<em style="color:#ef4444">sem mês</em>'}</td>
-        <td>${inc.day || '?'}</td>
-        <td><button class="btn-del" onclick="remover(${idx})">🗑️ Apagar</button></td>
-      </tr>
-    `).join('');
-  }
 
-  window.remover = function(idx) {
-    const nome = state.incomes[idx]?.name;
-    const valor = state.incomes[idx]?.amount;
-    if (!confirm(`Apagar rendimento: "${nome}" (${valor}€)?\n\nEsta ação remove-o do estado local.`)) return;
-    state.incomes.splice(idx, 1);
-    render();
-    document.getElementById('btnSave').style.display = 'inline-block';
-    document.getElementById('status').innerHTML = `<p style="color:#f59e0b">⚠️ Rendimentos atualizados localmente. Clica "Guardar" para persistir.</p>`;
-  };
-
-  window.guardar = function() {
+    // Guardar
     localStorage.setItem('finance-control-app', JSON.stringify(state));
-    document.getElementById('status').innerHTML = `
-      <div style="background:#14532d;padding:1rem;border-radius:8px">
-        <p class="ok">✅ Estado guardado com sucesso em localStorage!</p>
-        <p>Total de rendimentos: <strong>${state.incomes.length}</strong></p>
-        <p>Redirecionar em 3 segundos para o dashboard…</p>
-      </div>`;
-    // Tentar sincronizar com Firebase se a função estiver disponível
-    if (typeof window.syncToFirebase === 'function') {
-      window.syncToFirebase(state);
-    }
-    setTimeout(() => {
+
+    document.getElementById('status').style.display = 'block';
+    this.style.display = 'none';
+
+    setTimeout(function() {
       window.location.href = 'dashboard.html';
-    }, 3000);
-  };
-}
+    }, 2000);
+  });
+
+})();
 </script>
 </body>
 </html>
