@@ -47,27 +47,10 @@ const variableContainer = document.querySelector("#expensesList");
 const monthlyContainer = document.querySelector("#fixedExpensesList");
 
 function loadState() {
-  const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw) return JSON.parse(JSON.stringify(defaultState));
-  try {
-    const parsed = JSON.parse(raw);
-    return {
-      ...JSON.parse(JSON.stringify(defaultState)),
-      ...parsed,
-      categories: Array.isArray(parsed.categories) && parsed.categories.length ? parsed.categories : defaultState.categories,
-      accounts: Array.isArray(parsed.accounts) ? parsed.accounts : defaultState.accounts,
-      expenses: Array.isArray(parsed.expenses) ? parsed.expenses : [],
-      transfers: Array.isArray(parsed.transfers) ? parsed.transfers : [],
-      incomes: Array.isArray(parsed.incomes) ? parsed.incomes : [],
-      receivables: Array.isArray(parsed.receivables) ? parsed.receivables : [],
-      snapshots: Array.isArray(parsed.snapshots) ? parsed.snapshots : [],
-      recurringFixed: Array.isArray(parsed.recurringFixed) ? parsed.recurringFixed : []
-    };
-  } catch (e) {
-    console.error("Erro ao carregar dados:", e);
-    return JSON.parse(JSON.stringify(defaultState));
-  }
+...
 }
+
+const state = loadState();
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
@@ -438,7 +421,6 @@ function initDateFields() {
   ['snapshotDate', 'expenseDate', 'incomeDate', 'receivableDate', 'startDate'].forEach(id => { const el = document.getElementById(id); if(el && !el.value) el.value = d; });
 }
 
-// state = loadState(); // Remvido duplicado
 
 if (typeof document !== 'undefined') {
   [settingsForm, startForm, snapshotForm, categoryForm, accountForm, receivableForm, expenseForm, incomeForm, recurringForm].forEach(f => {
