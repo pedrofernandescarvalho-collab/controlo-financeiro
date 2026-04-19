@@ -177,20 +177,22 @@ body::before {
 .compact-hero h1 { font-size: clamp(2rem, 4vw, 3rem); }
 .compact-hero .hero-card strong { font-size: 1.25rem; }
 
-/* Layout */
-.dashboard-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
-/* Formulários Inline Flexíveis */
+/* Formulários Inline Flexíveis - Prioriza colunas largas e mais linhas */
 .inline-form { 
   display: grid; 
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) auto; 
-  gap: 12px; 
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); 
+  gap: 16px; 
   align-items: flex-end; 
-  margin-bottom: 20px; 
+  margin-bottom: 24px; 
+}
+.inline-form > button[type="submit"] {
+  grid-column: 1 / -1; /* Botão ocupa a largura toda para evitar ser esmagado */
+  margin-top: 8px;
 }
 .inline-form-4, .inline-form-5 { 
   display: grid; 
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) auto; 
-  gap: 12px; 
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); 
+  gap: 16px; 
   align-items: flex-end; 
 }
 .dashboard-col { display: flex; flex-direction: column; gap: 20px; }
@@ -348,10 +350,10 @@ button { font-family: inherit; cursor: pointer; transition: var(--transition); d
 .text-btn { background: none; border: none; font-weight: 600; color: var(--primary); cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: var(--transition); }
 .text-btn:hover { background: rgba(var(--primary-rgb), 0.1); }
 .remove-split { color: #dc3545; cursor: pointer; text-align: center; font-weight: bold; font-size: 1.2rem; }
-.inline-form-2 { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto; }
-.inline-form-3 { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) auto; }
-.inline-form-4 { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) auto; }
-.inline-form-5 { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) auto; }
+.inline-form-2 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.inline-form-3 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.inline-form-4 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.inline-form-5 { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
 .action-cell { height: 44px; }
 
 /* Lists */
