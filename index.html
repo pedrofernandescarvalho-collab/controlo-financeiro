@@ -188,7 +188,9 @@
                 <option value="semi-annual">Semestral</option>
                 <option value="annual">Anual</option>
               </select>
-              <input id="expenseDate" type="date" required>
+              <input id="expenseDate" type="date" required title="Data de início ou occurrence">
+              <!-- Nova Data de Fim para Despesas Fixas -->
+              <input id="expenseEndDate" type="month" style="display: none;" title="Data de Fim (último mês de cobrança)">
               
               <div class="form-row-break"></div>
               
@@ -215,6 +217,10 @@
                 <div id="splitList" class="split-list">
                   <!-- Linhas dinâmicas injetadas via JS -->
                 </div>
+              </div>
+
+              <div id="recurringEditActions" style="display: none; grid-column: 1 / -1; gap: 10px; margin-top: 10px;">
+                 <button type="button" id="deleteRecurringBtn" class="ghost-btn" style="color: var(--error); border-color: var(--error); width: 100%;">Eliminar Obrigação Permanente</button>
               </div>
 
               <button type="submit" class="secondary-btn">Guardar despesa</button>
