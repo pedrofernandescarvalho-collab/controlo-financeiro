@@ -1,0 +1,80 @@
+
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <title>Resgate de Dados - Controlo Financeiro</title>
+    <style>
+        body { font-family: 'Space Grotesk', sans-serif; background: #0f172a; color: white; padding: 40px; }
+        .card { background: #1e293b; padding: 30px; border-radius: 12px; border: 1px solid #334155; max-width: 800px; margin: auto; }
+        h1 { color: #ef4444; }
+        #log { background: #000; padding: 20px; border-radius: 8px; font-family: monospace; height: 300px; overflow-y: scroll; margin-top: 20px; color: #10b981; }
+        .btn { background: #ef4444; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🚨 Auditoria de Resgate de Dados</h1>
+        <p>Este utilitário vai tentar aceder diretamente ao seu Firebase para ver se os dados desta semana (12-18 de Abril) ainda existem lá.</p>
+        
+        <div id="log">A aguardar início...</div>
+        
+        <button class="btn" onclick="startRescue()">TENTAR LER CLOUD AGORA</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyCGW-F7LpKmwNjQD6DCiR5a_AU0geDZHbk",
+          authDomain: "controlo-financeiro-657c2.firebaseapp.com",
+          projectId: "controlo-financeiro-657c2",
+          storageBucket: "controlo-financeiro-657c2.firebasestorage.app",
+          messagingSenderId: "759473604114",
+          appId: "1:759473604114:web:2cde3206ae6d7574bc3acb"
+        };
+
+        const logEl = document.getElementById('log');
+        function addLog(msg, color = "#10b981") {
+            const div = document.createElement('div');
+            div.style.color = color;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logEl.appendChild(div);
+            logEl.scrollTop = logEl.scrollHeight;
+        }
+
+        window.startRescue = async function() {
+            addLog("A ligar ao Firebase...");
+            try {
+                const app = initializeApp(firebaseConfig);
+                const db = getFirestore(app);
+                const docRef = doc(db, "user_data", "main_state");
+                
+                addLog("A tentar ler documento 'main_state'...");
+                const snap = await getDoc(docRef);
+                
+                if (snap.exists()) {
+                    const data = snap.data();
+                    addLog("✅ SUCESSO! DADOS ENCONTRADOS!", "#fff");
+                    addLog(`Última atualização: ${new Date(data.updatedAt).toLocaleString()}`);
+                    addLog(`Despesas detetadas: ${data.state.expenses ? data.state.expenses.length : 0}`);
+                    
+                    if (data.state.expenses && data.state.expenses.length > 0) {
+                        const last = data.state.expenses.slice(-1)[0];
+                        addLog(`Último registo de Abril detetado: ${last.name} (${last.amount}€) - Dia ${last.day}`);
+                        addLog("DICA: Os seus dados parecem existir na Cloud! Posso recuperá-los.");
+                    }
+                } else {
+                    addLog("❌ O documento na nuvem está vazio ou não existe.", "#ef4444");
+                }
+            } catch (err) {
+                addLog(`❌ ERRO: ${err.message}`, "#ef4444");
+                if (err.message.includes("permission-denied")) {
+                    addLog("AVISO: A API do Firebase está desativada na consola. Os dados podem estar lá mas bloqueados.", "#f59e0b");
+                }
+            }
+        }
+    </script>
+</body>
+</html>

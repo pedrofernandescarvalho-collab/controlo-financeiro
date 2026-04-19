@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Importar Dados - Controlo Financeiro</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .card {
+      background: #1e293b;
+      border: 2px dashed #ef4444;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 560px;
+      width: 100%;
+      text-align: center;
+    }
+    h1 { color: #ef4444; font-size: 1.8rem; margin-bottom: 12px; }
+    p { color: #94a3b8; margin-bottom: 24px; line-height: 1.6; }
+    .upload-area {
+      background: #0f172a;
+      border: 2px dashed #334155;
+      border-radius: 12px;
+      padding: 30px;
+      margin-bottom: 20px;
+      cursor: pointer;
+    }
+    .upload-area:hover { border-color: #ef4444; }
+    input[type="file"] {
+      display: none;
+    }
+    .btn {
+      display: inline-block;
+      background: #ef4444;
+      color: white;
+      padding: 14px 28px;
+      border-radius: 8px;
+      border: none;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
+    }
+    .btn:hover { background: #dc2626; }
+    .btn-green { background: #10b981; }
+    .btn-green:hover { background: #059669; }
+    #status {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 8px;
+      display: none;
+      font-weight: 600;
+    }
+    .success { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid #10b981; }
+    .error { background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid #ef4444; }
+    .file-name { font-size: 0.85rem; color: #64748b; margin-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🚨 Importar Dados</h1>
+    <p>
+      Selecione o seu ficheiro de backup <strong>.json</strong> para restaurar todos os seus dados financeiros.
+      This vai substituir o estado atual da aplicação.
+    </p>
+
+    <div class="upload-area" onclick="document.getElementById('fileInput').click()">
+      <div style="font-size: 2.5rem; margin-bottom: 8px;">📂</div>
+      <div>Clique aqui para selecionar o ficheiro</div>
+      <div style="color: #64748b; font-size: 0.85rem;">controlo_financeiro_2026-04-11.json</div>
+    </div>
+
+    <input type="file" id="fileInput" accept=".json">
+    <div id="fileName" class="file-name"></div>
+
+    <button class="btn" onclick="importData()" id="importBtn" disabled style="opacity: 0.4;">
+      Importar e Restaurar Dados
+    </button>
+
+    <div id="status"></div>
+  </div>
+
+  <script>
+    const STORAGE_KEY = 'finance-control-app';
+    let parsedData = null;
+
+    document.getElementById('fileInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      document.getElementById('fileName').textContent = '📄 ' + file.name;
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        try {
+          parsedData = JSON.parse(event.target.result);
+
+          // Validação básica
+          if (!parsedData.expenses || !parsedData.salary) {
+            throw new Error('O ficheiro não parece ser um backup válido do Controlo Financeiro.');
+          }
+
+          const numExpenses = parsedData.expenses.length;
+          const numSnapshots = parsedData.snapshots ? parsedData.snapshots.length : 0;
+          
+          showStatus(
+            `✅ Ficheiro válido! ${numExpenses} despesas e ${numSnapshots} registos de saldo encontrados.\nPronto para importar.`,
+            'success'
+          );
+
+          const btn = document.getElementById('importBtn');
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          btn.className = 'btn btn-green';
+
+        } catch (err) {
+          parsedData = null;
+          showStatus('❌ Erro: ' + err.message, 'error');
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    function importData() {
+      if (!parsedData) {
+        showStatus('❌ Nenhum ficheiro válido selecionado.', 'error');
+        return;
+      }
+
+      if (!confirm('Confirmar importação? Isto irá SUBSTITUIR todos os dados atuais pela versão do ficheiro selecionado.')) {
+        return;
+      }
+
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(parsedData));
+        showStatus('✅ Dados importados com sucesso! A redirecionar...', 'success');
+
+        setTimeout(() => {
+          // Redirecionar para a app principal
+          window.location.href = 'index.html';
+        }, 1500);
+
+      } catch (err) {
+        showStatus('❌ Erro ao guardar: ' + err.message, 'error');
+      }
+    }
+
+    function showStatus(msg, type) {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = type;
+      el.style.display = 'block';
+    }
+  </script>
+</body>
+</html>

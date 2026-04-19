@@ -36,6 +36,12 @@
         <p class="hero-copy">
           Dashboard dinâmico com evolução patrimonial e métricas de saúde financeira. Usa o seletor de mês para ver relatórios históricos.
         </p>
+        <!-- Botão de Recuperação de Emergência -->
+        <div style="background: rgba(239, 68, 68, 0.1); border: 2px dashed #ef4444; padding: 12px; margin-bottom: 20px; border-radius: 12px; display: flex; align-items: center; gap: 12px; max-width: 600px;">
+          <strong style="color: #ef4444; font-size: 1.1rem;">🚨 RECUPERAR DADOS:</strong>
+          <input type="file" id="emergencyImport" accept=".json" style="font-size: 0.8rem; cursor: pointer;">
+        </div>
+
         <!-- Seletor de mês para relatório -->
         <div class="period-selector" id="dashboardMonthNav" role="group" aria-label="Navegação de mês">
           <button class="period-btn" id="dashPrevMonth" title="Mês anterior">⬹ Anterior</button>

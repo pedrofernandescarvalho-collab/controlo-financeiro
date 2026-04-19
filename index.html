@@ -1,356 +1,515 @@
 <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
-    <script>
-        if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(r) {
-                for(let i=0; i<r.length; i++) r[i].unregister();
-            });
-            if (caches) { caches.keys().then(k => Promise.all(k.map(c => caches.delete(c)))); }
-        }
-    </script>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registos Financeiros - Controlo Financeiro</title>
-    <meta name="description" content="Registo diário de despesas, ganhos e fotografias globais de saldo.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <style>
-        /* Cockpit Design System - Refined for clarity and flow */
-        .cockpit-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 28px;
-            align-items: start;
-            width: 100%;
-        }
-
-        @media (min-width: 1100px) {
-            .cockpit-grid {
-                grid-template-columns: 1fr 380px; /* Layout 2-colunas limpo */
-            }
-        }
-
-        .compact-form-section {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-
-        .panel-heading.compact {
-            margin-bottom: 16px;
-        }
-
-        .panel-heading.compact h2 {
-            font-size: 1.2rem;
-            margin-bottom: 2px;
-            letter-spacing: -0.02em;
-            color: var(--text-main);
-        }
-
-        .item-list-container {
-            max-height: 480px;
-            overflow-y: auto;
-            border-radius: var(--radius-sm);
-            padding-right: 8px;
-            margin-top: 12px;
-        }
-
-        .section-title-sm {
-            display: block;
-            width: 100%;
-            font-size: 0.65rem;
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            color: var(--text-muted);
-            margin: 32px 0 12px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid var(--border-subtle);
-            font-weight: 700;
-        }
-
-        /* Prevent form compression */
-        form label { margin-bottom: 4px; }
-        .primary-btn { margin-top: 8px; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Controlo Financeiro — Registos</title>
+  <meta name="description" content="Regista snapshots de saldo, despesas, ganhos extra e transferências para o teu controlo financeiro pessoal.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="app-shell">
-            <nav class="top-nav">
-        <a href="index.html" class="nav-link active">Registos</a>
-        <a href="dashboard.html" class="nav-link">Dashboards</a>
-        <a href="extrato.html" class="nav-link">Extrato</a>
-        <a href="pro360.html" class="nav-link">Investimentos</a>
-        <a href="configuracao.html" class="nav-link">Configuração</a>
+  <div class="app-shell">
+    <nav class="top-nav">
+      <a class="nav-link active" href="index.html">Registos</a>
+      <a class="nav-link" href="dashboard.html">Dashboards</a>
+      <a class="nav-link" href="extrato.html">Extrato</a>
+      <a class="nav-link" href="configuracao.html">Configuração</a>
     </nav>
 
-        <header class="hero compact-hero">
-            <div>
-                <p class="eyebrow">Operações Diárias</p>
-                <h1>Cockpit de Registos</h1>
-                <p class="hero-copy">Gere o teu dia financeiro com precisão milimétrica.</p>
+    <header class="hero">
+      <div>
+        <p class="eyebrow">Acompanhamento financeiro contínuo</p>
+        <h1>Registos e análise do período</h1>
+        <p class="hero-copy">
+          Regista os teus saldos reais para comparação, despesas variáveis e ganhos extra.
+          Seleciona o período de análise abaixo para filtrar os dados.
+        </p>
+        <!-- Botão de Recuperação de Emergência -->
+        <div style="background: rgba(239, 68, 68, 0.1); border: 2px dashed #ef4444; padding: 12px; margin-bottom: 20px; border-radius: 12px; display: flex; align-items: center; gap: 12px;">
+          <strong style="color: #ef4444; font-size: 1.2rem;">🚨 RECUPERAR DADOS:</strong>
+          <p style="margin:0; font-size: 0.85rem; color: #475569;">Se os dados não aparecem automaticamente, carregue o seu backup (.json) aqui:</p>
+          <input type="file" id="emergencyImport" accept=".json" style="font-size: 0.8rem; cursor: pointer;">
+        </div>
+
+        <!-- Seletor de período -->
+        <div class="period-selector" id="periodSelector" role="group" aria-label="Filtro de período">
+          <button class="period-btn active" data-period="month" id="periodMonth">📅 Mês Atual</button>
+          <button class="period-btn" data-period="quarter" id="periodQuarter">📊 Últimos 3 Meses</button>
+          <button class="period-btn" data-period="all" id="periodAll">🗂 Todo o Histórico</button>
+        </div>
+      </div>
+      <div class="hero-card accent strong-card">
+        <p>Património Líquido Global</p>
+        <strong id="globalNetWorthDisplay">A calcular...</strong>
+      </div>
+    </header>
+
+    <main class="dashboard-layout">
+      <!-- Coluna Esquerda: Inputs / Registos -->
+      <div class="dashboard-col">
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Novo Registo de Saldo</h2>
+            <p>Guarda os saldos reais de todas as contas numa data específica para análise e reconciliação.</p>
+          </div>
+
+          <div class="subsection-card">
+            <div class="panel-heading compact-heading">
+              <h3>Fotografia global de saldos</h3>
+              <p>Este registo será comparado com o anterior para detetar fugas de capital.</p>
             </div>
-            <div class="hero-card accent strong-card">
-                <p>Património Líquido Global</p>
-                <strong id="globalNetWorthDisplay">0,00 EUR</strong>
-                <div id="netWorthDetail" class="mt-10" style="opacity: 0.8; font-size: 0.85rem; color: #94a3b8;">
-                   <!-- Detalhes preenchidos pelo script.js -->
+
+            <form id="snapshot-form" class="inline-form inline-form-2">
+              <label class="field-block">
+                Data do registo global
+                <input id="snapshotDate" type="date" required>
+              </label>
+              
+              <div id="snapshotAccountsInputs" style="grid-column: 1 / -1; display: grid; gap: 12px; margin-top: 10px;">
+                 <!-- JS injeta contas aqui -->
+              </div>
+
+              <button type="submit" class="primary-btn action-cell" style="grid-column: 1 / -1; margin-top: 16px;">Arquivar Registo Simultâneo das Contas</button>
+            </form>
+          </div>
+
+          <p class="goal-label">Sempre que quiseres atualizar a análise, guarda aqui os teus saldos reais.</p>
+          <p id="snapshotStatus" class="goal-label">Os registos guardados aparecem abaixo e podem ser apagados.</p>
+
+          <div id="snapshotList" class="item-list empty-state">
+            Ainda não existem registos guardados.
+          </div>
+
+          <div class="summary-grid">
+            <article class="summary-card">
+              <span>Banco na entrada anterior</span>
+              <strong id="bankStartBalance">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Banco na entrada atual</span>
+              <strong id="bankCurrentBalance">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Carteira na entrada anterior</span>
+              <strong id="cashStartBalance">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Carteira na entrada atual</span>
+              <strong id="cashCurrentBalance">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Diferença total entre entradas</span>
+              <strong id="bankDifference">0,00 EUR</strong>
+            </article>
+            <article class="summary-card accent">
+              <span>Diferença por justificar</span>
+              <strong id="bankUnexplained">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Saldo atual total</span>
+              <strong id="currentTotalBalance">0,00 EUR</strong>
+            </article>
+            <article class="summary-card accent">
+              <span>Saldo atual já líquido</span>
+              <strong id="netCurrentBalance">0,00 EUR</strong>
+            </article>
+          </div>
+
+          <div class="allocation compact-allocation">
+            <div class="allocation-row">
+              <span>Despesas entre entradas</span>
+              <strong id="bankExpenseTotal">0,00 EUR</strong>
+            </div>
+            <div class="allocation-row">
+              <span>Depósitos entre entradas</span>
+              <strong id="bankTransferTotal">0,00 EUR</strong>
+            </div>
+            <div class="allocation-row">
+              <span>Total reconciliado</span>
+              <strong id="bankReconciledTotal">0,00 EUR</strong>
+            </div>
+          </div>
+
+          <div class="subsection-card">
+            <div class="panel-heading compact-heading">
+              <h3>Histórico entre registos</h3>
+              <p>Cada intervalo mostra o que aconteceu entre dois registos consecutivos.</p>
+            </div>
+            <div id="reconciliationHistoryList" class="item-list empty-state">
+              Ainda não existem intervalos suficientes para reconciliar.
+            </div>
+          </div>
+
+          <p id="bankStatus" class="goal-label">
+            Regista o saldo inicial do mês em Configuração. Depois, cada nova análise compara o último registo com o atual.
+          </p>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Entradas Avulsas (Ganhos Extra)</h2>
+            <p>Regista dinheiro recebido que não seja o teu salário base. Aumenta imediatamente o orçamento disponível.</p>
+          </div>
+
+          <form id="income-form" class="inline-form inline-form-4">
+            <input id="incomeName" type="text" maxlength="50" placeholder="Motivo / Origem" required>
+            <input id="incomeAmount" type="number" min="0" step="0.01" placeholder="Valor recebido" required>
+            <input id="incomeDate" type="date" required>
+            <button type="submit" class="secondary-btn">Guardar ganho</button>
+          </form>
+
+          <p id="incomeStatus" class="goal-label">Ganhos registados aqui aumentam a tua margem de uso no mês.</p>
+
+          <p class="period-label" id="incomePeriodLabel">A mostrar: <strong>Mês Atual</strong></p>
+          <div id="incomesList" class="item-list empty-state">
+            Ainda não existem ganhos extra registados.
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Despesas do período</h2>
+            <p>Classifica as despesas para separar os custos fixos do gasto variável.</p>
+          </div>
+
+            <form id="expense-form" class="inline-form inline-form-4">
+              <input id="expenseName" type="text" maxlength="50" placeholder="Despesa" required>
+              <input id="expenseAmount" type="number" min="0" step="0.01" placeholder="Valor" required>
+              <select id="expenseCategory" required></select>
+              <select id="expenseKind" required>
+                <option value="variable" selected>Variável</option>
+                <option value="fixed">Fixa</option>
+              </select>
+              <select id="expenseFrequency" style="display: none;">
+                <option value="monthly" selected>Mensal</option>
+                <option value="semi-annual">Semestral</option>
+                <option value="annual">Anual</option>
+              </select>
+              <input id="expenseDate" type="date" required>
+              
+              <div class="form-row-break"></div>
+              
+              <div class="split-controls">
+                <label for="expenseSplit">Dividir despesa?</label>
+                <select id="expenseSplit">
+                  <option value="no" selected>Não</option>
+                  <option value="yes">Sim</option>
+                </select>
+              </div>
+              
+              <div id="splitContainer" class="split-section" style="display: none;">
+                <div class="split-header">
+                  <span>Repartição de custos:</span>
+                  <div class="split-actions">
+                    <label class="toggle-sm">
+                      <input type="checkbox" id="splitIncludeMe" checked>
+                      <span>Incluir-me</span>
+                    </label>
+                    <button type="button" id="addSplitPerson" class="text-btn">+ Pessoa</button>
+                    <button type="button" id="distributeSplit" class="text-btn">÷ Dividir Igualmente</button>
+                  </div>
                 </div>
-            </div>
-        </header>
-
-        <main>
-            <nav class="tab-nav">
-                <button class="tab-btn active" data-tab="tab-snapshots" onclick="switchTab('tab-snapshots')">Snapshots</button>
-                <button class="tab-btn" data-tab="tab-movimentos" onclick="switchTab('tab-movimentos')">Movimentos Diários</button>
-                <button class="tab-btn" data-tab="tab-receivables" onclick="switchTab('tab-receivables')">Dívidas e Empréstimos</button>
-                <button class="tab-btn" data-tab="tab-fixed" onclick="switchTab('tab-fixed')">Obrigações Fixas</button>
-            </nav>
-
-            <!-- TAB 1: SNAPSHOT -->
-            <div id="tab-snapshots" class="tab-content active">
-                <div class="inner-dashboard-grid">
-                    <section class="panel">
-                        <div class="panel-heading">
-                            <h2>Snapshot Global</h2>
-                            <p>Regista os teus saldos reais de hoje.</p>
-                        </div>
-                        <form id="snapshot-form" class="stack">
-                            <label>Data do Registo
-                                <input id="snapshotDate" type="date" required>
-                            </label>
-                            
-                            <div id="snapshotAccountsInputs" class="stack" style="gap: 12px; margin: 15px 0;">
-                                <!-- Gerado dinamicamente -->
-                            </div>
-
-                            <button type="submit" class="primary-btn">Arquivar Snapshot</button>
-                            <p id="snapshotStatus" class="status-msg"></p>
-                        </form>
-                    </section>
-
-                    <section class="panel">
-                        <div class="panel-heading">
-                            <h2>Histórico do Mês</h2>
-                            <p>Visualiza snapshots anteriores.</p>
-                        </div>
-                        <div id="snapshotList" class="item-list item-list-container"></div>
-                    </section>
+                <div id="splitList" class="split-list">
+                  <!-- Linhas dinâmicas injetadas via JS -->
                 </div>
+              </div>
+
+              <button type="submit" class="secondary-btn">Guardar despesa</button>
+            </form>
+
+          <div class="summary-grid">
+            <article class="summary-card">
+              <span>Despesas fixas do mês</span>
+              <strong id="fixedExpenseTotal">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Despesas variáveis registadas</span>
+              <strong id="variableExpenseTotal">0,00 EUR</strong>
+            </article>
+          </div>
+
+          <p id="expenseStatus" class="goal-label">Cada despesa variável justifica os saldos extraídos do Banco.</p>
+          <p class="period-label" id="expensePeriodLabel">A mostrar: <strong>Mês Atual</strong></p>
+
+          <div class="subsection-card">
+            <div class="panel-heading compact-heading">
+              <h3>Despesas mensais fixas</h3>
+              <p>Valores recorrentes registados na Configuração.</p>
             </div>
-
-            <!-- TAB 2: MOVIMENTOS (COCKPIT FINAL) -->
-            <div id="tab-movimentos" class="tab-content">
-                <div class="cockpit-grid">
-                    <div class="compact-form-section">
-                        <section class="panel" style="border: 2px solid var(--border-subtle); background: var(--bg-card); position: relative; overflow: hidden;">
-                            <div style="position: absolute; top:0; left:0; right:0; height:4px; background: linear-gradient(90deg, var(--trading-red), var(--primary));"></div>
-                            <div class="panel-heading">
-                                <h2>Registar Despesa Variável</h2>
-                                <p>Gastos correntes (supermercado, saídas, Uber, etc).</p>
-                            </div>
-                            <form id="expense-form" class="stack" style="gap: 16px;">
-                                <label>Descrição
-                                    <input id="expenseName" type="text" placeholder="Ex: Auchan" required>
-                                </label>
-                                <div class="grid">
-                                    <label>A Pagar
-                                        <input id="expenseAmount" type="number" step="0.01" required>
-                                    </label>
-                                    <label>Data
-                                        <input id="expenseDate" type="date" required>
-                                    </label>
-                                </div>
-                                <label>Categoria
-                                    <select id="expenseCategory" required></select>
-                                </label>
-                                
-                                <label>Conta Partilhada?
-                                    <select id="expenseSplit" style="background: rgba(0,0,0,0.1); border-color: var(--border-subtle);">
-                                        <option value="no" selected>Não dividir</option>
-                                        <option value="yes">Sim, estou a pagar para outros</option>
-                                    </select>
-                                </label>
-
-                                <div id="splitContainer" class="split-section" style="display: none; background: rgba(0,0,0,0.2); padding: 20px; border-radius: var(--radius-sm); border: 1px dashed var(--primary); margin-top: 8px;">
-                                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                                        <strong>Divisão de Custos</strong>
-                                        <div>
-                                            <button type="button" id="addSplitPerson" class="text-btn">+ Adicionar Pessoa</button>
-                                            <button type="button" id="distributeSplit" class="text-btn" style="margin-left: 8px;">÷ Dividir Irmanadamente</button>
-                                        </div>
-                                    </div>
-                                    <div id="splitList" class="stack" style="gap:8px;"></div>
-                                    <label style="font-size: 11px; margin-top:15px; color: var(--primary); font-weight: 700;"><input type="checkbox" id="splitIncludeMe" checked> Manter a minha parte da conta como despesa real</label>
-                                </div>
-
-                                <button type="submit" class="primary-btn">Confirmar Registo</button>
-                                <p id="expenseStatus" class="status-msg"></p>
-                            </form>
-                        </section>
-
-                        <section class="panel" style="border-top: 3px solid var(--trading-green);">
-                            <div class="panel-heading compact">
-                                <h2>Registar Provento (Ganho)</h2>
-                            </div>
-                            <form id="income-form" class="stack" style="gap: 12px;">
-                                <input id="incomeName" type="text" placeholder="Origem da entrada" required>
-                                <div class="grid">
-                                    <input id="incomeAmount" type="number" step="0.01" placeholder="A Receber" required>
-                                    <input id="incomeDate" type="date" required>
-                                </div>
-                                <button type="submit" class="secondary-btn">Registar Provento</button>
-                            </form>
-                        </section>
-                    </div>
-
-                    <div class="stack" style="gap: 28px;">
-                        <section class="panel" style="border: 1px solid var(--border-subtle); background: var(--bg-subtle);">
-                            <div class="panel-heading compact">
-                                <h2 style="display: flex; align-items: center; gap: 8px;">✅ Vistos do Mês (Checklist)</h2>
-                                <p style="font-size: 0.8rem;">Obrigações que efetivamente caem este mês.</p>
-                            </div>
-                            <div id="fixedExpensesList" class="item-list-container"></div>
-                        </section>
-
-                        <section class="panel">
-                            <div class="panel-heading compact">
-                                <h2>Histórico Recente</h2>
-                                <p style="font-size: 0.8rem;">Últimas ações registadas.</p>
-                            </div>
-                            <h3 class="section-title-sm" style="color: var(--trading-red);">▾ Despesas Variáveis</h3>
-                            <div id="expensesList" class="item-list-container" style="max-height: 280px;"></div>
-                            
-                            <h3 class="section-title-sm" style="color: var(--trading-green); margin-top:20px;">▴ Entradas</h3>
-                            <div id="incomesList" class="item-list-container" style="max-height: 180px;"></div>
-                        </section>
-                    </div>
-                </div>
+            <div id="fixedExpensesList" class="item-list empty-state">
+              Ainda não existem despesas fixas registadas.
             </div>
+          </div>
 
-            <!-- TAB 4: OBRIGAÇÕES FIXAS -->
-            <div id="tab-fixed" class="tab-content">
-                <div class="inner-dashboard-grid">
-                    <section class="panel">
-                        <div class="panel-heading">
-                            <h2>⚙️ Gestão de Obrigações Fixas</h2>
-                            <p>Configura aqui rendas, seguros, Netflix (faturas que caem sozinhas). O sistema fará a provisão mensal automaticamente.</p>
-                        </div>
-                        <form id="recurring-form" class="stack" style="gap: 12px; background: rgba(0,0,0,0.2); padding: 20px; border-radius: var(--radius-sm);">
-                            <label>Descrição da Fatura
-                                <input id="recurringName" type="text" placeholder="Ex: Seguro do Carro" required>
-                            </label>
-                            <div class="grid">
-                                <label>Custo
-                                    <input id="recurringAmount" type="number" step="0.01" placeholder="0,00" required>
-                                </label>
-                                <label>Dia de Débito
-                                    <input id="recurringDay" type="number" min="1" max="31" placeholder="Dia" required>
-                                </label>
-                            </div>
-                            <label>Frequência (Ciclo de Pagamento)
-                                <select id="recurringFrequency">
-                                    <option value="monthly" selected>Mensal (12x por ano)</option>
-                                    <option value="quarterly">Trimestral (4x por ano)</option>
-                                    <option value="semi-annual">Semestral (2x por ano)</option>
-                                    <option value="annual">Anual (1x por ano)</option>
-                                </select>
-                            </label>
-                            <select id="recurringStartMonth" style="display:none; background:var(--bg-card);">
-                                <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
-                                <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
-                                <option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
-                                <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
-                            </select>
-                            <button type="submit" class="secondary-btn" style="width: auto; align-self: flex-start; margin-top: 10px;">Gravar Regra</button>
-                        </form>
-                    </section>
-                    
-                    <section class="panel">
-                        <div class="panel-heading"><h2>Catálogo de Obrigações Ativas</h2></div>
-                        <div id="recurringList" class="item-list item-list-container" style="max-height: 480px;"></div>
-                    </section>
+          <div class="subsection-card">
+            <div class="panel-heading compact-heading">
+              <h3>Despesas correntes e variáveis</h3>
+              <p>Lista do histórico de compras impulsivas ou não-recorrentes.</p>
             </div>
+            <div id="expensesList" class="item-list empty-state">
+              Ainda não existem despesas variáveis registadas.
             </div>
+          </div>
+        </section>
 
-            <!-- TAB 3: DÍVIDAS -->
-            <div id="tab-receivables" class="tab-content">
-                <div class="inner-dashboard-grid">
-                    <section class="panel">
-                        <div class="panel-heading"><h2>Nova Dívida a Receber</h2></div>
-                        <form id="receivable-form" class="stack">
-                            <label>Descrição
-                                <input id="receivableName" type="text" placeholder="Ex: Empréstimo Pedro" required>
-                            </label>
-                            <div class="grid">
-                                <label>Valor
-                                    <input id="receivableAmount" type="number" step="0.01" required>
-                                </label>
-                                <label>Data limite / Dia
-                                    <input id="receivableDate" type="date" required>
-                                </label>
-                            </div>
-                            <label>Estado da Dívida
-                                <select id="receivableStatus">
-                                    <option value="pending" selected>Pendente (Em Aberto)</option>
-                                    <option value="received">Liquidada (Recebida)</option>
-                                </select>
-                            </label>
-                            <button type="submit" class="primary-btn">Confirmar Alterações / Registar</button>
-                            <p id="receivableStatusText" class="status-msg"></p>
-                        </form>
-                    </section>
-                    <section class="panel">
-                        <div class="panel-heading"><h2>Controlo de Recebíveis</h2></div>
-                        <div class="summary-grid mb-20">
-                            <article class="summary-card accent"><span>Em Aberto</span><strong id="receivablePendingTotal">0,00 EUR</strong></article>
-                            <article class="summary-card success"><span>Liquidado</span><strong id="receivableReceivedTotal">0,00 EUR</strong></article>
-                        </div>
-                        <div id="receivablesList" class="item-list item-list-container"></div>
-                    </section>
-                </div>
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Depósitos para outras contas</h2>
+            <p>Regista os valores que saíram do banco para Revolut, XTB ou outra conta.</p>
+          </div>
+
+          <form id="transfer-form" class="inline-form">
+            <input id="transferName" type="text" maxlength="50" placeholder="Destino / descrição" required>
+            <select id="transferAccountId" required></select>
+            <input id="transferAmount" type="number" min="0" step="0.01" placeholder="Valor" required>
+            <input id="transferDate" type="date" required>
+            <button type="submit" class="secondary-btn">Adicionar depósito</button>
+          </form>
+
+          <p class="goal-label">Usa esta lista apenas para movimentos do banco para Revolut, XTB ou outra conta.</p>
+          <p id="transferStatus" class="goal-label">Os transferidos para poupança saem do orçamento disponível.</p>
+          <p class="period-label" id="transferPeriodLabel">A mostrar: <strong>Mês Atual</strong></p>
+
+          <div id="transfersList" class="item-list empty-state">
+            Ainda não existem depósitos registados.
+          </div>
+        </section>
+      </div>
+
+      <!-- Coluna Direita: Análise -->
+      <div class="dashboard-col">
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Resumo do mês</h2>
+            <p>Calculado automaticamente para o mês atual.</p>
+          </div>
+
+          <div class="summary-grid" id="summary-cards">
+            <article class="summary-card">
+              <span>Disponível por semana</span>
+              <strong id="weeklyBudget">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Disponível por dia</span>
+              <strong id="dailyBudget">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Excedente do mês</span>
+              <strong id="leftoverAmount">0,00 EUR</strong>
+            </article>
+            <article class="summary-card accent">
+              <span>Juros anuais Revolut a 1,9%</span>
+              <strong id="revolutInterest">0,00 EUR</strong>
+            </article>
+          </div>
+
+          <div class="allocation">
+            <div class="allocation-row">
+              <span>Revolut</span>
+              <strong id="revolutAllocation">0,00 EUR</strong>
             </div>
-        </main>
-    </div>
+            <div class="allocation-row">
+              <span>XTB</span>
+              <strong id="xtbAllocation">0,00 EUR</strong>
+            </div>
+            <p id="goalLabel" class="goal-label">Conta Revolut pronta para o teu objetivo de poupança.</p>
+          </div>
+        </section>
 
-    <template id="item-template">
-        <article class="item-card">
-            <div style="min-width:0; flex:1;"><strong class="item-title" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;"></strong><p class="item-subtitle"></p></div>
-            <div class="item-actions"><span class="item-value"></span><button type="button" class="ghost-btn" style="padding:4px 8px; font-size:0.75rem;">-</button></div>
-        </article>
-    </template>
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Fechos oficiais e domingos</h2>
+            <p>Estado da tua saúde financeira nos dias de decisão (domingo e fim de mês).</p>
+          </div>
 
-    <script src="core-engine.js"></script>
-    <script src="firebase-config.js"></script>
-    <script type="module" src="firebase-sync.js"></script>
-    
-    <script>
-        // Botão de Sincronização na Nav
-        
+          <div id="sundayHistoryList" class="item-list">
+            <!-- Gerado dinamicamente -->
+          </div>
 
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(c => {
-                c.classList.remove('active');
-            });
-            document.querySelectorAll('.tab-btn').forEach(b => {
-                b.classList.remove('active');
-            });
-            const target = document.getElementById(tabId);
-            if (target) {
-                target.classList.add('active');
-            }
-            const btn = document.querySelector(`button[data-tab="${tabId}"]`);
-            if (btn) btn.classList.add('active');
-            
-            localStorage.setItem('activeRegistosTab', tabId);
-        }
-        
-        document.addEventListener('DOMContentLoaded', () => {
-            const active = localStorage.getItem('activeRegistosTab') || 'tab-snapshots';
-            switchTab(active);
+          <p id="sundayAdvice" class="goal-label">
+            A análise oficial é feita aos domingos; os gastos de meio da semana não alteram a tua decisão de domingo passado.
+          </p>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Análise de hoje</h2>
+            <p>Controlo operacional para o consumo diário.</p>
+          </div>
+
+          <div class="summary-grid">
+            <article class="summary-card">
+              <span>Mês identificado</span>
+              <strong id="analysisMonth">-</strong>
+            </article>
+            <article class="summary-card">
+              <span>Dia analisado</span>
+              <strong id="analysisDate">-</strong>
+            </article>
+            <article class="summary-card accent strong-card">
+              <span>Devias ter gasto até hoje</span>
+              <strong id="shouldHaveSpentToday">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Gasto real acumulado</span>
+              <strong id="currentWeek">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Despesas até hoje</span>
+              <strong id="expensesUntilToday">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Depósitos até hoje</span>
+              <strong id="transfersUntilToday">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Resultado do mês</span>
+              <strong id="expectedSpentToday">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>A reportar na próxima semana</span>
+              <strong id="expectedSpentWeek">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Excedente atual</span>
+              <strong id="idealRemaining">0,00 EUR</strong>
+            </article>
+            <article class="summary-card accent">
+              <span>Dívida atual</span>
+              <strong id="availableToSplit">0,00 EUR</strong>
+            </article>
+          </div>
+
+          <div class="allocation compact-allocation">
+            <div class="allocation-row">
+              <span>Para Revolut hoje</span>
+              <strong id="splitNowRevolut">0,00 EUR</strong>
+            </div>
+            <div class="allocation-row">
+              <span>Para XTB hoje</span>
+              <strong id="splitNowXtb">0,00 EUR</strong>
+            </div>
+          </div>
+
+          <p id="analysisHint" class="goal-label">
+            A app usa o último registo guardado para saber em que ponto do mês estás.
+          </p>
+          <p id="depositAdvice" class="goal-label">
+            A sugestão para Revolut e XTB é apenas indicativa.
+          </p>
+          <p id="analysisFormula" class="goal-label">
+            Se o gasto real estiver acima do permitido, o valor fica em falta e deve ser reportado para a semana seguinte.
+          </p>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>As tuas contas</h2>
+            <p>Adiciona saldos e mantém tudo organizado.</p>
+          </div>
+
+          <form id="account-form" class="inline-form">
+            <input id="accountName" type="text" maxlength="40" placeholder="Nome da conta" required>
+            <input id="accountType" type="text" maxlength="30" placeholder="Tipo / banco" required>
+            <input id="accountBalance" type="number" min="0" step="0.01" placeholder="Saldo atual" required>
+            <button type="submit" class="secondary-btn">Adicionar</button>
+          </form>
+
+          <p id="accountStatus" class="goal-label">Podes registar as tuas contas para as acompanhares num único sítio.</p>
+
+          <div id="accountsList" class="item-list empty-state">
+            Ainda não existem contas registadas.
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-heading">
+            <h2>Dinheiro que me devem</h2>
+            <p>Regista valores em aberto sem os contar no orçamento até serem recebidos.</p>
+          </div>
+
+          <form id="receivable-form" class="inline-form inline-form-4">
+            <input id="receivableName" type="text" maxlength="50" placeholder="Motivo/Pessoal" required>
+            <input id="receivableAmount" type="number" min="0" step="0.01" placeholder="Valor" required>
+            <input id="receivableDate" type="date" required>
+            <select id="receivableStatus" style="display: none;">
+              <option value="pending" selected>Por receber</option>
+              <option value="received">Recebido</option>
+            </select>
+            <button type="submit" class="secondary-btn">Registar</button>
+          </form>
+
+          <div class="summary-grid">
+            <article class="summary-card">
+              <span>Total por receber</span>
+              <strong id="receivablePendingTotal">0,00 EUR</strong>
+            </article>
+            <article class="summary-card">
+              <span>Total já recebido</span>
+              <strong id="receivableReceivedTotal">0,00 EUR</strong>
+            </article>
+          </div>
+
+          <p id="receivableStatusText" class="goal-label">Estes valores ficam anotados, mas não entram no orçamento até serem recebidos.</p>
+
+          <div id="receivablesList" class="item-list empty-state">
+            Ainda não existem valores em aberto registados.
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <template id="item-template">
+    <article class="item-card">
+      <div>
+        <strong class="item-title"></strong>
+        <p class="item-subtitle"></p>
+      </div>
+      <div class="item-actions">
+        <span class="item-value"></span>
+        <button type="button" class="ghost-btn">Remover</button>
+      </div>
+    </article>
+  </template>
+
+  <script src="core-engine.js"></script>
+  <script src="firebase-config.js"></script>
+  <script type="module" src="firebase-sync.js"></script>
+  <script>
+    // ── Seletor de Período ───────────────────────────────────────
+    (function() {
+      const btns = document.querySelectorAll('.period-btn');
+      const labels = {
+        month: 'Mês Atual',
+        quarter: 'Últimos 3 Meses',
+        all: 'Todo o Histórico'
+      };
+
+      function applyPeriod(period) {
+        window.activePeriodFilter = period;
+        btns.forEach(b => b.classList.toggle('active', b.dataset.period === period));
+
+        // Atualizar labels de período nas listas
+        ['expense', 'income', 'transfer'].forEach(type => {
+          const lbl = document.getElementById(type + 'PeriodLabel');
+          if (lbl) lbl.querySelector('strong').textContent = labels[period];
         });
-    </script>
+
+        // Re-renderizar listas filtradas
+        if (typeof render === 'function') render();
+      }
+
+      btns.forEach(btn => {
+        btn.addEventListener('click', () => applyPeriod(btn.dataset.period));
+      });
+
+      // Inicializar com mês atual
+      window.activePeriodFilter = 'month';
+    })();
+  </script>
 </body>
 </html>
