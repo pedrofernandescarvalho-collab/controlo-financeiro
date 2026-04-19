@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<title>Restaurar Firebase · Controlo Financeiro</title>
+<style>
+body { font-family: monospace; background: #0f172a; color: #e2e8f0; padding: 2rem; max-width: 700px; }
+h1 { color: #7c3aed; }
+.block { background: #1e293b; border-radius: 8px; padding: 1rem 1.5rem; margin: 1rem 0; }
+.ok  { color: #10b981; font-weight: bold; }
+.err { color: #ef4444; font-weight: bold; }
+.warn{ color: #f59e0b; font-weight: bold; }
+button { background: #7c3aed; color: white; border: none; border-radius: 6px; padding: 14px 28px; font-size: 16px; cursor: pointer; margin-top: 1rem; }
+button:hover { background: #6d28d9; }
+table { border-collapse: collapse; width: 100%; margin-top: .5rem; }
+td, th { border: 1px solid #334155; padding: 6px 10px; }
+th { background: #0f172a; color: #94a3b8; font-size: .75rem; text-transform: uppercase; }
+</style>
+</head>
+<body>
+<h1>☁️ Restaurar do Firebase</h1>
+<div id="log">
+  <div class="block">⏳ A ligar ao Firebase...</div>
+</div>
+
+<script src="firebase-config.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+const log = document.getElementById('log');
+function msg(html) { log.innerHTML += `<div class="block">${html}</div>`; }
+
+try {
+  if (!window.firebaseConfig || window.firebaseConfig.apiKey === 'COLA_AQUI') throw new Error('firebase-config.js não encontrado');
+
+  const app = initializeApp(window.firebaseConfig);
+  const db  = getFirestore(app);
+  const auth = getAuth(app);
+
+  await signInAnonymously(auth);
+  msg('✅ Autenticado. A ler Firestore...');
+
+  const docRef = doc(db, 'user_data', 'main_state');
+  const snap   = await getDoc(docRef);
+
+  if (!snap.exists()) {
+    msg('<span class="err">❌ Firestore vazio — sem nada para restaurar.</span>');
+  } else {
+    const cloudData  = snap.data();
+    const cloudState = cloudData.state;
+    const cloudTs    = cloudData.updatedAt;
+
+    const aprExp  = (cloudState?.expenses  || []).filter(e => e.monthKey === '2026-04');
+    const aprInc  = (cloudState?.incomes   || []).filter(i => i.monthKey === '2026-04');
+    const aprSnap = (cloudState?.snapshots || []).filter(s => s.monthKey === '2026-04');
+
+    msg(`
+      <span class="ok">✅ Firebase encontrado:</span>
+      <br>Guardado em: <strong>${cloudTs ? new Date(cloudTs).toLocaleString('pt-PT') : '?'}</strong>
+      <br>Salário: <strong>${cloudState?.salary ?? 'N/D'} €</strong>
+      <br>Despesas Abril: <strong>${aprExp.length}</strong>
+      <br>Rendimentos Abril: <strong>${aprInc.length}</strong> — ${aprInc.map(i=>i.name+': '+i.amount+'€').join(', ') || 'nenhum'}
+      <br>Snapshots Abril: <strong>${aprSnap.length}</strong>
+      <br><br>
+      <details>
+        <summary style="cursor:pointer;color:#38bdf8">▶ Ver despesas de Abril (${aprExp.length})</summary>
+        <table style="margin-top:.5rem">
+          <tr><th>Dia</th><th>Nome</th><th>Valor</th><th>Tipo</th></tr>
+          ${aprExp.map(e=>`<tr><td>${e.day||'?'}</td><td>${e.name||'?'}</td><td>${(+e.amount||0).toFixed(2)}€</td><td>${e.kind||e.category||'?'}</td></tr>`).join('') || '<tr><td colspan="4">Sem registos</td></tr>'}
+        </table>
+      </details>
+      <br>
+      <button id="btnRestore">💾 Restaurar este estado e ir para o Dashboard</button>
+    `);
+
+    document.getElementById('btnRestore').addEventListener('click', () => {
+      localStorage.setItem('finance-control-app', JSON.stringify(cloudState));
+      localStorage.setItem('last_firebase_sync', cloudTs || Date.now());
+      msg('<span class="ok">✅ Estado restaurado do Firebase! A redirecionar...</span>');
+      setTimeout(() => window.location.href = 'dashboard.html', 1500);
+    });
+  }
+} catch(e) {
+  msg(`<span class="err">❌ Erro: ${e.message}</span>`);
+}
+</script>
+</body>
+</html>
