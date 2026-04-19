@@ -326,7 +326,24 @@ function renderSummary() {
   for (let k in sets) { const el = document.querySelector(k); if(el) el.textContent = formatCurrency(sets[k]); }
 }
 
+function renderCategorySelects() {
+  const selects = document.querySelectorAll("#expenseCategory, #categoryList, #filterCategory");
+  selects.forEach(select => {
+    if (!select) return;
+    const currentVal = select.value;
+    select.innerHTML = '<option value="">(Selecione Categoria)</option>';
+    state.categories.forEach(cat => {
+      const opt = document.createElement("option");
+      opt.value = cat;
+      opt.textContent = cat;
+      select.appendChild(opt);
+    });
+    if (currentVal) select.value = currentVal;
+  });
+}
+
 function render() {
+  renderCategorySelects();
   renderNetWorth(); renderSummary(); renderExpenses(); renderRecurring(); renderIncomes(); renderReceivables();
   const s = document.querySelector("#snapshotAccountsInputs");
   if (s) {
