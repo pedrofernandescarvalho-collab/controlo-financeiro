@@ -2483,6 +2483,14 @@ function getGlobalAccountsTotal() {
   return total + latestCashTotal;
 }
 
+// Valor líquido de uma despesa (descontando eventuais reembolsos partilhados)
+function getNetExpenseAmount(expense) {
+  if (!expense) return 0;
+  const base = expense.amount || 0;
+  const repayment = expense.sharedRepayment || 0;
+  return Math.max(0, base - repayment);
+}
+
 const state = loadState();
 
 if (typeof window !== 'undefined') {
@@ -2500,6 +2508,11 @@ if (typeof window !== 'undefined') {
   window.getReconciliationHistory = getReconciliationHistory;
   window.renderGlobalExtract = renderGlobalExtract;
   window.renderNetWorth = renderNetWorth;
+  window.getNetExpenseAmount = getNetExpenseAmount;
+  window.saveState = saveState;
+  window.sumIncomes = sumIncomes;
+  window.sumFixedMonthlyExpenses = sumFixedMonthlyExpenses;
+  window.sumVariableExpenses = sumVariableExpenses;
 }
 
 
