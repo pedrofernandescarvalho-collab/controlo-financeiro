@@ -145,10 +145,14 @@ function sumExpensesUntil(day) {
 
 
 function sumFixedMonthlyExpenses() {
-  const { year, month } = getActiveMonthParts();
+  const monthKey = getActiveMonthKey();
+  const { month } = getActiveMonthParts();
   
   return state.recurringFixed
     .filter(rf => {
+      // Filtrar por Data de Fim
+      if (rf.endDate && rf.endDate < monthKey) return false;
+
       if (!rf.frequency || rf.frequency === 'monthly') return true;
       const startMonth = Number(rf.startMonth) || 1;
       if (rf.frequency === 'annual') return month === startMonth;
@@ -159,13 +163,20 @@ function sumFixedMonthlyExpenses() {
 }
 
 function getMonthlyProvisionForFixedExpenses() {
-  return state.recurringFixed.reduce((total, rf) => {
-    const amount = Number(rf.amount || 0);
-    if (!rf.frequency || rf.frequency === 'monthly') return total + amount;
-    if (rf.frequency === 'semi-annual') return total + (amount / 6);
-    if (rf.frequency === 'annual') return total + (amount / 12);
-    return total + amount;
-  }, 0);
+  const monthKey = getActiveMonthKey();
+  return state.recurringFixed
+    .filter(rf => {
+      // Filtrar por Data de Fim
+      if (rf.endDate && rf.endDate < monthKey) return false;
+      return true;
+    })
+    .reduce((total, rf) => {
+      const amount = Number(rf.amount || 0);
+      if (!rf.frequency || rf.frequency === 'monthly') return total + amount;
+      if (rf.frequency === 'semi-annual') return total + (amount / 6);
+      if (rf.frequency === 'annual') return total + (amount / 12);
+      return total + amount;
+    }, 0);
 }
 
 function sumVariableExpenses() {
@@ -365,9 +376,13 @@ function getDayFromDateInput(value) {
 // Removido sumExpensesUntil duplicado para evitar inconsistências
 
 function sumFixedExpensesUntil(day) {
+  const monthKey = getActiveMonthKey();
   const { month } = getActiveMonthParts();
   return state.recurringFixed
     .filter((rf) => {
+      // Filtrar por Data de Fim
+      if (rf.endDate && rf.endDate < monthKey) return false;
+
       const rfDay = Number(rf.day) || 1;
       if (rfDay > day) return false;
       
@@ -784,763 +799,236 @@ function syncForms() {
   if (receivableDateInput && !receivableDateInput.value) {
     receivableDateInput.value = getDefaultMonthDate();
   }
-
-  const startSnapshot = getStartingSnapshot();
-  if (hasElement("#startBankBalance") && hasElement("#startCashBalance")) {
-    if (startSnapshot) {
-      document.querySelector("#startBankBalance").value = startSnapshot.bankBalance;
-      document.querySelector("#startCashBalance").value = startSnapshot.cashBalance;
-    } else {
-      document.querySelector("#startBankBalance").value = "";
-      document.querySelector("#startCashBalance").value = "";
-    }
-  }
-  
-  const defaultDay = Math.min(getToday().getDate(), getCycleWindow().daysInCycle);
-
-  if (snapDateInput && !isCurrentMonthDate(snapDateInput.value)) {
-    snapDateInput.value = getDefaultMonthDate(defaultDay);
-  }
-  if (expenseDateInput && !isCurrentMonthDate(expenseDateInput.value)) {
-    expenseDateInput.value = getDefaultMonthDate(defaultDay);
-  }
-  if (transferDateInput && !isCurrentMonthDate(transferDateInput.value)) {
-    transferDateInput.value = getDefaultMonthDate(defaultDay);
-  }
-  if (incomeDateInput && !isCurrentMonthDate(incomeDateInput.value)) {
-    incomeDateInput.value = getDefaultMonthDate(defaultDay);
-  }
-  if (receivableDateInput && !isCurrentMonthDate(receivableDateInput.value)) {
-    receivableDateInput.value = getDefaultMonthDate(defaultDay);
-  }
-
-  syncAccountOptions();
-  if (hasElement("#expenseCategory")) {
-    syncCategoryOptions();
-  }
-  
-  renderSnapshotFormInputs();
 }
 
-function renderSnapshotFormInputs() {
-  const container = document.querySelector("#snapshotAccountsInputs");
-  if (!container) return;
-  container.innerHTML = "";
-  if (!state.accounts || state.accounts.length === 0) {
-    container.innerHTML = `<p class="goal-label">Ainda nao criaste contas para registar.</p>`;
-    return;
-  }
-  
-  let html = '';
-  // Extract the most recently known cash
-  const allChronological = state.snapshots.slice().sort((a,b) => {
-    if(a.monthKey === b.monthKey) return (Number(a.day)||0) - (Number(b.day)||0);
-    return String(a.monthKey || "").localeCompare(String(b.monthKey || ""));
-  });
-  
-  let latestCashTotal = 0;
-  if (allChronological.length > 0) {
-      const lastSnap = allChronological[allChronological.length - 1];
-      const sameDaySnaps = allChronological.filter(s => s.monthKey === lastSnap.monthKey && s.day === lastSnap.day);
-      sameDaySnaps.forEach(s => {
-         latestCashTotal += (Number(s.cashBalance) || 0);
-      });
-  }
-
-  // Bank fields
-  state.accounts.forEach(acc => {
-    html += `
-      <div style="background: rgba(0,0,0,0.02); padding: 10px; border-radius: 8px; border: 1px solid rgba(0,0,0,0.05); color: var(--text-dark);">
-         <strong style="display:block; margin-bottom:8px; font-size:14px; text-transform:uppercase; letter-spacing:0.5px;">${acc.name} (${acc.type})</strong>
-         <div style="display:flex; flex-direction:column; gap:4px;">
-           <label style="font-size:12px; margin:0;">Saldo Bancario Livre</label>
-           <input type="number" step="0.01" class="dyn-bank-input" data-acc-id="${acc.id}" value="${Number(acc.balance)||0}" required>
-         </div>
-      </div>
-    `;
-  });
-  
-  // Dedicated Wallet Field
-  html += `
-      <div style="background: rgba(13, 148, 136, 0.05); padding: 10px; border-radius: 8px; border: 1px solid rgba(13, 148, 136, 0.3); color: var(--text-dark);">
-         <strong style="display:block; margin-bottom:8px; font-size:14px; text-transform:uppercase; letter-spacing:0.5px;">Dinheiro (Em Carteira)</strong>
-         <div style="display:flex; flex-direction:column; gap:4px;">
-           <label style="font-size:12px; margin:0;">Dinheiro Fisico Global</label>
-           <input type="number" step="0.01" id="dyn-global-cash-input" value="${latestCashTotal}" required>
-         </div>
-      </div>
-  `;
-  container.innerHTML = html;
-}
-
-function syncCategoryOptions() {
-  const select = document.querySelector("#expenseCategory");
-  if (!select) {
-    return;
-  }
-  const currentValue = select.value;
-  select.innerHTML = "";
-
-  state.categories.forEach((category) => {
-    const option = document.createElement("option");
-    option.value = category;
-    option.textContent = category;
-    select.appendChild(option);
-  });
-
-  if (state.categories.includes(currentValue)) {
-    select.value = currentValue;
-  }
-}
-
-function renderSummary() {
-  if (!hasElement("#weeklyBudget")) {
-    return;
-  }
-  const budget = calculateBudget();
-
-  document.querySelector("#weeklyBudget").textContent = formatCurrency(budget.weeklyBudget);
-  document.querySelector("#dailyBudget").textContent = formatCurrency(budget.dailyBudget);
-  document.querySelector("#leftoverAmount").textContent = formatCurrency(budget.leftover);
-  document.querySelector("#revolutAllocation").textContent = formatCurrency(budget.revolutAllocation);
-  document.querySelector("#xtbAllocation").textContent = formatCurrency(budget.xtbAllocation);
-  document.querySelector("#revolutInterest").textContent = formatCurrency(budget.revolutInterest);
-  document.querySelector("#fixedExpenseTotal").textContent = formatCurrency(budget.fixedExpenses);
-  document.querySelector("#variableExpenseTotal").textContent = formatCurrency(budget.variableExpenses);
-}
-
-function showToast(message) {
-  let container = document.querySelector(".toast-container");
-  if (!container) {
-    container = document.createElement("div");
-    container.className = "toast-container";
-    document.body.appendChild(container);
-  }
-  const toast = document.createElement("div");
-  toast.className = "toast";
-  toast.textContent = message;
-  container.appendChild(toast);
-  setTimeout(() => {
-    toast.classList.add("fade-out");
-    toast.addEventListener("transitionend", () => toast.remove());
-  }, 3000);
-}
-
-function setStatus(id, message) {
-  const node = document.querySelector(id);
-  if (node) {
-    node.textContent = message;
-  }
-  showToast(message);
-}
-
-function formatDate(date) {
-  return new Intl.DateTimeFormat("pt-PT", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric"
-  }).format(date);
-}
-
-function formatMonth(date) {
-  return new Intl.DateTimeFormat("pt-PT", {
-    month: "long",
-    year: "numeric"
-  }).format(date);
-}
-
-function renderAnalysis() {
-  if (!hasElement("#analysisMonth")) {
-    return;
-  }
-  const analysis = getCycleAnalysis();
-  const { year, month } = getActiveMonthParts();
-  const analysisDate = new Date(year, month - 1, analysis.latestDay);
-  const balanceReferenceText = analysis.hasProgressSnapshot
-    ? `O cruzamento com saldos reais esta a usar o registo de ${analysis.latestSnapshot.date || getDefaultMonthDate(analysis.snapshotDay)}.`
-    : "Ainda so existe o ponto de partida, por isso o cruzamento com saldos reais ainda nao esta disponivel.";
-  const gap = Math.abs(analysis.movementGap);
-
-  document.querySelector("#analysisMonth").textContent = formatMonth(analysisDate);
-  document.querySelector("#analysisDate").textContent = formatDate(analysisDate);
-  document.querySelector("#shouldHaveSpentToday").textContent = formatCurrency(analysis.expectedSpentToday);
-  document.querySelector("#currentWeek").textContent = formatCurrency(analysis.actualSpent);
-  document.querySelector("#expensesUntilToday").textContent = formatCurrency(analysis.expensesUntilToday);
-  document.querySelector("#transfersUntilToday").textContent = formatCurrency(analysis.transfersUntilToday);
-  document.querySelector("#expectedSpentToday").textContent = formatCurrency(analysis.expectedSpentWeek);
-  document.querySelector("#expectedSpentWeek").textContent = formatCurrency(analysis.reportNextWeek);
-  document.querySelector("#idealRemaining").textContent = formatCurrency(analysis.idealRemaining);
-  document.querySelector("#availableToSplit").textContent = formatCurrency(analysis.availableToSplit);
-  document.querySelector("#splitNowRevolut").textContent = formatCurrency(analysis.splitNowRevolut);
-  document.querySelector("#splitNowXtb").textContent = formatCurrency(analysis.splitNowXtb);
-  // ENCONTRAR O ÚLTIMO DOMINGO PARA REFERÊNCIA DE DEPÓSITOS
-  const today = getToday();
-  const currentMonthDay = isActiveMonthCurrent() ? today.getDate() : 31;
-  let lastSundayDay = 0;
-  for (let d = currentMonthDay; d >= 1; d--) {
-    if (new Date(year, month - 1, d).getDay() === 0) {
-      lastSundayDay = d;
-      break;
-    }
-  }
-
-  const sundayAnalysis = lastSundayDay > 0 ? getCycleAnalysis(lastSundayDay) : analysis;
-  const sundayText = lastSundayDay > 0 
-    ? `Baseado no último domingo (dia ${lastSundayDay}), tinhas um excedente de ${formatCurrency(sundayAnalysis.idealRemaining)}.`
-    : "Ainda não houve um domingo de fecho neste ciclo.";
-
-  document.querySelector("#analysisHint").innerHTML =
-    `Ciclo atual: ${formatDate(analysis.cycleStart)} até ${formatDate(analysis.cycleEnd)}. <br>` +
-    `Gasto permitido hoje (dia ${analysis.latestDay}): ${formatCurrency(analysis.expectedSpentToday)}. ${balanceReferenceText}`;
-  
-  document.querySelector("#depositAdvice").innerHTML =
-    `<strong>Sugestão estratégica:</strong> ${sundayText} <br>` +
-    `Podes dividir ${formatCurrency(sundayAnalysis.idealRemaining)}: ` +
-    `${formatCurrency(sundayAnalysis.splitNowRevolut)} para Revolut e ` +
-    `${formatCurrency(sundayAnalysis.splitNowXtb)} para XTB.`;
-  document.querySelector("#analysisFormula").textContent =
-    analysis.availableToSplit > 0
-      ? `Estás acima do permitido em ${formatCurrency(analysis.availableToSplit)}. Este valor fica a reportar para a proxima semana.`
-      : `Estás abaixo do permitido e tens ${formatCurrency(analysis.idealRemaining)} de excedente acumulado.`;
-
-  if (!analysis.hasProgressSnapshot) {
-    document.querySelector("#analysisFormula").textContent +=
-      " Guarda um novo registo de saldo para confirmar estes valores contra as contas reais.";
-    return;
-  }
-
-  if (gap <= 0.01) {
-    document.querySelector("#analysisFormula").textContent +=
-      ` Os movimentos registados batem certo com a variacao do saldo ate ao dia ${analysis.snapshotDay}.`;
-    return;
-  }
-
-  if (analysis.movementGap > 0) {
-    document.querySelector("#analysisFormula").textContent +=
-      ` Falta registar ${formatCurrency(gap)} em despesas ou depositos para bater certo com o saldo real ate ao dia ${analysis.snapshotDay}.`;
-    return;
-  }
-
-  document.querySelector("#analysisFormula").textContent +=
-    ` Tens ${formatCurrency(gap)} registados a mais face ao saldo real ate ao dia ${analysis.snapshotDay}.`;
-}
-
-function getBankReconciliation() {
-  const history = getReconciliationHistory();
-  const latestInterval = history.length ? history[history.length - 1] : null;
-  const analysis = getCycleAnalysis();
-  const currentSnapshot = analysis.latestSnapshot || getStartingSnapshot();
-  const currentTotalBalance = currentSnapshot
-    ? Number(currentSnapshot.bankBalance) + Number(currentSnapshot.cashBalance)
-    : 0;
-
-  if (!latestInterval) {
-    const fallbackSnap = currentSnapshot || getStartingSnapshot();
-    return {
-      previousBankBalance: fallbackSnap ? fallbackSnap.bankBalance : 0,
-      currentBankBalance: fallbackSnap ? fallbackSnap.bankBalance : 0,
-      previousCashBalance: fallbackSnap ? fallbackSnap.cashBalance : 0,
-      currentCashBalance: fallbackSnap ? fallbackSnap.cashBalance : 0,
-      totalDifference: 0,
-      expenseTotal: 0,
-      transferTotal: 0,
-      reconciledTotal: 0,
-      unexplainedDifference: 0,
-      hasSnapshots: Boolean(fallbackSnap),
-      currentTotalBalance,
-      netCurrentBalance: currentTotalBalance
-    };
-  }
-
-  return {
-    previousBankBalance: latestInterval.previousBankBalance,
-    currentBankBalance: latestInterval.currentBankBalance,
-    previousCashBalance: latestInterval.previousCashBalance,
-    currentCashBalance: latestInterval.currentCashBalance,
-    totalDifference: latestInterval.totalDifference,
-    expenseTotal: latestInterval.expenseTotal,
-    transferTotal: latestInterval.transferTotal,
-    reconciledTotal: latestInterval.reconciledTotal,
-    unexplainedDifference: latestInterval.unexplainedDifference,
-    currentTotalBalance,
-    netCurrentBalance: currentTotalBalance,
-    hasSnapshots: true,
-    previousDay: latestInterval.previousDay,
-    currentDay: latestInterval.currentDay
-  };
-}
-
-function getReconciliationHistory() {
-  const snapshots = getSnapshotsForMonth();
-  const history = [];
-
-  for (let index = 1; index < snapshots.length; index += 1) {
-    const previousSnapshot = snapshots[index - 1];
-    const currentSnapshot = snapshots[index];
-    const previousTotal = Number(previousSnapshot.bankBalance) + Number(previousSnapshot.cashBalance);
-    const currentTotal = Number(currentSnapshot.bankBalance) + Number(currentSnapshot.cashBalance);
-    const totalDifference = previousTotal - currentTotal;
-    const expenseTotal = sumExpensesBetween(previousSnapshot.day, currentSnapshot.day);
-    const transferTotal = sumTransfersBetween(previousSnapshot.day, currentSnapshot.day);
-    const incomeBetweenTotal = sumIncomesBetween(previousSnapshot.day, currentSnapshot.day, false); // Incluir tudo para reconciliação
-    const reconciledTotal = expenseTotal + transferTotal - incomeBetweenTotal;
-    const unexplainedDifference = totalDifference - reconciledTotal;
-
-    history.push({
-      previousDay: previousSnapshot.day,
-      currentDay: currentSnapshot.day,
-      previousBankBalance: previousSnapshot.bankBalance,
-      currentBankBalance: currentSnapshot.bankBalance,
-      previousCashBalance: previousSnapshot.cashBalance,
-      currentCashBalance: currentSnapshot.cashBalance,
-      totalDifference,
-      expenseTotal,
-      transferTotal,
-      reconciledTotal,
-      unexplainedDifference
-    });
-  }
-
-  return history;
+function renderNetWorth() {
+  const el = document.querySelector("#globalNetWorthDisplay");
+  if (!el) return;
+  const accountsTotal = getGlobalAccountsTotal();
+  const receivablesTotal = state.receivables.filter(r => r.status !== "received").reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+  el.textContent = formatCurrency(accountsTotal + receivablesTotal);
 }
 
 function renderBankReconciliation() {
-  const bank = getBankReconciliation();
-  const startSnapshot = getStartingSnapshot();
   const snapshots = getSnapshotsForMonth();
-  const latestSnapshot = snapshots.length ? snapshots[snapshots.length - 1] : null;
-
-  if (hasElement("#startOfMonthBalanceDisplay")) {
-    document.querySelector("#startOfMonthBalanceDisplay").textContent = startSnapshot
-      ? `${startSnapshot.accountName || "Conta sem nome"} | ${formatCurrency(startSnapshot.bankBalance)} banco | ${formatCurrency(startSnapshot.cashBalance)} carteira`
-      : "Falta guardar 01/04";
-    document.querySelector("#latestSnapshotDisplay").textContent = latestSnapshot
-      ? `Dia ${latestSnapshot.day} | ${latestSnapshot.accountName || "Conta sem nome"}`
-      : "Sem registo";
-  }
-
-  if (hasElement("#bankStartBalance")) {
-    document.querySelector("#bankStartBalance").textContent = formatCurrency(bank.previousBankBalance);
-    document.querySelector("#bankCurrentBalance").textContent = formatCurrency(bank.currentBankBalance);
-    document.querySelector("#cashStartBalance").textContent = formatCurrency(bank.previousCashBalance);
-    document.querySelector("#cashCurrentBalance").textContent = formatCurrency(bank.currentCashBalance);
-    document.querySelector("#bankDifference").textContent = formatCurrency(bank.totalDifference);
-    document.querySelector("#bankExpenseTotal").textContent = formatCurrency(bank.expenseTotal);
-    document.querySelector("#bankTransferTotal").textContent = formatCurrency(bank.transferTotal);
-    document.querySelector("#bankReconciledTotal").textContent = formatCurrency(bank.reconciledTotal);
-    document.querySelector("#bankUnexplained").textContent = formatCurrency(bank.unexplainedDifference);
-    document.querySelector("#currentTotalBalance").textContent = formatCurrency(bank.currentTotalBalance);
-    document.querySelector("#netCurrentBalance").textContent = formatCurrency(bank.netCurrentBalance);
-  }
-
-  const tolerance = 0.01;
-  const status = document.querySelector("#bankStatus");
-
-  if (status) {
-    if (!bank.hasSnapshots || !startSnapshot) {
-      status.textContent =
-        "Primeiro guarda o ponto de partida de 01/04. Depois, cada nova analise compara a entrada anterior com a atual.";
-      return;
-    }
-
-    if (Math.abs(bank.unexplainedDifference) <= tolerance) {
-      status.textContent =
-        `Os valores batem certo entre o dia ${bank.previousDay} e o dia ${bank.currentDay}.`;
-      return;
-    }
-
-    if (bank.unexplainedDifference > 0) {
-      status.textContent =
-        `Faltam justificar ${formatCurrency(bank.unexplainedDifference)} entre a ultima entrada e a entrada atual.`;
-      return;
-    }
-
-    status.textContent =
-      `Tens ${formatCurrency(Math.abs(bank.unexplainedDifference))} registados a mais entre despesas e depositos.`;
-  }
-}
-
-function renderAccounts() {
-  const container = document.querySelector("#accountsList");
-  if (!container) {
-    return;
-  }
-  container.innerHTML = "";
-
-  if (!state.accounts.length) {
-    container.className = "item-list empty-state";
-    container.textContent = "Ainda nao existem contas registadas.";
+  if (snapshots.length < 1) {
+    if (hasElement("#bankStartBalance")) document.querySelector("#bankStartBalance").textContent = "0,00 EUR";
+    if (hasElement("#bankCurrentBalance")) document.querySelector("#bankCurrentBalance").textContent = "0,00 EUR";
+    if (hasElement("#bankDifference")) document.querySelector("#bankDifference").textContent = "0,00 EUR";
     return;
   }
 
-  container.className = "item-list";
-  const snapshots = getMonthSnapshotsRaw();
-  const latestSnapshotByAccount = new Map();
+  const latestSnap = snapshots[snapshots.length - 1];
+  const previousSnap = snapshots.length > 1 ? snapshots[snapshots.length - 2] : getStartingSnapshot();
 
-  snapshots.forEach((snapshot) => {
-    if (!snapshot.accountId) {
-      return;
-    }
-    latestSnapshotByAccount.set(snapshot.accountId, snapshot);
-  });
-
-  state.accounts.forEach((account) => {
-    const node = template.content.firstElementChild.cloneNode(true);
-    const latestSnapshot = latestSnapshotByAccount.get(account.id);
-    const value = latestSnapshot ? latestSnapshot.bankBalance : account.balance;
-    node.querySelector(".item-title").textContent = account.name;
-    node.querySelector(".item-subtitle").textContent = latestSnapshot
-      ? `${account.type} | Atualizado pelo registo do dia ${latestSnapshot.day}`
-      : `${account.type} | Saldo atual`;
-    node.querySelector(".item-value").textContent = formatCurrency(value);
-    node.querySelector(".ghost-btn").addEventListener("click", () => {
-      state.accounts = state.accounts.filter((item) => item.id !== account.id);
-      saveState();
-      render();
-    });
-    container.appendChild(node);
-  });
-}
-
-function renderRecurring() {
-  const masterContainer = document.querySelector("#recurringList");
-  const monthlyContainer = document.querySelector("#fixedExpensesList");
+  const prevBank = previousSnap ? Number(previousSnap.bankBalance) : 0;
+  const curBank = Number(latestSnap.bankBalance);
+  const diffBank = curBank - prevBank;
   
-  const { month } = getActiveMonthParts();
-  const monthsNames = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-  const freqLabels = { monthly: "Mensal", "semi-annual": "Semestral", annual: "Anual" };
+  const prevCash = previousSnap ? Number(previousSnap.cashBalance) : 0;
+  const curCash = Number(latestSnap.cashBalance);
+  const diffCash = curCash - prevCash;
 
-  // 1. Renderizar Lista Mestre (Configuração)
-  if (masterContainer) {
-    masterContainer.innerHTML = "";
-    if (state.recurringFixed.length === 0) {
-      masterContainer.className = "item-list empty-state";
-      masterContainer.textContent = "Não há despesas fixas globais configuradas.";
-    } else {
-      masterContainer.className = "item-list";
-      state.recurringFixed.forEach((item) => {
-        const node = template.content.firstElementChild.cloneNode(true);
-        node.querySelector(".item-title").textContent = item.name;
-        
-        let subtitle = `Dia ${item.day} · ${freqLabels[item.frequency] || "Mensal"}`;
-        if (item.frequency && item.frequency !== 'monthly') {
-            subtitle += ` · Mês ref: ${monthsNames[(item.startMonth || 1) - 1]}`;
-        }
-        
-        node.querySelector(".item-subtitle").textContent = subtitle;
-        node.querySelector(".item-value").textContent = formatCurrency(item.amount);
-        node.querySelector(".ghost-btn").addEventListener("click", () => {
-          state.recurringFixed = state.recurringFixed.filter((e) => e.id !== item.id);
-          saveState();
-          render();
-        });
-        masterContainer.appendChild(node);
-      });
-    }
+  if (hasElement("#bankStartBalance")) document.querySelector("#bankStartBalance").textContent = formatCurrency(prevBank);
+  if (hasElement("#bankCurrentBalance")) document.querySelector("#bankCurrentBalance").textContent = formatCurrency(curBank);
+  if (hasElement("#cashStartBalance")) document.querySelector("#cashStartBalance").textContent = formatCurrency(prevCash);
+  if (hasElement("#cashCurrentBalance")) document.querySelector("#cashCurrentBalance").textContent = formatCurrency(curCash);
+
+  const totalDiff = diffBank + diffCash;
+  if (hasElement("#bankDifference")) {
+    document.querySelector("#bankDifference").textContent = formatCurrency(totalDiff);
   }
 
-  // 2. Renderizar Ocorrências Reais (Registos - index.html)
-  if (monthlyContainer) {
-    monthlyContainer.innerHTML = "";
-    
-    const allFixed = state.recurringFixed;
-    if (allFixed.length === 0) {
-      monthlyContainer.className = "item-list empty-state";
-      monthlyContainer.textContent = "Não existem despesas fixas configuradas.";
-    } else {
-      monthlyContainer.className = "item-list";
-      allFixed.forEach((item) => {
-        const sm = Number(item.startMonth) || 1;
-        const isCurrentPayment = (!item.frequency || item.frequency === 'monthly') ||
-           (item.frequency === 'annual' && month === sm) ||
-           (item.frequency === 'semi-annual' && (month === sm || month === (sm + 6 > 12 ? sm - 6 : sm + 6)));
-           
-        const node = template.content.firstElementChild.cloneNode(true);
-        node.querySelector(".item-title").textContent = item.name;
-        
-        if (isCurrentPayment) {
-          node.querySelector(".item-subtitle").textContent = `Obrigação Real (Dia ${item.day})`;
-          node.querySelector(".item-value").textContent = formatCurrency(item.amount);
-        } else {
-          // Provisionamento
-          const prov = item.frequency === 'annual' ? item.amount / 12 : item.amount / 6;
-          node.querySelector(".item-subtitle").textContent = `Provisão Mensal (${freqLabels[item.frequency] || "Variável"})`;
-          node.querySelector(".item-value").textContent = formatCurrency(prov);
-          node.style.opacity = "0.7";
-          node.style.fontStyle = "italic";
-        }
-
-        node.querySelector(".ghost-btn").style.display = "none";
-        monthlyContainer.appendChild(node);
-      });
-    }
-  }
-}
-
-function renderReceivables() {
-  const container = document.querySelector("#receivablesList");
-  if (!container) {
-    return;
-  }
-
-  container.innerHTML = "";
-  const receivables = state.receivables
-    .slice()
-    .sort((a, b) => (b.dateLabel || "").localeCompare(a.dateLabel || "")); // DESC: mais recente primeiro
-  const pendingTotal = receivables
-    .filter((item) => item.status !== "received")
-    .reduce((total, item) => total + Number(item.amount || 0), 0);
-  const receivedTotal = receivables
-    .filter((item) => item.status === "received")
-    .reduce((total, item) => total + Number(item.amount || 0), 0);
-
-  if (hasElement("#receivablePendingTotal")) {
-    document.querySelector("#receivablePendingTotal").textContent = formatCurrency(pendingTotal);
-  }
-  if (hasElement("#receivableReceivedTotal")) {
-    document.querySelector("#receivableReceivedTotal").textContent = formatCurrency(receivedTotal);
-  }
-
-  if (!receivables.length) {
-    container.className = "item-list empty-state";
-    container.textContent = "Ainda nao existem valores em aberto registados.";
-    return;
-  }
-
-  container.className = "item-list";
-
-  receivables.forEach((receivable) => {
-    const node = template.content.firstElementChild.cloneNode(true);
-    const isReceived = receivable.status === "received";
-    const statusLabel = isReceived ? "Recebido" : "Por receber";
-    
-    node.querySelector(".item-title").textContent = receivable.name;
-    node.querySelector(".item-subtitle").textContent =
-      `${statusLabel} | ${receivable.dateLabel || "Sem data"}`;
-    node.querySelector(".item-value").textContent = formatCurrency(receivable.amount);
-    
-    if (isReceived) {
-      node.style.opacity = "0.6";
-      node.querySelector(".item-title").style.textDecoration = "line-through";
-    }
-
-    const actionWrap = node.querySelector(".item-actions");
-    const removeButton = node.querySelector(".ghost-btn");
-    
-    // Botão Recebido (Ação rápida)
-    if (!isReceived) {
-      const receiveBtn = document.createElement("button");
-      receiveBtn.type = "button";
-      receiveBtn.className = "success-btn";
-      receiveBtn.textContent = "Recebido ✅";
-      receiveBtn.title = "Marcar como recebido e injetar no orçamento";
-      receiveBtn.addEventListener("click", () => {
-        receivable.status = "received";
-        
-        // Injeção Automática de Rendimento (Anulação de Despesa)
-        const hasIncome = state.incomes.find(i => i.linkedReceivableId === receivable.id);
-        if (!hasIncome) {
-           const injection = {
-               id: generateUUID(), 
-               monthKey: getMonthKey(),
-               name: `Reembolso: ${receivable.name}`,
-               amount: receivable.amount,
-               day: Math.min(getToday().getDate(), getCycleWindow().daysInCycle),
-               dateLabel: getDefaultMonthDate(Math.min(getToday().getDate(), getCycleWindow().daysInCycle)),
-               linkedReceivableId: receivable.id
-           };
-           state.incomes.push(injection);
-           showToast("Reembolso registado como rendimento extra! O teu orçamento foi atualizado.");
-        }
-        
-        saveState();
-        render();
-      });
-      actionWrap.insertBefore(receiveBtn, removeButton);
-    }
-
-    const editButton = document.createElement("button");
-    editButton.type = "button";
-    editButton.className = "ghost-btn";
-    editButton.textContent = "Editar";
-    editButton.addEventListener("click", () => {
-      receivableForm.dataset.editingId = receivable.id;
-      document.querySelector("#receivableName").value = receivable.name;
-      document.querySelector("#receivableAmount").value = receivable.amount;
-      document.querySelector("#receivableDate").value = receivable.dateLabel || getDefaultMonthDate();
-      document.querySelector("#receivableStatus").value = receivable.status || "pending";
-      setStatus("#receivableStatusText", `A editar o valor em aberto de ${receivable.name}.`);
-    });
-    actionWrap.insertBefore(editButton, removeButton);
-    
-    removeButton.addEventListener("click", () => {
-      state.receivables = state.receivables.filter((item) => item.id !== receivable.id);
-      // Limpar injeção se for removido? Geralmente sim se for erro de registo
-      state.incomes = state.incomes.filter(i => i.linkedReceivableId !== receivable.id);
-      saveState();
-      render();
-      setStatus("#receivableStatusText", `Registo de ${receivable.name} removido.`);
-    });
-    container.appendChild(node);
-  });
-}
-
-// Retorna um filtro de mês de acordo com o período ativo na UI
-function getPeriodMonthKeys() {
-  const today = getToday();
-  const period = (typeof window !== 'undefined' && window.activePeriodFilter) || 'month';
-  const keys = new Set();
-
-  if (period === 'all') {
-    // Devolver todos os monthKeys únicos nos dados
-    [...state.expenses, ...state.incomes, ...state.transfers].forEach(item => {
-      const mk = getItemMonthKey(item);
-      if (mk) keys.add(mk);
-    });
-    return [...keys];
-  }
-
-  const monthsBack = period === 'quarter' ? 3 : 1;
-  for (let i = 0; i < monthsBack; i++) {
-    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-    keys.add(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`);
-  }
-  keys.add(getMonthKey());
-  return [...keys];
-}
-
-function renderExpenses() {
-  const fixedContainer = document.querySelector("#fixedExpensesList");
-  const variableContainer = document.querySelector("#expensesList");
+  const startDay = previousSnap ? previousSnap.day : 0;
+  const endDay = latestSnap.day;
   
-  if (fixedContainer) fixedContainer.innerHTML = "";
-  if (variableContainer) variableContainer.innerHTML = "";
+  const expenses = sumExpensesBetween(startDay, endDay);
+  const transfers = sumTransfersBetween(startDay, endDay);
+  const incomes = sumIncomesBetween(startDay, endDay, true);
 
-  const normalize = k => k.split('-').map(p => p.padStart(2, '0')).join('-');
-  const activePeriodKeys = getPeriodMonthKeys().map(normalize);
+  const explained =  incomes - (expenses + transfers);
+  const unexplained = totalDiff - explained;
 
-  const allMonthExpenses = state.expenses
-    .filter((expense) => activePeriodKeys.includes(normalize(getItemMonthKey(expense))))
-    .sort((a, b) => (getItemMonthKey(b) + String(b.day).padStart(2,'0')).localeCompare(getItemMonthKey(a) + String(a.day).padStart(2,'0'))); // DESC: mais recente primeiro
-
-  if (allMonthExpenses.length === 0) {
-    if (variableContainer) {
-      variableContainer.className = "item-list empty-state";
-      variableContainer.textContent = "Ainda não existem despesas registadas para este mês.";
-    }
-    return;
+  if (hasElement("#bankExpenseTotal")) document.querySelector("#bankExpenseTotal").textContent = formatCurrency(expenses);
+  if (hasElement("#bankTransferTotal")) document.querySelector("#bankTransferTotal").textContent = formatCurrency(transfers);
+  if (hasElement("#bankReconciledTotal")) document.querySelector("#bankReconciledTotal").textContent = formatCurrency(explained);
+  if (hasElement("#bankUnexplained")) {
+    const unEl = document.querySelector("#bankUnexplained");
+    unEl.textContent = formatCurrency(unexplained);
+    unEl.style.color = Math.abs(unexplained) > 0.01 ? "var(--error)" : "var(--success)";
   }
-
-  allMonthExpenses.forEach((expense) => {
-    const node = template.content.firstElementChild.cloneNode(true);
-    node.querySelector(".item-title").textContent = expense.name;
-    node.querySelector(".item-subtitle").textContent = `${expense.category || "Geral"} | Dia ${expense.day}`;
-    node.querySelector(".item-value").textContent = formatCurrency(expense.amount);
-
-    node.querySelector(".ghost-btn").addEventListener("click", (e) => {
-      e.stopPropagation();
-      state.expenses = state.expenses.filter((item) => item.id !== expense.id);
-      saveState();
-      render();
-    });
-
-    node.addEventListener("click", (e) => {
-      if (e.target.tagName === "BUTTON") return;
-      expenseForm.dataset.editingId = expense.id;
-      document.querySelector("#expenseName").value = expense.name;
-      document.querySelector("#expenseAmount").value = expense.amount;
-      document.querySelector("#expenseCategory").value = expense.category || "";
-      document.querySelector("#expenseDate").value = expense.dateLabel || getDefaultMonthDate(expense.day);
-      if (document.querySelector("#expenseKind")) {
-          document.querySelector("#expenseKind").value = expense.kind || "variable";
-      }
-      setStatus("#expenseStatus", `A editar ${expense.name}.`);
-    });
-
-    // Distribuir para o contentor correto baseado no tipo
-    if (expense.kind === "fixed" && fixedContainer) {
-        fixedContainer.className = "item-list";
-        fixedContainer.appendChild(node);
-    } else if (variableContainer) {
-        variableContainer.className = "item-list";
-        variableContainer.appendChild(node);
-    }
-  });
-}
-
-
-
-function renderCategories() {
-  const container = document.querySelector("#categoryList");
-  if (!container) {
-    return;
-  }
-  container.innerHTML = "";
-
-  if (!state.categories.length) {
-    container.className = "item-list empty-state";
-    container.textContent = "Ainda nao existem categorias registadas.";
-    return;
-  }
-
-  container.className = "item-list";
-
-  state.categories.forEach((category) => {
-    const node = template.content.firstElementChild.cloneNode(true);
-    node.querySelector(".item-title").textContent = category;
-    node.querySelector(".item-subtitle").textContent = "Categoria disponivel para despesas";
-    node.querySelector(".item-value").textContent = "";
-    node.querySelector(".ghost-btn").textContent = "Remover";
-    node.querySelector(".ghost-btn").addEventListener("click", () => {
-      const isUsed = state.expenses.some((expense) => expense.category === category);
-      if (isUsed) {
-        setStatus("#categoryStatus", "Nao podes remover uma categoria que ja esta a ser usada em despesas.");
-        return;
-      }
-
-      state.categories = state.categories.filter((item) => item !== category);
-      saveState();
-      render();
-      setStatus("#categoryStatus", `Categoria ${category} removida.`);
-    });
-    container.appendChild(node);
-  });
 }
 
 function renderReconciliationHistory() {
   const container = document.querySelector("#reconciliationHistoryList");
-  if (!container) {
+  if (!container) return;
+  container.innerHTML = "";
+
+  const snapshots = getSnapshotsForMonth();
+  if (snapshots.length < 1) {
+    container.className = "item-list empty-state";
+    container.textContent = "Ainda não existem intervalos suficientes para reconciliar.";
     return;
   }
-  container.innerHTML = "";
-  const history = getReconciliationHistory();
 
-  if (!history.length) {
+  const intervals = [];
+  for (let i = 0; i < snapshots.length; i++) {
+    const current = snapshots[i];
+    const previous = i > 0 ? snapshots[i-1] : getStartingSnapshot();
+    if (!previous) continue;
+
+    const startDay = previous.day;
+    const endDay = current.day;
+    
+    if (startDay === endDay && i > 0) continue;
+
+    const diffBank = Number(current.bankBalance) - Number(previous.bankBalance);
+    const diffCash = Number(current.cashBalance) - Number(previous.cashBalance);
+    const totalDiff = diffBank + diffCash;
+
+    const expenses = sumExpensesBetween(startDay, endDay);
+    const transfers = sumTransfersBetween(startDay, endDay);
+    const incomes = sumIncomesBetween(startDay, endDay, true);
+    
+    const explained = incomes - (expenses + transfers);
+    const unexplained = totalDiff - explained;
+
+    intervals.push({
+      label: `De dia ${startDay} até ${endDay}`,
+      totalDiff,
+      explained,
+      unexplained,
+      expenses,
+      transfers,
+      incomes
+    });
+  }
+
+  if (intervals.length === 0) {
     container.className = "item-list empty-state";
-    container.textContent = "Ainda nao existem intervalos suficientes para reconciliar.";
+    container.textContent = "Aguardando mais registos globais.";
     return;
   }
 
   container.className = "item-list";
-
-  history.forEach((entry) => {
+  intervals.reverse().forEach(interval => {
     const node = template.content.firstElementChild.cloneNode(true);
-    node.querySelector(".item-title").textContent = `Do dia ${entry.previousDay} ao dia ${entry.currentDay}`;
-    node.querySelector(".item-subtitle").textContent =
-      `Despesas ${formatCurrency(entry.expenseTotal)} | Depositos ${formatCurrency(entry.transferTotal)} | Dif. ${formatCurrency(entry.totalDifference)}`;
-    node.querySelector(".item-value").textContent = formatCurrency(entry.unexplainedDifference);
+    node.querySelector(".item-title").textContent = interval.label;
+    node.querySelector(".item-subtitle").innerHTML = 
+      `Gasto: ${formatCurrency(interval.expenses)} | Transferido: ${formatCurrency(interval.transfers)} <br>` +
+      `<small>Diferença real: ${formatCurrency(interval.totalDiff)} | Justificado: ${formatCurrency(interval.explained)}</small>`;
+    
+    const valEl = node.querySelector(".item-value");
+    valEl.textContent = formatCurrency(interval.unexplained);
+    valEl.style.color = Math.abs(interval.unexplained) > 1 ? "var(--error)" : "var(--success)";
+    
     node.querySelector(".ghost-btn").remove();
+    container.appendChild(node);
+  });
+}
+
+function renderSummary() {
+  const budget = calculateBudget();
+  const totals = getCycleAnalysis();
+
+  if (hasElement("#weeklyBudget")) document.querySelector("#weeklyBudget").textContent = formatCurrency(budget.weeklyBudget);
+  if (hasElement("#dailyBudget")) document.querySelector("#dailyBudget").textContent = formatCurrency(budget.dailyBudget);
+  if (hasElement("#leftoverAmount")) document.querySelector("#leftoverAmount").textContent = formatCurrency(budget.leftover);
+  if (hasElement("#revolutInterest")) document.querySelector("#revolutInterest").textContent = formatCurrency(budget.revolutInterest);
+  
+  if (hasElement("#revolutAllocation")) document.querySelector("#revolutAllocation").textContent = formatCurrency(budget.revolutAllocation);
+  if (hasElement("#xtbAllocation")) document.querySelector("#xtbAllocation").textContent = formatCurrency(budget.xtbAllocation);
+  
+  if (hasElement("#fixedExpenseTotal")) document.querySelector("#fixedExpenseTotal").textContent = formatCurrency(budget.fixedExpensesReal);
+  if (hasElement("#variableExpenseTotal")) document.querySelector("#variableExpenseTotal").textContent = formatCurrency(budget.variableExpenses);
+  
+  const startSnapshot = getStartingSnapshot();
+  const startTotal = startSnapshot ? (Number(startSnapshot.bankBalance) + Number(startSnapshot.cashBalance)) : 0;
+  if (hasElement("#currentTotalBalance")) document.querySelector("#currentTotalBalance").textContent = formatCurrency(startTotal);
+  
+  const netWorth = getGlobalAccountsTotal();
+  if (hasElement("#netCurrentBalance")) document.querySelector("#netCurrentBalance").textContent = formatCurrency(netWorth);
+}
+
+function renderAnalysis() {
+  const analysis = getCycleAnalysis();
+  
+  if (hasElement("#analysisMonth")) document.querySelector("#analysisMonth").textContent = getMonthKey();
+  if (hasElement("#analysisDate")) document.querySelector("#analysisDate").textContent = `Dia ${analysis.latestDay}`;
+  
+  if (hasElement("#shouldHaveSpentToday")) document.querySelector("#shouldHaveSpentToday").textContent = formatCurrency(analysis.expectedSpentToday);
+  if (hasElement("#currentWeek")) document.querySelector("#currentWeek").textContent = formatCurrency(analysis.actualSpent);
+  
+  if (hasElement("#expensesUntilToday")) document.querySelector("#expensesUntilToday").textContent = formatCurrency(analysis.expensesUntilToday);
+  if (hasElement("#transfersUntilToday")) document.querySelector("#transfersUntilToday").textContent = formatCurrency(analysis.transfersUntilToday);
+  
+  if (hasElement("#expectedSpentToday")) document.querySelector("#expectedSpentToday").textContent = formatCurrency(analysis.actualSpent - analysis.expectedSpentToday);
+  if (hasElement("#expectedSpentWeek")) document.querySelector("#expectedSpentWeek").textContent = formatCurrency(analysis.expectedSpentWeek);
+  if (hasElement("#idealRemaining")) document.querySelector("#idealRemaining").textContent = formatCurrency(analysis.idealRemaining);
+  if (hasElement("#availableToSplit")) document.querySelector("#availableToSplit").textContent = formatCurrency(analysis.availableToSplit);
+  
+  if (hasElement("#splitNowRevolut")) document.querySelector("#splitNowRevolut").textContent = formatCurrency(analysis.splitNowRevolut);
+  if (hasElement("#splitNowXtb")) document.querySelector("#splitNowXtb").textContent = formatCurrency(analysis.splitNowXtb);
+
+  const expectedEl = document.querySelector("#expectedSpentToday");
+  if (expectedEl) {
+     const val = analysis.actualSpent - analysis.expectedSpentToday;
+     expectedEl.style.color = val > 0 ? "var(--error)" : "var(--success)";
+     expectedEl.textContent = (val > 0 ? "+ " : "") + formatCurrency(val);
+  }
+}
+
+function renderCategories() {
+  const selects = ["#expenseCategory"];
+  selects.forEach((id) => {
+    const select = document.querySelector(id);
+    if (!select) return;
+    const current = select.value;
+    select.innerHTML = "";
+    state.categories.forEach((cat) => {
+      const opt = document.createElement("option");
+      opt.value = cat;
+      opt.textContent = cat;
+      select.appendChild(opt);
+    });
+    if (current && state.categories.includes(current)) {
+      select.value = current;
+    }
+  });
+}
+
+function renderAccounts() {
+  const container = document.querySelector("#accountsList");
+  if (!container) return;
+  container.innerHTML = "";
+  
+  if (state.accounts.length === 0) {
+    container.className = "item-list empty-state";
+    container.textContent = "Ainda não existem contas registadas.";
+    return;
+  }
+  
+  container.className = "item-list";
+  state.accounts.forEach(acc => {
+    const node = template.content.firstElementChild.cloneNode(true);
+    node.querySelector(".item-title").textContent = acc.name;
+    node.querySelector(".item-subtitle").textContent = acc.type;
+    node.querySelector(".item-value").textContent = formatCurrency(acc.balance);
+    
+    node.querySelector(".ghost-btn").addEventListener("click", () => {
+      state.accounts = state.accounts.filter(a => a.id !== acc.id);
+      saveState();
+      render();
+    });
     container.appendChild(node);
   });
 }
 
 function renderSnapshots() {
   const container = document.querySelector("#snapshotList");
-  if (!container) {
-    return;
-  }
+  if (!container) return;
   container.innerHTML = "";
-  const snapshots = getSnapshotsForMonth().slice().sort((a, b) => (b.day || 0) - (a.day || 0)); // DESC: mais recente primeiro
+  const snapshots = getSnapshotsForMonth();
 
   if (!snapshots.length) {
     container.className = "item-list empty-state";
@@ -1701,10 +1189,400 @@ function getGlobalAccountsTotal() {
           legacyAccountBalances[id] = (Number(s.bankBalance) || 0) + (Number(s.cashBalance) || 0);
       });
       let legacyTotal = 0;
-      for (let k in legacyAccountBalances) legacyTotal += legacyAccountBalances[k];
-      return legacyTotal;
+      for (let k in legacyAccountBalances) legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += s.bankBalance) + (Number(s.cashBalance) || 0);
+      });
+      let legacyTotal = 0;
+      for (let k in legacyAccountBalances) legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += legacyTotal += lacyTotal += legacyTotal += legacyTotal += latestCashTotal;
+  return total;
+}
+
+function updateAccountBalance(accountId, newBalance) {
+  const account = state.accounts.find(a => a.id === accountId);
+  if (account) {
+    account.balance = newBalance;
+  }
+}
+
+function renderNetWorth() {
+  const el = document.querySelector("#globalNetWorthDisplay");
+  if (!el) return;
+  const accountsTotal = getGlobalAccountsTotal();
+  const receivablesTotal = state.receivables.filter(r => r.status !== "received").reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
+  el.textContent = formatCurrency(accountsTotal + receivablesTotal);
+}
+
+function renderBankReconciliation() {
+  const snapshots = getSnapshotsForMonth();
+  if (snapshots.length < 1) {
+    if (hasElement("#bankStartBalance")) document.querySelector("#bankStartBalance").textContent = "0,00 EUR";
+    if (hasElement("#bankCurrentBalance")) document.querySelector("#bankCurrentBalance").textContent = "0,00 EUR";
+    if (hasElement("#bankDifference")) document.querySelector("#bankDifference").textContent = "0,00 EUR";
+    return;
   }
 
+  const latestSnap = snapshots[snapshots.length - 1];
+  const previousSnap = snapshots.length > 1 ? snapshots[snapshots.length - 2] : getStartingSnapshot();
+
+  const prevBank = previousSnap ? Number(previousSnap.bankBalance) : 0;
+  const curBank = Number(latestSnap.bankBalance);
+  const diffBank = curBank - prevBank;
+  
+  const prevCash = previousSnap ? Number(previousSnap.cashBalance) : 0;
+  const curCash = Number(latestSnap.cashBalance);
+  const diffCash = curCash - prevCash;
+
+  if (hasElement("#bankStartBalance")) document.querySelector("#bankStartBalance").textContent = formatCurrency(prevBank);
+  if (hasElement("#bankCurrentBalance")) document.querySelector("#bankCurrentBalance").textContent = formatCurrency(curBank);
+  if (hasElement("#cashStartBalance")) document.querySelector("#cashStartBalance").textContent = formatCurrency(prevCash);
+  if (hasElement("#cashCurrentBalance")) document.querySelector("#cashCurrentBalance").textContent = formatCurrency(curCash);
+
+  const totalDiff = diffBank + diffCash;
+  if (hasElement("#bankDifference")) {
+    document.querySelector("#bankDifference").textContent = formatCurrency(totalDiff);
+  }
+
+  const startDay = previousSnap ? previousSnap.day : 0;
+  const endDay = latestSnap.day;
+  
+  const expenses = sumExpensesBetween(startDay, endDay);
+  const transfers = sumTransfersBetween(startDay, endDay);
+  const incomes = sumIncomesBetween(startDay, endDay, true);
+
+  const explained =  incomes - (expenses + transfers);
+  const unexplained = totalDiff - explained;
+
+  if (hasElement("#bankExpenseTotal")) document.querySelector("#bankExpenseTotal").textContent = formatCurrency(expenses);
+  if (hasElement("#bankTransferTotal")) document.querySelector("#bankTransferTotal").textContent = formatCurrency(transfers);
+  if (hasElement("#bankReconciledTotal")) document.querySelector("#bankReconciledTotal").textContent = formatCurrency(explained);
+  if (hasElement("#bankUnexplained")) {
+    const unEl = document.querySelector("#bankUnexplained");
+    unEl.textContent = formatCurrency(unexplained);
+    unEl.style.color = Math.abs(unexplained) > 0.01 ? "var(--error)" : "var(--success)";
+  }
+}
+
+function renderReconciliationHistory() {
+  const container = document.querySelector("#reconciliationHistoryList");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const snapshots = getSnapshotsForMonth();
+  if (snapshots.length < 1) {
+    container.className = "item-list empty-state";
+    container.textContent = "Ainda não existem intervalos suficientes para reconciliar.";
+    return;
+  }
+
+  const intervals = [];
+  for (let i = 0; i < snapshots.length; i++) {
+    const current = snapshots[i];
+    const previous = i > 0 ? snapshots[i-1] : getStartingSnapshot();
+    if (!previous) continue;
+
+    const startDay = previous.day;
+    const endDay = current.day;
+    
+    if (startDay === endDay && i > 0) continue;
+
+    const diffBank = Number(current.bankBalance) - Number(previous.bankBalance);
+    const diffCash = Number(current.cashBalance) - Number(previous.cashBalance);
+    const totalDiff = diffBank + diffCash;
+
+    const expenses = sumExpensesBetween(startDay, endDay);
+    const transfers = sumTransfersBetween(startDay, endDay);
+    const incomes = sumIncomesBetween(startDay, endDay, true);
+    
+    const explained = incomes - (expenses + transfers);
+    const unexplained = totalDiff - explained;
+
+    intervals.push({
+      label: `De dia ${startDay} até ${endDay}`,
+      totalDiff,
+      explained,
+      unexplained,
+      expenses,
+      transfers,
+      incomes
+    });
+  }
+
+  if (intervals.length === 0) {
+    container.className = "item-list empty-state";
+    container.textContent = "Aguardando mais registos globais.";
+    return;
+  }
+
+  container.className = "item-list";
+  intervals.reverse().forEach(interval => {
+    const node = template.content.firstElementChild.cloneNode(true);
+    node.querySelector(".item-title").textContent = interval.label;
+    node.querySelector(".item-subtitle").innerHTML = 
+      `Gasto: ${formatCurrency(interval.expenses)} | Transferido: ${formatCurrency(interval.transfers)} <br>` +
+      `<small>Diferença real: ${formatCurrency(interval.totalDiff)} | Justificado: ${formatCurrency(interval.explained)}</small>`;
+    
+    const valEl = node.querySelector(".item-value");
+    valEl.textContent = formatCurrency(interval.unexplained);
+    valEl.style.color = Math.abs(interval.unexplained) > 1 ? "var(--error)" : "var(--success)";
+    
+    node.querySelector(".ghost-btn").remove();
+    container.appendChild(node);
+  });
+}
+
+function renderSummary() {
+  const budget = calculateBudget();
+  const totals = getCycleAnalysis();
+
+  if (hasElement("#weeklyBudget")) document.querySelector("#weeklyBudget").textContent = formatCurrency(budget.weeklyBudget);
+  if (hasElement("#dailyBudget")) document.querySelector("#dailyBudget").textContent = formatCurrency(budget.dailyBudget);
+  if (hasElement("#leftoverAmount")) document.querySelector("#leftoverAmount").textContent = formatCurrency(budget.leftover);
+  if (hasElement("#revolutInterest")) document.querySelector("#revolutInterest").textContent = formatCurrency(budget.revolutInterest);
+  
+  if (hasElement("#revolutAllocation")) document.querySelector("#revolutAllocation").textContent = formatCurrency(budget.revolutAllocation);
+  if (hasElement("#xtbAllocation")) document.querySelector("#xtbAllocation").textContent = formatCurrency(budget.xtbAllocation);
+  
+  if (hasElement("#fixedExpenseTotal")) document.querySelector("#fixedExpenseTotal").textContent = formatCurrency(budget.fixedExpensesReal);
+  if (hasElement("#variableExpenseTotal")) document.querySelector("#variableExpenseTotal").textContent = formatCurrency(budget.variableExpenses);
+  
+  const startSnapshot = getStartingSnapshot();
+  const startTotal = startSnapshot ? (Number(startSnapshot.bankBalance) + Number(startSnapshot.cashBalance)) : 0;
+  if (hasElement("#currentTotalBalance")) document.querySelector("#currentTotalBalance").textContent = formatCurrency(startTotal);
+  
+  const netWorth = getGlobalAccountsTotal();
+  if (hasElement("#netCurrentBalance")) document.querySelector("#netCurrentBalance").textContent = formatCurrency(netWorth);
+}
+
+function renderAnalysis() {
+  const analysis = getCycleAnalysis();
+  
+  if (hasElement("#analysisMonth")) document.querySelector("#analysisMonth").textContent = getMonthKey();
+  if (hasElement("#analysisDate")) document.querySelector("#analysisDate").textContent = `Dia ${analysis.latestDay}`;
+  
+  if (hasElement("#shouldHaveSpentToday")) document.querySelector("#shouldHaveSpentToday").textContent = formatCurrency(analysis.expectedSpentToday);
+  if (hasElement("#currentWeek")) document.querySelector("#currentWeek").textContent = formatCurrency(analysis.actualSpent);
+  
+  if (hasElement("#expensesUntilToday")) document.querySelector("#expensesUntilToday").textContent = formatCurrency(analysis.expensesUntilToday);
+  if (hasElement("#transfersUntilToday")) document.querySelector("#transfersUntilToday").textContent = formatCurrency(analysis.transfersUntilToday);
+  
+  if (hasElement("#expectedSpentToday")) document.querySelector("#expectedSpentToday").textContent = formatCurrency(analysis.actualSpent - analysis.expectedSpentToday);
+  if (hasElement("#expectedSpentWeek")) document.querySelector("#expectedSpentWeek").textContent = formatCurrency(analysis.expectedSpentWeek);
+  if (hasElement("#idealRemaining")) document.querySelector("#idealRemaining").textContent = formatCurrency(analysis.idealRemaining);
+  if (hasElement("#availableToSplit")) document.querySelector("#availableToSplit").textContent = formatCurrency(analysis.availableToSplit);
+  
+  if (hasElement("#splitNowRevolut")) document.querySelector("#splitNowRevolut").textContent = formatCurrency(analysis.splitNowRevolut);
+  if (hasElement("#splitNowXtb")) document.querySelector("#splitNowXtb").textContent = formatCurrency(analysis.splitNowXtb);
+
+  const expectedEl = document.querySelector("#expectedSpentToday");
+  if (expectedEl) {
+     const val = analysis.actualSpent - analysis.expectedSpentToday;
+     expectedEl.style.color = val > 0 ? "var(--error)" : "var(--success)";
+     expectedEl.textContent = (val > 0 ? "+ " : "") + formatCurrency(val);
+  }
+}
+
+function renderCategories() {
+  const selects = ["#expenseCategory"];
+  selects.forEach((id) => {
+    const select = document.querySelector(id);
+    if (!select) return;
+    const current = select.value;
+    select.innerHTML = "";
+    state.categories.forEach((cat) => {
+      const opt = document.createElement("option");
+      opt.value = cat;
+      opt.textContent = cat;
+      select.appendChild(opt);
+    });
+    if (current && state.categories.includes(current)) {
+      select.value = current;
+    }
+  });
+}
+
+function renderAccounts() {
+  const container = document.querySelector("#accountsList");
+  if (!container) return;
+  container.innerHTML = "";
+  
+  if (state.accounts.length === 0) {
+    container.className = "item-list empty-state";
+    container.textContent = "Ainda não existem contas registadas.";
+    return;
+  }
+  
+  container.className = "item-list";
+  state.accounts.forEach(acc => {
+    const node = template.content.firstElementChild.cloneNode(true);
+    node.querySelector(".item-title").textContent = acc.name;
+    node.querySelector(".item-subtitle").textContent = acc.type;
+    node.querySelector(".item-value").textContent = formatCurrency(acc.balance);
+    
+    node.querySelector(".ghost-btn").addEventListener("click", () => {
+      state.accounts = state.accounts.filter(a => a.id !== acc.id);
+      saveState();
+      render();
+    });
+    container.appendChild(node);
+  });
+}
+
+function renderSnapshots() {
+  const container = document.querySelector("#snapshotList");
+  if (!container) return;
+  container.innerHTML = "";
+  const snapshots = getSnapshotsForMonth();
+
+  if (!snapshots.length) {
+    container.className = "item-list empty-state";
+    container.textContent = "Ainda nao existem registos guardados.";
+    return;
+  }
+
+  container.className = "item-list";
+
+  snapshots.forEach((snapshot) => {
+    const node = template.content.firstElementChild.cloneNode(true);
+    node.querySelector(".item-title").textContent = `Fotografia Global dia ${snapshot.day}`;
+    node.querySelector(".item-subtitle").textContent =
+      `Todas as contas somadas | Banco ${formatCurrency(snapshot.bankBalance)} | Carteira ${formatCurrency(snapshot.cashBalance)}`;
+    node.querySelector(".item-value").textContent = "";
+    
+    // Add Remove Button
+    const btn = node.querySelector(".ghost-btn");
+    if(btn) {
+      btn.textContent = "Apagar Fotografia";
+      btn.addEventListener("click", () => {
+         state.snapshots = state.snapshots.filter(s => !(s.monthKey === snapshot.monthKey && s.day === snapshot.day));
+         saveState();
+         render();
+         setStatus("#bankStatus", `Registo Global do dia ${snapshot.day} foi eliminado! O algoritmo foi revertido.`);
+      });
+    }
+
+    container.appendChild(node);
+  });
+}
+
+function renderTransfers() {
+  const container = document.querySelector("#transfersList");
+  if (!container) {
+    return;
+  }
+  container.innerHTML = "";
+  const normalize = k => k.split('-').map(p => p.padStart(2, '0')).join('-');
+  const activePeriodKeys = getPeriodMonthKeys().map(normalize);
+  const transfers = state.transfers
+    .slice()
+    .filter((transfer) => activePeriodKeys.includes(normalize(getItemMonthKey(transfer))))
+    .sort((a, b) => (getItemMonthKey(b) + String(b.day).padStart(2,'0')).localeCompare(getItemMonthKey(a) + String(a.day).padStart(2,'0'))); // DESC: mais recente primeiro
+
+  if (!transfers.length) {
+    container.className = "item-list empty-state";
+    container.textContent = "Ainda nao existem depositos registados.";
+    return;
+  }
+
+  container.className = "item-list";
+
+  transfers.forEach((transfer) => {
+      const node = template.content.firstElementChild.cloneNode(true);
+      node.querySelector(".item-title").textContent = transfer.name;
+      node.querySelector(".item-subtitle").textContent =
+        `${transfer.accountName || "Conta sem nome"} | Depositado em ${transfer.dateLabel || `dia ${transfer.day}`}`;
+      node.querySelector(".item-value").textContent = formatCurrency(transfer.amount);
+      node.querySelector(".ghost-btn").addEventListener("click", () => {
+        state.transfers = state.transfers.filter((item) => item.id !== transfer.id);
+        saveState();
+        render();
+      });
+      container.appendChild(node);
+    });
+}
+
+function renderIncomes() {
+  const container = document.querySelector("#incomesList");
+  if (!container) return;
+  container.innerHTML = "";
+  const normalize = k => k.split('-').map(p => p.padStart(2, '0')).join('-');
+  const activePeriodKeys = getPeriodMonthKeys().map(normalize);
+  const incomes = state.incomes
+    .slice()
+    .filter((income) => activePeriodKeys.includes(normalize(getItemMonthKey(income))))
+    .sort((a, b) => (getItemMonthKey(b) + String(b.day).padStart(2,'0')).localeCompare(getItemMonthKey(a) + String(a.day).padStart(2,'0'))); // DESC: mais recente primeiro
+
+  if (!incomes.length) {
+    container.className = "item-list empty-state";
+    container.textContent = "Ainda nao existem ganhos extra registados.";
+    return;
+  }
+  container.className = "item-list";
+
+  incomes.forEach((income) => {
+    const node = template.content.firstElementChild.cloneNode(true);
+    node.querySelector(".item-title").textContent = income.name;
+    node.querySelector(".item-subtitle").textContent = `Ganho registado em ${income.dateLabel || `dia ${income.day}`}`;
+    node.querySelector(".item-value").textContent = formatCurrency(income.amount);
+    
+    const actionWrap = node.querySelector(".item-actions");
+    const removeButton = node.querySelector(".ghost-btn");
+    
+    const editButton = document.createElement("button");
+    editButton.type = "button";
+    editButton.className = "ghost-btn";
+    editButton.textContent = "Editar";
+    editButton.addEventListener("click", () => {
+      incomeForm.dataset.editingId = income.id;
+      document.querySelector("#incomeName").value = income.name;
+      document.querySelector("#incomeAmount").value = income.amount;
+      document.querySelector("#incomeDate").value = income.dateLabel || getDefaultMonthDate(income.day);
+      setStatus("#incomeStatus", `A editar o ganho ${income.name}. Guarda para atualizar.`);
+    });
+    
+    actionWrap.insertBefore(editButton, removeButton);
+    removeButton.addEventListener("click", () => {
+      state.incomes = state.incomes.filter((item) => item.id !== income.id);
+      saveState();
+      render();
+      setStatus("#incomeStatus", `Ganho ${income.name} removido com sucesso.`);
+    });
+    container.appendChild(node);
+  });
+}
+
+function renderGoalHint() {
+  if (!hasElement("#goalLabel")) {
+    return;
+  }
+  const goal = state.revolutGoal?.trim();
+  const goalLabel = document.querySelector("#goalLabel");
+  goalLabel.textContent = goal
+    ? `Conta Revolut reservada para: ${goal}.`
+    : "Conta Revolut pronta para o teu objetivo de poupanca.";
+}
+
+function getGlobalAccountsTotal() {
+  let total = 0;
+  
+  // Sum current modern accounts
+  state.accounts.forEach(acc => {
+     total += (Number(acc.balance) || 0);
+  });
+  
+  // Isolate current physical cash
+  let latestCashTotal = 0;
+  const allChronological = state.snapshots.slice().sort((a,b) => {
+    if(a.monthKey === b.monthKey) return (Number(a.day)||0) - (Number(b.day)||0);
+    return String(a.monthKey || "").localeCompare(String(b.monthKey || ""));
+  });
+  
+  if (allChronological.length > 0) {
+      const lastSnap = allChronological[allChronological.length - 1];
+      const sameDaySnaps = allChronological.filter(s => s.monthKey === lastSnap.monthKey && s.day === lastSnap.day);
+      sameDaySnaps.forEach(s => {
+         latestCashTotal += (Number(s.cashBalance) || 0);
+      });
+  }
+  
   return total + latestCashTotal;
 }
 
@@ -1721,6 +1599,508 @@ function renderNetWorth() {
   const accountsTotal = getGlobalAccountsTotal();
   const receivablesTotal = state.receivables.filter(r => r.status !== "received").reduce((sum, r) => sum + (Number(r.amount) || 0), 0);
   el.textContent = formatCurrency(accountsTotal + receivablesTotal);
+}
+
+function renderBankReconciliation() {
+  const snapshots = getSnapshotsForMonth();
+  if (snapshots.length < 1) {
+    if (hasElement("#bankStartBalance")) document.querySelector("#bankStartBalance").textContent = "0,00 EUR";
+    if (hasElement("#bankCurrentBalance")) document.querySelector("#bankCurrentBalance").textContent = "0,00 EUR";
+    if (hasElement("#bankDifference")) document.querySelector("#bankDifference").textContent = "0,00 EUR";
+    return;
+  }
+
+  const latestSnap = snapshots[snapshots.length - 1];
+  const previousSnap = snapshots.length > 1 ? snapshots[snapshots.length - 2] : getStartingSnapshot();
+
+  const prevBank = previousSnap ? Number(previousSnap.bankBalance) : 0;
+  const curBank = Number(latestSnap.bankBalance);
+  const diffBank = curBank - prevBank;
+  
+  const prevCash = previousSnap ? Number(previousSnap.cashBalance) : 0;
+  const curCash = Number(latestSnap.cashBalance);
+  const diffCash = curCash - prevCash;
+
+  if (hasElement("#bankStartBalance")) document.querySelector("#bankStartBalance").textContent = formatCurrency(prevBank);
+  if (hasElement("#bankCurrentBalance")) document.querySelector("#bankCurrentBalance").textContent = formatCurrency(curBank);
+  if (hasElement("#cashStartBalance")) document.querySelector("#cashStartBalance").textContent = formatCurrency(prevCash);
+  if (hasElement("#cashCurrentBalance")) document.querySelector("#cashCurrentBalance").textContent = formatCurrency(curCash);
+
+  const totalDiff = diffBank + diffCash;
+  if (hasElement("#bankDifference")) {
+    document.querySelector("#bankDifference").textContent = formatCurrency(totalDiff);
+  }
+
+  const startDay = previousSnap ? previousSnap.day : 0;
+  const endDay = latestSnap.day;
+  
+  const expenses = sumExpensesBetween(startDay, endDay);
+  const transfers = sumTransfersBetween(startDay, endDay);
+  const incomes = sumIncomesBetween(startDay, endDay, true);
+
+  const explained =  incomes - (expenses + transfers);
+  const unexplained = totalDiff - explained;
+
+  if (hasElement("#bankExpenseTotal")) document.querySelector("#bankExpenseTotal").textContent = formatCurrency(expenses);
+  if (hasElement("#bankTransferTotal")) document.querySelector("#bankTransferTotal").textContent = formatCurrency(transfers);
+  if (hasElement("#bankReconciledTotal")) document.querySelector("#bankReconciledTotal").textContent = formatCurrency(explained);
+  if (hasElement("#bankUnexplained")) {
+    const unEl = document.querySelector("#bankUnexplained");
+    unEl.textContent = formatCurrency(unexplained);
+    unEl.style.color = Math.abs(unexplained) > 0.01 ? "var(--error)" : "var(--success)";
+  }
+}
+
+function renderReconciliationHistory() {
+  const container = document.querySelector("#reconciliationHistoryList");
+  if (!container) return;
+  container.innerHTML = "";
+
+  const snapshots = getSnapshotsForMonth();
+  if (snapshots.length < 1) {
+    container.className = "item-list empty-state";
+    container.textContent = "Ainda não existem intervalos suficientes para reconciliar.";
+    return;
+  }
+
+  const intervals = [];
+  for (let i = 0; i < snapshots.length; i++) {
+    const current = snapshots[i];
+    const previous = i > 0 ? snapshots[i-1] : getStartingSnapshot();
+    if (!previous) continue;
+
+    const startDay = previous.day;
+    const endDay = current.day;
+    
+    if (startDay === endDay && i > 0) continue;
+
+    const diffBank = Number(current.bankBalance) - Number(previous.bankBalance);
+    const diffCash = Number(current.cashBalance) - Number(previous.cashBalance);
+    const totalDiff = diffBank + diffCash;
+
+    const expenses = sumExpensesBetween(startDay, endDay);
+    const transfers = sumTransfersBetween(startDay, endDay);
+    const incomes = sumIncomesBetween(startDay, endDay, true);
+    
+    const explained = incomes - (expenses + transfers);
+    const unexplained = totalDiff - explained;
+
+    intervals.push({
+      label: `De dia ${startDay} até ${endDay}`,
+      totalDiff,
+      explained,
+      unexplained,
+      expenses,
+      transfers,
+      incomes
+    });
+  }
+
+  if (intervals.length === 0) {
+    container.className = "item-list empty-state";
+    container.textContent = "Aguardando mais registos globais.";
+    return;
+  }
+
+  container.className = "item-list";
+  intervals.reverse().forEach(interval => {
+    const node = template.content.firstElementChild.cloneNode(true);
+    node.querySelector(".item-title").textContent = interval.label;
+    node.querySelector(".item-subtitle").innerHTML = 
+      `Gasto: ${formatCurrency(interval.expenses)} | Transferido: ${formatCurrency(interval.transfers)} <br>` +
+      `<small>Diferença real: ${formatCurrency(interval.totalDiff)} | Justificado: ${formatCurrency(interval.explained)}</small>`;
+    
+    const valEl = node.querySelector(".item-value");
+    valEl.textContent = formatCurrency(interval.unexplained);
+    valEl.style.color = Math.abs(interval.unexplained) > 1 ? "var(--error)" : "var(--success)";
+    
+    node.querySelector(".ghost-btn").remove();
+    container.appendChild(node);
+  });
+}
+
+function renderSummary() {
+  const budget = calculateBudget();
+  const totals = getCycleAnalysis();
+
+  if (hasElement("#weeklyBudget")) document.querySelector("#weeklyBudget").textContent = formatCurrency(budget.weeklyBudget);
+  if (hasElement("#dailyBudget")) document.querySelector("#dailyBudget").textContent = formatCurrency(budget.dailyBudget);
+  if (hasElement("#leftoverAmount")) document.querySelector("#leftoverAmount").textContent = formatCurrency(budget.leftover);
+  if (hasElement("#revolutInterest")) document.querySelector("#revolutInterest").textContent = formatCurrency(budget.revolutInterest);
+  
+  if (hasElement("#revolutAllocation")) document.querySelector("#revolutAllocation").textContent = formatCurrency(budget.revolutAllocation);
+  if (hasElement("#xtbAllocation")) document.querySelector("#xtbAllocation").textContent = formatCurrency(budget.xtbAllocation);
+  
+  if (hasElement("#fixedExpenseTotal")) document.querySelector("#fixedExpenseTotal").textContent = formatCurrency(budget.fixedExpensesReal);
+  if (hasElement("#variableExpenseTotal")) document.querySelector("#variableExpenseTotal").textContent = formatCurrency(budget.variableExpenses);
+  
+  const startSnapshot = getStartingSnapshot();
+  const startTotal = startSnapshot ? (Number(startSnapshot.bankBalance) + Number(startSnapshot.cashBalance)) : 0;
+  if (hasElement("#currentTotalBalance")) document.querySelector("#currentTotalBalance").textContent = formatCurrency(startTotal);
+  
+  const netWorth = getGlobalAccountsTotal();
+  if (hasElement("#netCurrentBalance")) document.querySelector("#netCurrentBalance").textContent = formatCurrency(netWorth);
+}
+
+function renderAnalysis() {
+  const analysis = getCycleAnalysis();
+  
+  if (hasElement("#analysisMonth")) document.querySelector("#analysisMonth").textContent = getMonthKey();
+  if (hasElement("#analysisDate")) document.querySelector("#analysisDate").textContent = `Dia ${analysis.latestDay}`;
+  
+  if (hasElement("#shouldHaveSpentToday")) document.querySelector("#shouldHaveSpentToday").textContent = formatCurrency(analysis.expectedSpentToday);
+  if (hasElement("#currentWeek")) document.querySelector("#currentWeek").textContent = formatCurrency(analysis.actualSpent);
+  
+  if (hasElement("#expensesUntilToday")) document.querySelector("#expensesUntilToday").textContent = formatCurrency(analysis.expensesUntilToday);
+  if (hasElement("#transfersUntilToday")) document.querySelector("#transfersUntilToday").textContent = formatCurrency(analysis.transfersUntilToday);
+  
+  if (hasElement("#expectedSpentToday")) document.querySelector("#expectedSpentToday").textContent = formatCurrency(analysis.actualSpent - analysis.expectedSpentToday);
+  if (hasElement("#expectedSpentWeek")) document.querySelector("#expectedSpentWeek").textContent = formatCurrency(analysis.expectedSpentWeek);
+  if (hasElement("#idealRemaining")) document.querySelector("#idealRemaining").textContent = formatCurrency(analysis.idealRemaining);
+  if (hasElement("#availableToSplit")) document.querySelector("#availableToSplit").textContent = formatCurrency(analysis.availableToSplit);
+  
+  if (hasElement("#splitNowRevolut")) document.querySelector("#splitNowRevolut").textContent = formatCurrency(analysis.splitNowRevolut);
+  if (hasElement("#splitNowXtb")) document.querySelector("#splitNowXtb").textContent = formatCurrency(analysis.splitNowXtb);
+
+  const expectedEl = document.querySelector("#expectedSpentToday");
+  if (expectedEl) {
+     const val = analysis.actualSpent - analysis.expectedSpentToday;
+     expectedEl.style.color = val > 0 ? "var(--error)" : "var(--success)";
+     expectedEl.textContent = (val > 0 ? "+ " : "") + formatCurrency(val);
+  }
+}
+
+function renderCategories() {
+  const selects = ["#expenseCategory"];
+  selects.forEach((id) => {
+    const select = document.querySelector(id);
+    if (!select) return;
+    const current = select.value;
+    select.innerHTML = "";
+    state.categories.forEach((cat) => {
+      const opt = document.createElement("option");
+      opt.value = cat;
+      opt.textContent = cat;
+      select.appendChild(opt);
+    });
+    if (current && state.categories.includes(current)) {
+      select.value = current;
+    }
+  });
+}
+
+function renderAccounts() {
+  const container = document.querySelector("#accountsList");
+  if (!container) return;
+  container.innerHTML = "";
+  
+  if (state.accounts.length === 0) {
+    container.className = "item-list empty-state";
+    container.textContent = "Ainda não existem contas registadas.";
+    return;
+  }
+  
+  container.className = "item-list";
+  state.accounts.forEach(acc => {
+    const node = template.content.firstElementChild.cloneNode(true);
+    node.querySelector(".item-title").textContent = acc.name;
+    node.querySelector(".item-subtitle").textContent = acc.type;
+    node.querySelector(".item-value").textContent = formatCurrency(acc.balance);
+    
+    node.querySelector(".ghost-btn").addEventListener("click", () => {
+      state.accounts = state.accounts.filter(a => a.id !== acc.id);
+      saveState();
+      render();
+    });
+    container.appendChild(node);
+  });
+}
+
+function renderSnapshots() {
+  const container = document.querySelector("#snapshotList");
+  if (!container) return;
+  container.innerHTML = "";
+  const snapshots = getSnapshotsForMonth();
+
+  if (!snapshots.length) {
+    container.className = "item-list empty-state";
+    container.textContent = "Ainda nao existem registos guardados.";
+    return;
+  }
+
+  container.className = "item-list";
+
+  snapshots.forEach((snapshot) => {
+    const node = template.content.firstElementChild.cloneNode(true);
+    node.querySelector(".item-title").textContent = `Fotografia Global dia ${snapshot.day}`;
+    node.querySelector(".item-subtitle").textContent =
+      `Todas as contas somadas | Banco ${formatCurrency(snapshot.bankBalance)} | Carteira ${formatCurrency(snapshot.cashBalance)}`;
+    node.querySelector(".item-value").textContent = "";
+    
+    // Add Remove Button
+    const btn = node.querySelector(".ghost-btn");
+    if(btn) {
+      btn.textContent = "Apagar Fotografia";
+      btn.addEventListener("click", () => {
+         state.snapshots = state.snapshots.filter(s => !(s.monthKey === snapshot.monthKey && s.day === snapshot.day));
+         saveState();
+         render();
+         setStatus("#bankStatus", `Registo Global do dia ${snapshot.day} foi eliminado! O algoritmo foi revertido.`);
+      });
+    }
+
+    container.appendChild(node);
+  });
+}
+
+function renderRecurring() {
+  const masterContainer = document.querySelector("#recurringList");
+  const monthlyContainer = document.querySelector("#fixedExpensesList");
+  const freqLabels = { monthly: 'Mensal', 'semi-annual': 'Semestral', annual: 'Anual' };
+  const { month } = getActiveMonthParts();
+
+  // 1. Renderizar Configuração (configuracao.html)
+  if (masterContainer) {
+    masterContainer.innerHTML = "";
+    if (state.recurringFixed.length === 0) {
+      masterContainer.className = "item-list empty-state";
+      masterContainer.textContent = "Ainda não existem despesas fixas configuradas.";
+    } else {
+      masterContainer.className = "item-list";
+      state.recurringFixed.forEach((item) => {
+        const node = template.content.firstElementChild.cloneNode(true);
+        node.querySelector(".item-title").textContent = item.name;
+        node.querySelector(".item-subtitle").textContent = 
+           `${freqLabels[item.frequency] || "Mensal"} (Dia ${item.day})${item.endDate ? ` · Termina a ${item.endDate}` : ""}`;
+        node.querySelector(".item-value").textContent = formatCurrency(item.amount);
+        node.querySelector(".ghost-btn").addEventListener("click", () => {
+          state.recurringFixed = state.recurringFixed.filter((i) => i.id !== item.id);
+          saveState();
+          render();
+        });
+        masterContainer.appendChild(node);
+      });
+    }
+  }
+
+  // 2. Renderizar Ocorrências Reais (Registos - index.html)
+  if (monthlyContainer) {
+    monthlyContainer.innerHTML = "";
+    
+    // Filtrar apenas despesas válidas para o mês ativo
+    const monthKey = getMonthKey();
+    const allFixed = state.recurringFixed.filter(item => !item.endDate || item.endDate >= monthKey);
+    
+    if (allFixed.length === 0) {
+      monthlyContainer.className = "item-list empty-state";
+      monthlyContainer.textContent = "Não existem despesas fixas configuradas.";
+    } else {
+      monthlyContainer.className = "item-list";
+      allFixed.forEach((item) => {
+        const sm = Number(item.startMonth) || 1;
+        const isCurrentPayment = (!item.frequency || item.frequency === 'monthly') ||
+           (item.frequency === 'annual' && month === sm) ||
+           (item.frequency === 'semi-annual' && (month === sm || month === (sm + 6 > 12 ? sm - 6 : sm + 6)));
+           
+        const node = template.content.firstElementChild.cloneNode(true);
+        node.querySelector(".item-title").textContent = item.name;
+        
+        if (isCurrentPayment) {
+          node.querySelector(".item-subtitle").textContent = `Obrigação Real (Dia ${item.day})${item.endDate ? ` · Termina a ${item.endDate}` : ""}`;
+          node.querySelector(".item-value").textContent = formatCurrency(item.amount);
+        } else {
+          // Provisionamento
+          const prov = item.frequency === 'annual' ? item.amount / 12 : item.amount / 6;
+          node.querySelector(".item-subtitle").textContent = `Provisão Mensal (${freqLabels[item.frequency] || "Variável"})`;
+          node.querySelector(".item-value").textContent = formatCurrency(prov);
+          node.style.opacity = "0.7";
+          node.style.fontStyle = "italic";
+        }
+
+        // Permitir edição ao clicar
+        node.style.cursor = "pointer";
+        node.addEventListener("click", (e) => {
+           if (e.target.tagName === "BUTTON") return;
+           
+           const expenseForm = document.querySelector("#expense-form");
+           if (!expenseForm) return;
+           
+           expenseForm.dataset.editingId = item.id;
+           expenseForm.dataset.editingType = "fixed"; // Identificador especial
+           
+           document.querySelector("#expenseName").value = item.name;
+           document.querySelector("#expenseAmount").value = item.amount;
+           const kindEl = document.querySelector("#expenseKind");
+           kindEl.value = "fixed";
+           kindEl.dispatchEvent(new Event("change"));
+           
+           const freqEl = document.querySelector("#expenseFrequency");
+           freqEl.style.display = "block";
+           freqEl.value = item.frequency || "monthly";
+           
+           // Data de início (aproximada para o mês/dia atual ou original)
+           const currentMonth = getMonthKey();
+           document.querySelector("#expenseDate").value = `${currentMonth}-${String(item.day || 1).padStart(2, '0')}`;
+           
+           const endDateEl = document.querySelector("#expenseEndDate");
+           if (endDateEl) {
+              endDateEl.style.display = "block";
+              endDateEl.value = item.endDate || "";
+           }
+           
+           const recurringActions = document.querySelector("#recurringEditActions");
+           if (recurringActions) recurringActions.style.display = "grid";
+
+           window.scrollTo({ top: 0, behavior: 'smooth' });
+           setStatus("#expenseStatus", `A editar obrigação fixa: ${item.name}`);
+        });
+
+        node.querySelector(".ghost-btn").style.display = "none";
+        monthlyContainer.appendChild(node);
+      });
+    }
+  }
+}
+
+function renderReceivables() {
+  const container = document.querySelector("#receivablesList");
+  if (!container) {
+    return;
+  }
+
+  container.innerHTML = "";
+  const receivables = state.receivables
+    .slice()
+    .sort((a, b) => (b.dateLabel || "").localeCompare(a.dateLabel || "")); // DESC: mais recente primeiro
+  const pendingTotal = receivables
+    .filter((item) => item.status !== "received")
+    .reduce((total, item) => total + Number(item.amount || 0), 0);
+  const receivedTotal = receivables
+    .filter((item) => item.status === "received")
+    .reduce((total, item) => total + Number(item.amount || 0), 0);
+
+  if (hasElement("#receivablePendingTotal")) document.querySelector("#receivablePendingTotal").textContent = formatCurrency(pendingTotal);
+  if (hasElement("#receivableReceivedTotal")) document.querySelector("#receivableReceivedTotal").textContent = formatCurrency(receivedTotal);
+
+  if (!receivables.length) {
+    container.className = "item-list empty-state";
+    container.textContent = "Ainda não existem valores em aberto registados.";
+    return;
+  }
+
+  container.className = "item-list";
+  receivables.forEach((receivable) => {
+    const node = template.content.firstElementChild.cloneNode(true);
+    node.querySelector(".item-title").textContent = receivable.name;
+    node.querySelector(".item-subtitle").innerHTML = 
+       `${receivable.dateLabel || ""} | <span class="radar-badge ${receivable.status}">${receivable.status === 'received' ? 'Recebido' : 'Pendente'}</span>`;
+    node.querySelector(".item-value").textContent = formatCurrency(receivable.amount);
+
+    const actions = node.querySelector(".item-actions");
+    const removeBtn = node.querySelector(".ghost-btn");
+    
+    const editBtn = document.createElement("button");
+    editBtn.type = "button";
+    editBtn.className = "ghost-btn";
+    editBtn.textContent = "Editar";
+    editBtn.addEventListener("click", () => {
+       receivableForm.dataset.editingId = receivable.id;
+       document.querySelector("#receivableName").value = receivable.name;
+       document.querySelector("#receivableAmount").value = receivable.amount;
+       document.querySelector("#receivableDate").value = receivable.dateLabel;
+       document.querySelector("#receivableStatus").value = receivable.status;
+       document.querySelector("#receivableStatus").style.display = "block";
+       setStatus("#receivableStatusText", `A editar ${receivable.name}.`);
+    });
+    
+    actions.insertBefore(editBtn, removeBtn);
+    
+    removeBtn.addEventListener("click", () => {
+      state.receivables = state.receivables.filter(r => r.id !== receivable.id);
+      saveState();
+      render();
+    });
+    
+    container.appendChild(node);
+  });
+}
+
+function renderExpenses() {
+  const variableContainer = document.querySelector("#expensesList");
+  
+  if (variableContainer) variableContainer.innerHTML = "";
+
+  const normalize = k => k.split('-').map(p => p.padStart(2, '0')).join('-');
+  const activePeriodKeys = getPeriodMonthKeys().map(normalize);
+  const expenses = state.expenses
+    .slice()
+    .filter((expense) => activePeriodKeys.includes(normalize(getItemMonthKey(expense))))
+    .sort((a, b) => (getItemMonthKey(b) + String(b.day).padStart(2,'0')).localeCompare(getItemMonthKey(a) + String(a.day).padStart(2,'0'))); // DESC: mais recente primeiro
+
+  if (!expenses.length) {
+    if (variableContainer) {
+        variableContainer.className = "item-list empty-state";
+        variableContainer.textContent = "Ainda nao existem despesas variaveis registadas.";
+    }
+    return;
+  }
+
+  expenses.forEach((expense) => {
+    const node = template.content.firstElementChild.cloneNode(true);
+    node.querySelector(".item-title").textContent = expense.name;
+    node.querySelector(".item-subtitle").innerHTML = 
+      `<span class="radar-badge">${expense.category || "Geral"}</span> dia ${expense.day}`;
+    node.querySelector(".item-value").textContent = formatCurrency(expense.amount);
+
+    const removeBtn = node.querySelector(".ghost-btn");
+    
+    // Permitir editar despesa ao clicar
+    node.style.cursor = "pointer";
+    node.addEventListener("click", (e) => {
+       if (e.target.tagName === "BUTTON") return;
+       
+       expenseForm.dataset.editingId = expense.id;
+       document.querySelector("#expenseName").value = expense.name;
+       document.querySelector("#expenseAmount").value = expense.amount;
+       document.querySelector("#expenseCategory").value = expense.category || "Casa";
+       document.querySelector("#expenseKind").value = expense.kind || "variable";
+       document.querySelector("#expenseDate").value = expense.dateLabel || getDefaultMonthDate(expense.day);
+       
+       // Sincronizar campos de repartição se existirem
+       if (expense.isSplit && expense.splits) {
+          document.querySelector("#expenseSplit").value = "yes";
+          window.lastEditSplits = expense.splits; 
+          document.querySelector("#splitContainer").style.display = "block";
+          renderSplitUI(expense.splits);
+       } else {
+          document.querySelector("#expenseSplit").value = "no";
+          document.querySelector("#splitContainer").style.display = "none";
+       }
+       
+       window.scrollTo({ top: 0, behavior: 'smooth' });
+       setStatus("#expenseStatus", `A editar ${expense.name}. Guarda para atualizar.`);
+    });
+
+    removeBtn.addEventListener("click", () => {
+      state.expenses = state.expenses.filter((item) => item.id !== expense.id);
+      
+      // Limpar recebíveis/ganhos vinculados se for um split
+      if (expense.isSplit) {
+          state.receivables = state.receivables.filter(r => r.linkedExpenseId !== expense.id);
+          state.incomes = state.incomes.filter(i => i.linkedReceivableId && !state.receivables.find(r => r.id === i.linkedReceivableId));
+      }
+      
+      saveState();
+      render();
+      setStatus("#expenseStatus", `Despesa removida.`);
+    });
+
+    // Distribuir para o contentor correto baseado no tipo
+    if (expense.kind !== "fixed" && variableContainer) {
+        variableContainer.className = "item-list";
+        variableContainer.appendChild(node);
+    }
+  });
 }
 
 function render() {
@@ -1820,16 +2200,16 @@ if (startForm) {
              const oldSurplusToRoll = Math.max(oldTotalBudget - realSpent - oldTransfers, 0);
              
              if (oldSurplusToRoll > 0) {
-                 const hasRolloverAlready = state.incomes.find(i => getItemMonthKey(i) === getMonthKey() && i.name.includes("Excedente"));
-                 if (!hasRolloverAlready) {
-                     state.incomes.push({
-                         id: generateUUID(), monthKey: getMonthKey(),
-                         name: `Transição Excedente: ${oldMonthKey}`,
-                         amount: oldSurplusToRoll,
-                         day: 1, dateLabel: startDate
-                     });
-                     showToast(`Atenção: O excedente esquecido de ${formatCurrency(oldSurplusToRoll)} do mês transato foi transferido como bónus!`);
-                 }
+                  const hasRolloverAlready = state.incomes.find(i => getItemMonthKey(i) === getMonthKey() && i.name.includes("Excedente"));
+                  if (!hasRolloverAlready) {
+                      state.incomes.push({
+                          id: generateUUID(), monthKey: getMonthKey(),
+                          name: `Transição Excedente: ${oldMonthKey}`,
+                          amount: oldSurplusToRoll,
+                          day: 1, dateLabel: startDate
+                      });
+                      showToast(`Atenção: O excedente esquecido de ${formatCurrency(oldSurplusToRoll)} do mês transato foi transferido como bónus!`);
+                  }
              }
         }
     }
@@ -1944,219 +2324,210 @@ if (receivableForm) {
     };
 
     if (editingId) {
-      const index = state.receivables.findIndex((item) => item.id === editingId);
-      if (index >= 0) {
-        state.receivables[index] = { ...state.receivables[index], ...payload };
-      }
-    } else {
-      state.receivables.push(payload);
-    }
-    
-    // Auditoria Ponto 4: Reintegração Lógica Automática de Empréstimos
-    if (payload.status === "received") {
-       const hasIncome = state.incomes.find(i => i.linkedReceivableId === payload.id);
-       if (!hasIncome) {
-           const injection = {
-               id: generateUUID(), monthKey: getMonthKey(),
-               name: `Retorno de Empréstimo: ${payload.name}`,
-               amount: payload.amount,
-               day: Math.min(getToday().getDate(), getCycleWindow().daysInCycle),
-               dateLabel: getDefaultMonthDate(Math.min(getToday().getDate(), getCycleWindow().daysInCycle)),
-               linkedReceivableId: payload.id
-           };
-           state.incomes.push(injection);
-           showToast("Ganho extra injetado na matemática orçamental graças ao encerramento deste valor por receber!");
+       const idx = state.receivables.findIndex(r => r.id === editingId);
+       if (idx >= 0) {
+          state.receivables[idx] = { ...state.receivables[idx], ...payload };
+          setStatus("#receivableStatusText", `Registo atualizado com sucesso.`);
        }
     } else {
-       state.incomes = state.incomes.filter(i => i.linkedReceivableId !== payload.id);
+       state.receivables.push(payload);
+       setStatus("#receivableStatusText", `Novo valor por receber anotado.`);
     }
 
     clearReceivableEditing();
+    if (document.querySelector("#receivableStatus")) document.querySelector("#receivableStatus").style.display = "none";
     saveState();
     render();
-    setStatus(
-      "#receivableStatusText",
-      editingId
-        ? "Valor em aberto atualizado com sucesso."
-        : "Valor em aberto registado com sucesso."
-    );
   });
 }
 
 if (expenseForm) {
-  // Listener para mostrar/esconder frequência e ajustar layout
-  const kindSelect = document.querySelector("#expenseKind");
-  const freqSelect = document.querySelector("#expenseFrequency");
-  
-  if (kindSelect && freqSelect) {
-    kindSelect.addEventListener("change", () => {
-      const isFixed = kindSelect.value === "fixed";
-      freqSelect.style.display = isFixed ? "block" : "none";
-      expenseForm.className = isFixed ? "inline-form inline-form-5" : "inline-form inline-form-4";
-    });
-    
-    freqSelect.addEventListener("change", () => {
-      const freq = freqSelect.value;
-      const dateInput = document.querySelector("#expenseDate");
-      if (!dateInput || !dateInput.value) return;
-      const currentVal = new Date(dateInput.value);
-      if (isNaN(currentVal.getTime())) return;
-      
-      if (freq === "annual") {
-        currentVal.setFullYear(currentVal.getFullYear() + 1);
-        dateInput.value = currentVal.toISOString().split('T')[0];
-        showToast("Data ajustada para o próximo ano conforme periodicidade anual.");
-      } else if (freq === "semi-annual") {
-        currentVal.setMonth(currentVal.getMonth() + 6);
-        dateInput.value = currentVal.toISOString().split('T')[0];
-        showToast("Data ajustada para daqui a 6 meses.");
-      }
-    });
-  }
-
-  // Lógica de Partilha Multinível
-  const splitSelect = document.querySelector("#expenseSplit");
-  const splitContainer = document.querySelector("#splitContainer");
-  const splitList = document.querySelector("#splitList");
-  const addSplitBtn = document.querySelector("#addSplitPerson");
-  const distSplitBtn = document.querySelector("#distributeSplit");
-  const splitIncludeMe = document.querySelector("#splitIncludeMe");
-
-  function createSplitRow() {
-    const row = document.createElement("div");
-    row.className = "split-row";
-    row.innerHTML = `
-      <input type="text" class="split-name" placeholder="Quem deve?">
-      <input type="number" class="split-amount" min="0" step="0.01" placeholder="Quanto?">
-      <span class="remove-split">&times;</span>
-    `;
-    row.querySelector(".remove-split").onclick = () => row.remove();
-    return row;
-  }
-
-  if (splitSelect && splitContainer) {
-    splitSelect.addEventListener("change", () => {
-      const isSplit = splitSelect.value === "yes";
-      splitContainer.style.display = isSplit ? "block" : "none";
-      if (isSplit && splitList.children.length === 0) {
-        splitList.appendChild(createSplitRow());
-      }
-    });
-
-    addSplitBtn.onclick = () => splitList.appendChild(createSplitRow());
-
-    distSplitBtn.onclick = () => {
-      const totalAmount = Number(document.querySelector("#expenseAmount").value) || 0;
-      const rows = splitList.querySelectorAll(".split-row");
-      const personCount = rows.length;
-      if (personCount === 0 || totalAmount <= 0) return;
-
-      const includeMe = splitIncludeMe?.checked;
-      const divisor = includeMe ? personCount + 1 : personCount;
-      const part = (totalAmount / divisor).toFixed(2);
-
-      rows.forEach(row => {
-        row.querySelector(".split-amount").value = part;
-      });
-      showToast(`Divisão de ${part}€ aplicada a ${personCount} pessoas.`);
-    };
-  }
-
   expenseForm.addEventListener("submit", (event) => {
     event.preventDefault();
 
-    const expenseDate = document.querySelector("#expenseDate").value;
-    const kind = document.querySelector("#expenseKind")?.value || "variable";
-    const frequency = document.querySelector("#expenseFrequency")?.value || "monthly";
-    const name = document.querySelector("#expenseName").value.trim();
-    const amount = Number(document.querySelector("#expenseAmount").value) || 0;
+    const editingId = getEditingExpenseId();
+    const editingType = expenseForm.dataset.editingType; // "fixed" ou nada (variável)
     
-    // Capturar múltiplas partilhas
-    const isSplit = splitSelect?.value === "yes";
-    const splits = [];
-    let splitTotalSum = 0;
-
-    if (isSplit) {
-      const rows = splitList.querySelectorAll(".split-row");
-      rows.forEach(row => {
-        const pName = row.querySelector(".split-name").value.trim();
-        const pAmount = Number(row.querySelector(".split-amount").value) || 0;
-        if (pName && pAmount > 0) {
-          splits.push({ name: pName, amount: pAmount });
-          splitTotalSum += pAmount;
-        }
-      });
-
-      if (splits.length === 0) {
-        setStatus("#expenseStatus", "Adiciona pelo menos uma pessoa para dividir.");
-        return;
-      }
-      if (splitTotalSum > amount) {
-        setStatus("#expenseStatus", `ERRO: A soma das partilhas (${splitTotalSum.toFixed(2)}€) é maior que o total (${amount.toFixed(2)}€)!`);
-        return;
-      }
+    // CASO ESPECIAL: Edição de Obrigação Fixa (recurringFixed)
+    if (editingType === "fixed" && editingId) {
+       const idx = state.recurringFixed.findIndex(item => item.id === editingId);
+       if (idx >= 0) {
+          state.recurringFixed[idx] = {
+             ...state.recurringFixed[idx],
+             name: document.querySelector("#expenseName").value.trim(),
+             amount: Number(document.querySelector("#expenseAmount").value) || 0,
+             frequency: document.querySelector("#expenseFrequency").value,
+             endDate: document.querySelector("#expenseEndDate").value || null,
+             day: getDayFromDateInput(document.querySelector("#expenseDate").value) || state.recurringFixed[idx].day
+          };
+          
+          delete expenseForm.dataset.editingId;
+          delete expenseForm.dataset.editingType;
+          expenseForm.reset();
+          document.querySelector("#recurringEditActions").style.display = "none";
+          document.querySelector("#expenseEndDate").style.display = "none";
+          document.querySelector("#expenseFrequency").style.display = "none";
+          
+          saveState();
+          render();
+          setStatus("#expenseStatus", "Obrigação fixa atualizada com sucesso.");
+          return;
+       }
     }
 
-    const isFutureAllowed = kind === "fixed" && (frequency === "annual" || frequency === "semi-annual");
-    if (!isFutureAllowed && !isCurrentMonthDate(expenseDate)) {
-      setStatus("#expenseStatus", "A despesa tem de estar dentro do mês atual ou ser uma obrigação futura (Anual/Semestral).");
+    const name = document.querySelector("#expenseName").value.trim();
+    const amount = Number(document.querySelector("#expenseAmount").value) || 0;
+    const category = document.querySelector("#expenseCategory").value;
+    const kind = document.querySelector("#expenseKind").value; // "variable" ou "fixed"
+    const dateLabel = document.querySelector("#expenseDate").value;
+    const day = getDayFromDateInput(dateLabel);
+
+    if (!isCurrentMonthDate(dateLabel)) {
+      setStatus("#expenseStatus", "A data da despesa tem de ser do mês atual.");
       return;
     }
 
-    const editingId = getEditingExpenseId();
-    const day = getDayFromDateInput(expenseDate) || 1;
-    const dateObj = new Date(expenseDate);
-    const startMonth = dateObj.getMonth() + 1;
+    const payload = {
+      id: editingId || generateUUID(),
+      name,
+      amount,
+      category,
+      kind,
+      day,
+      dateLabel
+    };
 
-    if (kind === "fixed") {
+    if (kind === "fixed" && !editingId) {
+      // Criar nova obrigação permanente
+      const frequency = document.querySelector("#expenseFrequency").value;
       state.recurringFixed.push({
-        id: generateUUID(), name, amount, day, frequency, startMonth
+         id: generateUUID(),
+         name,
+         amount,
+         day,
+         frequency,
+         startMonth: getActiveMonthParts().month,
+         category
       });
-      setStatus("#expenseStatus", `Obrigação "${name}" (${frequency}) integrada.`);
-      expenseForm.reset();
-      if (freqSelect) freqSelect.style.display = "none";
-      if (splitContainer) splitContainer.style.display = "none";
-      if (splitList) splitList.innerHTML = "";
+      setStatus("#expenseStatus", "Nova despesa fixa (obrigação) configurada.");
     } else {
-      const expensePayload = {
-        id: editingId || generateUUID(),
-        name, amount, day, monthKey: getMonthKey(),
-        dateLabel: expenseDate,
-        category: document.querySelector("#expenseCategory").value,
-        kind
-      };
-
+      // Despesa variável ou edição de amortização mensal
       if (editingId) {
-        const idx = state.expenses.findIndex((e) => e.id === editingId);
-        if (idx >= 0) state.expenses[idx] = expensePayload;
+        const index = state.expenses.findIndex((item) => item.id === editingId);
+        if (index >= 0) {
+          state.expenses[index] = payload;
+          setStatus("#expenseStatus", "Despesa atualizada com sucesso.");
+          
+          // Se for um split, precisamos de remover os antigos e criar novos baseados na nova edição
+          if (state.expenses[index].isSplit) {
+              state.receivables = state.receivables.filter(r => r.linkedExpenseId !== editingId);
+          }
+        }
       } else {
-        state.expenses.push(expensePayload);
-      }
-      
-      // Criar múltiplos recebíveis se houver partilha
-      if (isSplit && !editingId) {
-          splits.forEach(s => {
-              state.receivables.push({
-                  id: generateUUID(),
-                  name: `Reembolso: ${name} (${s.name})`,
-                  amount: s.amount,
-                  dateLabel: expenseDate,
-                  status: "pending",
-                  linkedExpenseId: expensePayload.id
-              });
-          });
-          showToast(`Despesa guardada e ${splits.length} dívidas registadas!`);
+        state.expenses.push(payload);
+        setStatus("#expenseStatus", "Despesa registada com sucesso.");
       }
 
-      expenseForm.reset();
-      if (splitContainer) splitContainer.style.display = "none";
-      if (splitList) splitList.innerHTML = "";
-      setStatus("#expenseStatus", editingId ? "Despesa atualizada." : "Despesa registada.");
+      // Lógica de SPLIT (Divisão de despesa)
+      const splitType = document.querySelector("#expenseSplit").value;
+      if (splitType === "yes") {
+          const expenseId = payload.id;
+          const splitData = window.lastGeneratedSplits || window.lastEditSplits || [];
+          
+          payload.isSplit = true;
+          payload.splits = splitData;
+
+          splitData.forEach(p => {
+             if (p.isMe) return;
+             state.receivables.push({
+                id: generateUUID(),
+                name: `Reembolso ${p.name}: ${name}`,
+                amount: p.amount,
+                dateLabel: dateLabel,
+                day: day,
+                monthKey: getMonthKey(),
+                status: "pending",
+                linkedExpenseId: expenseId
+             });
+          });
+      }
     }
-    
+
+    clearExpenseEditing();
     saveState();
     render();
-    if (expenseForm) expenseForm.removeAttribute("data-editing-id");
+  });
+}
+
+// Botão Eliminar Obrigação Permanente
+const deleteRecurringBtn = document.querySelector("#deleteRecurringBtn");
+if (deleteRecurringBtn) {
+    deleteRecurringBtn.addEventListener("click", () => {
+        const editingId = expenseForm.dataset.editingId;
+        const editingType = expenseForm.dataset.editingType;
+        
+        if (editingId && editingType === "fixed") {
+            const confirmed = confirm("Tens a certeza que queres eliminar esta obrigação permanente? Ela deixará de ser contabilizada em todos os meses futuros.");
+            if (confirmed) {
+                state.recurringFixed = state.recurringFixed.filter(item => item.id !== editingId);
+                delete expenseForm.dataset.editingId;
+                delete expenseForm.dataset.editingType;
+                expenseForm.reset();
+                document.querySelector("#recurringEditActions").style.display = "none";
+                document.querySelector("#expenseEndDate").style.display = "none";
+                document.querySelector("#expenseFrequency").style.display = "none";
+                
+                saveState();
+                render();
+                setStatus("#expenseStatus", "Obrigação permanente eliminada!");
+            }
+        }
+    });
+}
+
+if (recurringForm) {
+  recurringForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    state.recurringFixed.push({
+      id: generateUUID(),
+      name: document.querySelector("#recurringName").value.trim(),
+      amount: Number(document.querySelector("#recurringAmount").value) || 0,
+      day: normalizeDay(document.querySelector("#recurringDay").value),
+      frequency: document.querySelector("#recurringFrequency").value,
+      startMonth: Number(document.querySelector("#recurringStartMonth")?.value) || (getToday().getMonth() + 1),
+      category: "Casa"
+    });
+
+    recurringForm.reset();
+    saveState();
+    render();
+    setStatus("#recurringStatus", "Despesa fixa configurada com sucesso.");
+  });
+}
+
+if (transferForm) {
+  transferForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+
+    const accountId = document.querySelector("#transferAccountId").value;
+    const account = state.accounts.find((item) => item.id === accountId);
+    if (!account) return;
+
+    state.transfers.push({
+      id: generateUUID(),
+      name: document.querySelector("#transferName").value.trim(),
+      amount: Number(document.querySelector("#transferAmount").value) || 0,
+      day: getDayFromDateInput(document.querySelector("#transferDate").value),
+      dateLabel: document.querySelector("#transferDate").value,
+      accountId: account.id,
+      accountName: account.name
+    });
+
+    transferForm.reset();
+    saveState();
+    render();
+    setStatus("#transferStatus", "Depósito registado com sucesso.");
   });
 }
 
@@ -2164,463 +2535,163 @@ if (incomeForm) {
   incomeForm.addEventListener("submit", (event) => {
     event.preventDefault();
 
-    const incomeDate = document.querySelector("#incomeDate").value;
-    const editingId = incomeForm.dataset.editingId;
-    const name = document.querySelector("#incomeName").value.trim();
-    const amount = Number(document.querySelector("#incomeAmount").value) || 0;
-    const day = getDayFromDateInput(incomeDate) || 1;
-
+    const editingId = getEditingIncomeId();
     const payload = {
       id: editingId || generateUUID(),
-      name,
-      amount,
-      day,
-      monthKey: getMonthKey(),
-      dateLabel: incomeDate
+      name: document.querySelector("#incomeName").value.trim(),
+      amount: Number(document.querySelector("#incomeAmount").value) || 0,
+      day: getDayFromDateInput(document.querySelector("#incomeDate").value),
+      dateLabel: document.querySelector("#incomeDate").value
     };
 
     if (editingId) {
-      const idx = state.incomes.findIndex((i) => i.id === editingId);
-      if (idx >= 0) state.incomes[idx] = payload;
+      const index = state.incomes.findIndex((item) => item.id === editingId);
+      if (index >= 0) {
+        state.incomes[index] = payload;
+        setStatus("#incomeStatus", "Ganho atualizado.");
+      }
     } else {
       state.incomes.push(payload);
+      setStatus("#incomeStatus", "Ganho registado.");
     }
 
-    incomeForm.reset();
-    delete incomeForm.dataset.editingId;
+    clearIncomeEditing();
     saveState();
     render();
-    setStatus("#incomeStatus", editingId ? "Ganho atualizado." : "Ganho registado.");
   });
 }
 
-if (recurringForm) {
-  recurringForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-
-    const name = document.querySelector("#recurringName").value.trim();
-    const amount = Number(document.querySelector("#recurringAmount").value) || 0;
-    const day = Number(document.querySelector("#recurringDay").value) || 1;
-    const frequency = document.querySelector("#recurringFrequency")?.value || "monthly";
-    const startMonth = Number(document.querySelector("#recurringStartMonth")?.value) || 1;
-
-    state.recurringFixed.push({
-      id: generateUUID(),
-      name,
-      amount,
-      day,
-      frequency,
-      startMonth
+(function init() {
+  window.state = loadState();
+  
+  if (hasElement("#analysisMonthInput")) {
+    document.querySelector("#analysisMonthInput").addEventListener("change", (e) => {
+       state.analysisMonth = e.target.value;
+       saveState();
+       render();
     });
+  }
 
-    recurringForm.reset();
-    saveState();
-    render();
-    setStatus("#recurringStatus", `Obrigação "${name}" (${frequency}) integrada no fluxo orçamental.`);
-  });
-}
-
-// ==========================================
-// CONSULTORIA FINANCEIRA: SOBERANIA E KPIs
-// ==========================================
-
-function exportState() {
-  const dataStr = JSON.stringify(state, null, 2);
-  const dataBlob = new Blob([dataStr], { type: 'application/json' });
-  const url = URL.createObjectURL(dataBlob);
-  const link = document.createElement('a');
-  link.href = url;
-  const stamp = new Date().toISOString().split('T')[0];
-  link.download = `backup-financeiro-${stamp}.json`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  showToast("Backup exportado com sucesso!");
-}
-
-function importState(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const imported = JSON.parse(e.target.result);
-      if (!imported.expenses || !imported.accounts) throw new Error("Formato inválido");
-      
-      if (confirm("Isto irá substituir os teus dados atuais e recarregar a página. Continuar?")) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(imported));
-        location.reload();
+  const kindSelect = document.querySelector("#expenseKind");
+  const freqSelect = document.querySelector("#expenseFrequency");
+  const endDateInput = document.querySelector("#expenseEndDate");
+  
+  if (kindSelect) {
+    kindSelect.addEventListener("change", () => {
+      const isFixed = kindSelect.value === "fixed";
+      freqSelect.style.display = isFixed ? "block" : "none";
+      if (endDateInput) {
+          endDateInput.style.display = isFixed ? "block" : "none";
       }
-    } catch (err) {
-      alert("Erro ao importar backup: Ficheiro inválido ou corrompido.");
-    }
-  };
-  reader.readAsText(file);
-}
-
-// Configuração de botões de Soberania
-document.addEventListener('click', (e) => {
-    if (e.target.id === 'exportBackupBtn') exportState();
-    if (e.target.id === 'importBackupBtn') {
-        const input = document.getElementById('importFile');
-        if (input) input.click();
-    }
-});
-
-document.addEventListener('change', (e) => {
-    if (e.target.id === 'importFile') importState(e);
-});
-
-// ── Auto-Preencher Saldo Inicial ─────────────────────────────────────
-// Definido como função normal — chamado após o state ser inicializado
-function initAutofillBanner() {
-  if (typeof document === 'undefined') return;
-  const banner = document.getElementById('autofillBanner');
-  const btn = document.getElementById('autofillBtn');
-  const desc = document.getElementById('autofillDesc');
-  if (!banner || !btn || typeof banner.tagName === 'undefined') return;
-
-  const prev = typeof getPreviousMonthLastBalance === 'function'
-    ? getPreviousMonthLastBalance()
-    : null;
-
-  const hasCurrentStart = getStartingSnapshot && getStartingSnapshot();
-  if (prev && !hasCurrentStart) {
-    banner.style.display = 'flex';
-    const fmt = typeof formatCurrency === 'function' ? formatCurrency : v => v.toFixed(2) + 'EUR';
-    const totalBank = Object.values(prev.accountTotals).reduce((s, v) => s + v, 0);
-    if (desc) {
-      desc.textContent = `Saldo final de ${prev.monthKey}: ${fmt(totalBank)} banco + ${fmt(prev.totalCash)} carteira. Usar como ponto de partida?`;
-    }
-    btn.addEventListener('click', () => {
-      const accountIds = Object.keys(prev.accountTotals);
-      const firstAccId = accountIds[0];
-      const bankVal = prev.accountTotals[firstAccId] || 0;
-      const bankInput = document.getElementById('startBankBalance');
-      const cashInput = document.getElementById('startCashBalance');
-      const accSelect = document.getElementById('startAccountId');
-      const dateInput = document.getElementById('startDate');
-      if (bankInput) bankInput.value = bankVal;
-      if (cashInput) cashInput.value = prev.totalCash || 0;
-      if (accSelect && firstAccId) accSelect.value = firstAccId;
-      if (dateInput) dateInput.value = getDefaultMonthDate(1);
-      banner.style.display = 'none';
-      showToast('Campos pre-preenchidos com o saldo de ' + prev.monthKey + '. Confirma e guarda!');
     });
   }
-}
 
-
-// KPI: Taxa de Poupança (Savings Rate)
-function calculateSavingsRate() {
-  const budget = calculateBudget();
-  const incomeTotal = (Number(state.salary) || 0) + sumIncomes();
-  const totalSaved = sumTransfers() + budget.leftover;
-  if (incomeTotal <= 0) return 0;
-  return Math.min(Math.max((totalSaved / incomeTotal) * 100, 0), 100);
-}
-
-// KPI: Autonomia Financeira (Financial Runway)
-// Calcula quantos meses consegues sobreviver sem rendimento com o teu património atual
-function calculateFinancialRunway() {
-  const netWorth = getGlobalAccountsTotal();
-  const budget = calculateBudget();
-  // Custo mensal real = fixas + média de variáveis (se não houver variáveis usa só fixas)
-  const monthlyFixed = budget.fixedExpenses;
-  const monthlyVariable = budget.variableExpenses;
-  const monthlyCost = monthlyFixed + monthlyVariable;
-
-  if (monthlyCost <= 0) {
-    // Sem despesas registadas, usar salário como proxy do custo de vida
-    const salaryCost = Number(state.salary) || 0;
-    if (salaryCost <= 0) return null; // impossível calcular
-    return { months: netWorth / salaryCost, monthlyCost: salaryCost, netWorth };
-  }
-
-  return { months: netWorth / monthlyCost, monthlyCost, netWorth };
-}
-
-// KPI: Fundo de Emergência (meta configurável, default 6 meses)
-function calculateEmergencyFundProgress(targetMonths = 6) {
-  const runway = calculateFinancialRunway();
-  if (!runway) return { pct: 0, months: 0, target: targetMonths, ok: false };
-  const pct = Math.min((runway.months / targetMonths) * 100, 100);
-  return { pct, months: runway.months, target: targetMonths, ok: runway.months >= targetMonths };
-}
-
-// Alerta de Fuga de Capital (Leakage)
-function getLeakageStatus() {
-  const analysis = getCycleAnalysis();
-  if (!analysis.hasProgressSnapshot) return null;
-  const gap = analysis.movementGap;
-  const absGap = Math.abs(gap);
-  if (absGap <= 0.01) return { type: 'success', message: 'Contas batem certo.' };
-  if (gap > 0) return { type: 'warning', message: `Fuga de Capital: ${formatCurrency(absGap)} por registar.` };
-  return { type: 'info', message: `Excesso Registado: ${formatCurrency(absGap)} a mais face ao saldo.` };
-}
-
-// Auto-preenchimento do Saldo Inicial: vai buscar o último saldo do mês anterior
-function getPreviousMonthLastBalance() {
-  const parts = getActiveMonthParts();
-  let prevYear = parts.year;
-  let prevMonth = parts.month - 1;
-  if (prevMonth === 0) { prevMonth = 12; prevYear -= 1; }
-  const prevKey = `${prevYear}-${String(prevMonth).padStart(2, '0')}`;
-  
-  const prevSnaps = state.snapshots.filter(s => s.monthKey === prevKey);
-  if (!prevSnaps.length) return null;
-  
-  // Agrupados por dia (multi-conta)
-  const byDay = {};
-  prevSnaps.forEach(s => {
-    if (!byDay[s.day]) byDay[s.day] = [];
-    byDay[s.day].push(s);
-  });
-  const lastDay = Math.max(...Object.keys(byDay).map(Number));
-  const lastSnaps = byDay[lastDay];
-  
-  // Totais por conta
-  const accountTotals = {};
-  let totalCash = 0;
-  lastSnaps.forEach(s => {
-    accountTotals[s.accountId || 'legacy'] = Number(s.bankBalance) || 0;
-    totalCash += Number(s.cashBalance) || 0;
-  });
-  
-  return { accountTotals, totalCash, day: lastDay, monthKey: prevKey };
-}
-
-// ══════════════════════════════════════════════════════
-// INICIALIZAÇÃO GLOBAL E ARRANQUE DA APLICAÇÃO
-// ══════════════════════════════════════════════════════
-
-function renderGlobalExtract() {
-  const container = document.querySelector("#extractTableBody");
-  if (!container) return;
-
-  const filter = window.activeExtractFilter || 'all';
-  
-  // Unificar dados
-  const timeline = [];
-  
-  state.incomes.forEach(i => timeline.push({ ...i, type: 'income', typeLabel: 'Entrada' }));
-  state.expenses.forEach(e => timeline.push({ ...e, type: e.kind === 'fixed' ? 'fixed' : 'variable', typeLabel: e.kind === 'fixed' ? 'Fixa' : 'Variável' }));
-  state.transfers.forEach(t => timeline.push({ ...t, type: 'transfer', typeLabel: 'Transferência' }));
-
-  // Ordenar cronologicamente ASC para cálculo do saldo
-  timeline.sort((a, b) => {
-    const keyA = (getItemMonthKey(a) || "0000-00") + String(a.day || 0).padStart(2, "0");
-    const keyB = (getItemMonthKey(b) || "0000-00") + String(b.day || 0).padStart(2, "0");
-    return keyA.localeCompare(keyB);
-  });
-
-  // Cálculo de saldo acumulado (Variação líquida acumulada)
-  let runningBalance = 0;
-  const processed = timeline.map(item => {
-    const amount = Number(item.amount) || 0;
-    if (item.type === 'income') runningBalance += amount;
-    else runningBalance -= amount;
-    return { ...item, runningBalance };
-  });
-
-  // Re-ordenar para mostrar mais RECENTES primeiro
-  processed.reverse();
-
-  // Filtrar
-  const filtered = processed.filter(r => {
-    if (filter === 'all') return true;
-    if (filter === 'income') return r.type === 'income';
-    if (filter === 'variable') return (r.type === 'variable' || r.type === 'fixed');
-    if (filter === 'transfer') return r.type === 'transfer';
-    return true;
-  });
-
-  container.innerHTML = "";
-  if (filtered.length === 0) {
-    container.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: var(--text-muted); font-style: italic;">Nenhum registo encontrado para este filtro.</td></tr>`;
-    return;
-  }
-
-  filtered.forEach(item => {
-    const tr = document.createElement("tr");
-    const amountClass = item.type === 'income' ? 'badge-income' : (item.type === 'transfer' ? 'badge-transfer' : 'badge-expense');
-    const amountPrefix = item.type === 'income' ? '+' : '-';
-    
-    tr.innerHTML = `
-      <td>${getItemMonthKey(item)}-${String(item.day).padStart(2, "0")}</td>
-      <td><strong>${item.name}</strong></td>
-      <td><span class="radar-badge">${item.category || "Geral"}</span></td>
-      <td><span class="${amountClass}">${item.typeLabel}</span></td>
-      <td class="text-right ${amountClass}">${amountPrefix}${formatCurrency(item.amount)}</td>
-      <td class="text-right"><strong>${formatCurrency(item.runningBalance)}</strong></td>
-    `;
-    container.appendChild(tr);
-  });
-}
-
-function getGlobalAccountsTotal() {
-  let total = 0;
-  state.accounts.forEach(acc => {
-     total += (Number(acc.balance) || 0);
-  });
-  
-  let latestCashTotal = 0;
-  const allChronological = state.snapshots.slice().sort((a,b) => {
-    if(a.monthKey === b.monthKey) return (Number(a.day)||0) - (Number(b.day)||0);
-    return String(a.monthKey || "").localeCompare(String(b.monthKey || ""));
-  });
-  
-  if (allChronological.length > 0) {
-      const lastSnap = allChronological[allChronological.length - 1];
-      const sameDaySnaps = allChronological.filter(s => s.monthKey === lastSnap.monthKey && s.day === lastSnap.day);
-      sameDaySnaps.forEach(s => {
-         latestCashTotal += (Number(s.cashBalance) || 0);
+  // Lógica de Split UI
+  const splitSelect = document.querySelector("#expenseSplit");
+  const splitContainer = document.querySelector("#splitContainer");
+  if (splitSelect && splitContainer) {
+      splitSelect.addEventListener("change", () => {
+          splitContainer.style.display = splitSelect.value === "yes" ? "block" : "none";
+          if (splitSelect.value === "yes") renderSplitUI();
       });
   }
-  
-  return total + latestCashTotal;
-}
 
-// Valor líquido de uma despesa (descontando eventuais reembolsos partilhados)
-function getNetExpenseAmount(expense) {
-  if (!expense) return 0;
-  const base = expense.amount || 0;
-  const repayment = expense.sharedRepayment || 0;
-  return Math.max(0, base - repayment);
-}
-
-// Divide o mês em fatias de semanas de calendário (7 dias fixos, última fatia parcial)
-function getCalendarSlices() {
-  const { year, month } = getActiveMonthParts();
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const slices = [];
-  let currentDay = 1;
-  while (currentDay <= daysInMonth) {
-    const start = currentDay;
-    const end = Math.min(currentDay + 6, daysInMonth); // 7 dias ou até ao fim do mês
-    slices.push({ start, end });
-    currentDay = end + 1;
-  }
-  return slices;
-}
-
-// Gasto variável entre dois dias do mês ativo
-function getFlexibleSpentInPeriod(startDay, endDay) {
-  const activeKey = getActiveMonthKey();
-  return state.expenses
-    .filter(e => {
-      if (e.kind === 'fixed') return false;
-      if (getItemMonthKey(e) !== activeKey) return false;
-      const day = Number(e.day);
-      return day >= startDay && day <= endDay;
-    })
-    .reduce((sum, e) => sum + getNetExpenseAmount(e), 0);
-}
-
-// Array de gastos diários do mês ativo (para o gráfico de performance diária)
-function getDailySpendingData() {
-  const { year, month } = getActiveMonthParts();
-  const activeKey = getActiveMonthKey();
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const result = new Array(daysInMonth).fill(0);
-  state.expenses
-    .filter(e => e.kind !== 'fixed' && getItemMonthKey(e) === activeKey)
-    .forEach(e => {
-      const dayIdx = Number(e.day) - 1;
-      if (dayIdx >= 0 && dayIdx < daysInMonth) {
-        result[dayIdx] += getNetExpenseAmount(e);
-      }
-    });
-  return result;
-}
-
-// Estado das obrigações fixas do mês (pago vs. por pagar)
-function calculateObligationsStatus() {
-  const activeKey = getActiveMonthKey();
-  const totalProvision = sumFixedMonthlyExpenses();
-  const paidAmount = state.expenses
-    .filter(e => e.kind === 'fixed' && getItemMonthKey(e) === activeKey)
-    .reduce((sum, e) => sum + Number(e.amount || 0), 0);
-  const pendingAmount = Math.max(totalProvision - paidAmount, 0);
-  const progressPercent = totalProvision > 0 ? Math.min((paidAmount / totalProvision) * 100, 100) : 0;
-  return { pendingAmount, paidAmount, totalProvision, progressPercent };
-}
-
-// Total real gasto no mês (variável + fixo pago)
-function getRealSpentEfficiency() {
-  const budget = calculateBudget();
-  return (budget.variableExpenses || 0) + (budget.fixedExpensesReal || 0);
-}
-
-const state = loadState();
-
-if (typeof window !== 'undefined') {
-  window.state = state;
-  window.getMonthKey = getMonthKey;
-  window.calculateSavingsRate = calculateSavingsRate;
-  window.calculateFinancialRunway = calculateFinancialRunway;
-  window.calculateEmergencyFundProgress = calculateEmergencyFundProgress;
-  window.getLeakageStatus = getLeakageStatus;
-  window.getPreviousMonthLastBalance = getPreviousMonthLastBalance;
-  window.formatCurrency = formatCurrency;
-  window.getItemMonthKey = getItemMonthKey;
-  window.getCycleAnalysis = getCycleAnalysis;
-  window.calculateBudget = calculateBudget;
-  window.getReconciliationHistory = getReconciliationHistory;
-  window.renderGlobalExtract = renderGlobalExtract;
-  window.renderNetWorth = renderNetWorth;
-  window.getNetExpenseAmount = getNetExpenseAmount;
-  window.saveState = saveState;
-  window.sumIncomes = sumIncomes;
-  window.sumFixedMonthlyExpenses = sumFixedMonthlyExpenses;
-  window.sumVariableExpenses = sumVariableExpenses;
-  window.getCalendarSlices = getCalendarSlices;
-  window.getFlexibleSpentInPeriod = getFlexibleSpentInPeriod;
-  window.getDailySpendingData = getDailySpendingData;
-  window.calculateObligationsStatus = calculateObligationsStatus;
-  window.getRealSpentEfficiency = getRealSpentEfficiency;
-}
-
-
-// Define a data de hoje como valor padrão em todos os campos de data do formulário
-function initDateFields() {
-  const today = getToday();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, '0');
-  const dd = String(today.getDate()).padStart(2, '0');
-  const todayStr = `${yyyy}-${mm}-${dd}`;
-  ['snapshotDate', 'incomeDate', 'expenseDate', 'transferDate', 'receivableDate'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el && !el.value) el.value = todayStr;
-  });
-}
-
-if (typeof render === 'function' && typeof document !== 'undefined' && document.querySelector) {
   render();
-  initAutofillBanner();
-  initDateFields();
+})();
+
+function setStatus(selector, message) {
+  const el = document.querySelector(selector);
+  if (el) {
+    el.textContent = message;
+    el.classList.add("status-animate");
+    setTimeout(() => el.classList.remove("status-animate"), 2000);
+  }
 }
 
-// ── Lógica de Recuperação de Emergência ─────────────────────────
-if (document.getElementById('emergencyImport')) {
-  document.getElementById('emergencyImport').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    if (!file) return;
+function getPeriodMonthKeys() {
+  const filter = window.activePeriodFilter || 'month';
+  const current = getActiveMonthKey();
+  if (filter === 'month') return [current];
+  
+  const [y, m] = current.split('-').map(Number);
+  if (filter === 'quarter') {
+     const keys = [];
+     for (let i = 0; i < 3; i++) {
+        let ty = y, tm = m - i;
+        if (tm <= 0) { tm += 12; ty -= 1; }
+        keys.push(`${ty}-${String(tm).padStart(2, '0')}`);
+     }
+     return keys;
+  }
+  
+  // 'all' handles via separate logic in renderers usually, but here we can return all existing keys
+  const allKeys = new Set();
+  state.expenses.forEach(e => allKeys.add(getItemMonthKey(e)));
+  state.incomes.forEach(i => allKeys.add(getItemMonthKey(i)));
+  state.transfers.forEach(t => allKeys.add(getItemMonthKey(t)));
+  allKeys.add(current);
+  return Array.from(allKeys);
+}
 
-    const reader = new FileReader();
-    reader.onload = function(event) {
-      try {
-        const imported = JSON.parse(event.target.result);
-        if (confirm("Tens a certeza que queres substituir TODOS os dados locais por este backup?")) {
-           localStorage.setItem(STORAGE_KEY, JSON.stringify(imported));
-           window.location.reload();
-        }
-      } catch (err) {
-        alert("Erro ao ler o ficheiro de backup: " + err.message);
-      }
+// UI de Divisão de Despesas
+function renderSplitUI(existingSplits = null) {
+    const container = document.querySelector("#splitList");
+    if (!container) return;
+    container.innerHTML = "";
+    
+    let people = existingSplits || [
+        { name: "Eu", amount: 0, isMe: true },
+        { name: "Pessoa 2", amount: 0, isMe: false }
+    ];
+    
+    function update() {
+        container.innerHTML = "";
+        const total = Number(document.querySelector("#expenseAmount").value) || 0;
+        
+        people.forEach((p, index) => {
+            const row = document.createElement("div");
+            row.className = "split-row";
+            row.innerHTML = `
+                <input type="text" value="${p.name}" class="split-name" ${p.isMe ? 'disabled' : ''}>
+                <input type="number" value="${p.amount.toFixed(2)}" class="split-val">
+                ${!p.isMe ? '<button type="button" class="del-split">×</button>' : '<span></span>'}
+            `;
+            
+            row.querySelector(".split-name").oninput = (e) => p.name = e.target.value;
+            row.querySelector(".split-val").oninput = (e) => p.amount = Number(e.target.value);
+            if (!p.isMe) {
+                row.querySelector(".del-split").onclick = () => {
+                    people.splice(index, 1);
+                    update();
+                };
+            }
+            container.appendChild(row);
+        });
+        window.lastGeneratedSplits = people;
+    }
+
+    document.querySelector("#addSplitPerson").onclick = () => {
+        people.push({ name: `Pessoa ${people.length + 1}`, amount: 0, isMe: false });
+        update();
     };
-    reader.readAsText(file);
-  });
+
+    document.querySelector("#distributeSplit").onclick = () => {
+        const total = Number(document.querySelector("#expenseAmount").value) || 0;
+        const perPerson = total / people.length;
+        people.forEach(p => p.amount = perPerson);
+        update();
+    };
+
+    update();
 }
 
+function showToast(msg) {
+    const toast = document.createElement("div");
+    toast.style.cssText = "position:fixed;bottom:20px;right:20px;background:#333;color:#fff;padding:12px 24px;border-radius:8px;z-index:9999;box-shadow:0 10px 20px rgba(0,0,0,0.2);animation:slideIn 0.3s ease-out;";
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    setTimeout(() => {
+        toast.style.animation = "slideOut 0.3s ease-in";
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
