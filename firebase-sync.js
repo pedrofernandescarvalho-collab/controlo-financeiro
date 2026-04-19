@@ -145,6 +145,11 @@ window.syncToFirebase = async function(state) {
   try {
     const timestamp = Date.now();
     const docRef = doc(db, FIREBASE_COLLECTION, FIREBASE_DOC_ID);
+
+    // ⚡ CRÍTICO: guardar o timestamp ANTES do await para evitar race condition.
+    // Se o utilizador navegar antes do setDoc terminar, o last_firebase_sync já
+    // estará atualizado → a próxima página não confundirá cloud antigo com "mais novo".
+    localStorage.setItem('last_firebase_sync', timestamp);
     
     await setDoc(docRef, {
       state: state,
@@ -152,12 +157,12 @@ window.syncToFirebase = async function(state) {
       userId: user.uid
     }, { merge: true });
 
-    localStorage.setItem('last_firebase_sync', timestamp);
     window.isSyncing = false;
-    console.log("[Firebase] Sincronização Local -> Cloud concluída.");
+    console.log("[Firebase] Sincronização Local -> Cloud concluída:", new Date(timestamp).toLocaleTimeString());
     
   } catch (error) {
     console.error("[Firebase] Erro ao gravar:", error);
+    // Em caso de erro, não deixar o timestamp ficar desatualizado
   }
 };
 
@@ -170,11 +175,15 @@ document.addEventListener('DOMContentLoaded', () => {
             window.saveState = function() {
                 originalSave();
                 if (window.syncToFirebase && window.state) {
+                    // Marcar o estado com timestamp para que hasLocalChanges funcione
+                    window.state.updatedAt = Date.now();
+                    // Sincronizar imediatamente (last_firebase_sync já é atualizado
+                    // dentro de syncToFirebase antes do await, evitando race condition)
                     window.syncToFirebase(window.state);
                 }
             };
             window.saveState.__isFirebaseHooked = true;
             clearInterval(hookInterval);
         }
-    }, 500);
+    }, 100); // Reduzido de 500ms para 100ms para hookar mais cedo
 });
