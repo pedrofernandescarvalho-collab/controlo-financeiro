@@ -179,8 +179,20 @@ body::before {
 
 /* Layout */
 .dashboard-layout { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
-.inline-form-4 { display: grid; grid-template-columns: repeat(4, 1fr) auto; gap: 12px; align-items: center; }
-.inline-form-5 { display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 12px; align-items: center; }
+/* Formulários Inline Flexíveis */
+.inline-form { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) auto; 
+  gap: 12px; 
+  align-items: flex-end; 
+  margin-bottom: 20px; 
+}
+.inline-form-4, .inline-form-5 { 
+  display: grid; 
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) auto; 
+  gap: 12px; 
+  align-items: flex-end; 
+}
 .dashboard-col { display: flex; flex-direction: column; gap: 20px; }
 
 /* Panels */
@@ -210,6 +222,7 @@ body::before {
 .field-block, label { display: grid; gap: 6px; color: var(--text-muted); font-size: 0.85rem; font-weight: 500; }
 input, select {
   width: 100%;
+  min-width: 120px; /* Garante que as caixas não ficam esmagadas */
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
   padding: 10px 14px;
@@ -265,7 +278,13 @@ button { font-family: inherit; cursor: pointer; transition: var(--transition); d
 .primary-btn, .secondary-btn { border: none; border-radius: var(--radius-sm); padding: 12px 20px; font-weight: 600; font-size: 0.95rem; width: 100%; position: relative; overflow: hidden; }
 .primary-btn { background: var(--text-main); color: #fff; }
 .primary-btn:hover { background: #000; transform: translateY(-2px); box-shadow: 0 10px 20px rgba(0,0,0,0.1); }
-.secondary-btn { background: rgba(0, 0, 0, 0.04); color: var(--text-main); border: 1px solid var(--border-subtle); }
+.secondary-btn { 
+  background: rgba(0, 0, 0, 0.04); 
+  color: var(--text-main); 
+  border: 1px solid var(--border-subtle); 
+  white-space: nowrap; /* Impede que o texto do botão seja cortado */
+  min-width: fit-content;
+}
 .secondary-btn:hover { background: rgba(0, 0, 0, 0.08); border-color: rgba(0, 0, 0, 0.1); transform: translateY(-2px); }
 .ghost-btn { padding: 8px 16px; background: transparent; color: #ef4444; border: 1px solid transparent; border-radius: var(--radius-sm); font-size: 0.9rem; font-weight: 500; }
 .ghost-btn:hover { background: rgba(239, 68, 68, 0.1); border-color: rgba(239, 68, 68, 0.2); }
@@ -329,10 +348,10 @@ button { font-family: inherit; cursor: pointer; transition: var(--transition); d
 .text-btn { background: none; border: none; font-weight: 600; color: var(--primary); cursor: pointer; padding: 4px 8px; border-radius: 4px; transition: var(--transition); }
 .text-btn:hover { background: rgba(var(--primary-rgb), 0.1); }
 .remove-split { color: #dc3545; cursor: pointer; text-align: center; font-weight: bold; font-size: 1.2rem; }
-.inline-form-2 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
-.inline-form-3 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.inline-form-4 { grid-template-columns: repeat(4, 1fr) auto; }
-.inline-form-5 { grid-template-columns: repeat(5, 1fr) auto; }
+.inline-form-2 { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)) auto; }
+.inline-form-3 { grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)) auto; }
+.inline-form-4 { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) auto; }
+.inline-form-5 { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)) auto; }
 .action-cell { height: 44px; }
 
 /* Lists */
