@@ -100,8 +100,13 @@
       state.incomes.splice(indices[i], 1);
     }
 
-    // Guardar
+    // Guardar estado limpo
     localStorage.setItem('finance-control-app', JSON.stringify(state));
+    // Proteger contra sobrescrita pela Firebase: marcar como "estado local é o mais recente"
+    // A Firebase só pode sobrescrever se cloudData.updatedAt > last_firebase_sync.
+    // Ao marcarmos agora, garantimos que quando a app carregar e sincronizar,
+    // o estado limpo será ENVIADO para a Firebase e não o contrário.
+    localStorage.setItem('last_firebase_sync', Date.now());
 
     document.getElementById('status').style.display = 'block';
     this.style.display = 'none';
