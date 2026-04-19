@@ -247,6 +247,25 @@ function getStartingSnapshot() {
   };
 }
 
+function getPreviousMonthLastBalance() {
+  const parts = getActiveMonthParts();
+  let prevYear = parts.year;
+  let prevMonth = parts.month - 1;
+  if (prevMonth === 0) { prevMonth = 12; prevYear -= 1; }
+  const prevKey = `${prevYear}-${String(prevMonth).padStart(2, '0')}`;
+  const prevSnaps = state.snapshots.filter(s => s.monthKey === prevKey);
+  if (!prevSnaps.length) return null;
+  const lastDay = Math.max(...prevSnaps.map(s => Number(s.day) || 1));
+  const lastSnaps = prevSnaps.filter(s => Number(s.day) === lastDay);
+  const accountTotals = {};
+  let totalCash = 0;
+  lastSnaps.forEach(s => {
+    accountTotals[s.accountId || 'legacy'] = Number(s.bankBalance) || 0;
+    totalCash += Number(s.cashBalance) || 0;
+  });
+  return { accountTotals, totalCash, day: lastDay, monthKey: prevKey };
+}
+
 function getSnapshotsForMonth() {
   const allS = state.snapshots.slice().sort((a,b) => {
     if(a.monthKey === b.monthKey) return (Number(a.day)||0) - (Number(b.day)||0);
@@ -419,7 +438,7 @@ function initDateFields() {
   ['snapshotDate', 'expenseDate', 'incomeDate', 'receivableDate', 'startDate'].forEach(id => { const el = document.getElementById(id); if(el && !el.value) el.value = d; });
 }
 
-const state = loadState();
+// state = loadState(); // Remvido duplicado
 
 if (typeof document !== 'undefined') {
   [settingsForm, startForm, snapshotForm, categoryForm, accountForm, receivableForm, expenseForm, incomeForm, recurringForm].forEach(f => {
@@ -467,31 +486,6 @@ if (typeof document !== 'undefined') {
   initDateFields();
 }
 
-window.state = state;
-window.saveState = saveState;
-window.render = render;
-window.formatCurrency = formatCurrency;
-window.getActiveMonthKey = getActiveMonthKey;
-window.getMonthKey = getMonthKey;
-window.getGlobalAccountsTotal = getGlobalAccountsTotal;
-window.calculateBudget = calculateBudget;
-window.calculateSavingsRate = calculateSavingsRate;
-window.calculateFinancialRunway = calculateFinancialRunway;
-window.calculateEmergencyFundProgress = calculateEmergencyFundProgress;
-window.getLeakageStatus = getLeakageStatus;
-window.getNetExpenseAmount = getNetExpenseAmount;
-window.getDailySpendingData = getDailySpendingData;
-window.getCalendarSlices = getCalendarSlices;
-window.getFlexibleSpentInPeriod = getFlexibleSpentInPeriod;
-window.calculateObligationsStatus = calculateObligationsStatus;
-window.getRealSpentEfficiency = getRealSpentEfficiency;
-window.getReconciliationHistory = getReconciliationHistory;
-window.getItemMonthKey = getItemMonthKey;
-window.sumIncomes = sumIncomes;
-window.sumVariableExpenses = sumVariableExpenses;
-window.sumFixedMonthlyExpenses = sumFixedMonthlyExpenses;
-window.getActiveMonthParts = getActiveMonthParts;
-window.getToday = getToday;
 
 // ════════════════════════════════════════════════════════════
 // BI & ANALYTICS ENGINE
@@ -625,12 +619,13 @@ function getReconciliationHistory() {
 function renderBankReconciliation() {
   const hist = getReconciliationHistory();
   const start = getStartingSnapshot();
+  const prev = getPreviousMonthLastBalance();
   const latest = hist.length ? hist[hist.length - 1] : null;
   
   const map = {
-    "#bankStartBalance": latest ? latest.previousBankBalance : (start ? start.bankBalance : 0),
+    "#bankStartBalance": latest ? latest.previousBankBalance : (start ? start.bankBalance : (prev ? Object.values(prev.accountTotals).reduce((a,b)=>a+b,0) : 0)),
     "#bankCurrentBalance": latest ? latest.currentBankBalance : (start ? start.bankBalance : 0),
-    "#cashStartBalance": latest ? latest.previousCashBalance : (start ? start.cashBalance : 0),
+    "#cashStartBalance": latest ? latest.previousCashBalance : (start ? start.cashBalance : (prev ? prev.totalCash : 0)),
     "#cashCurrentBalance": latest ? latest.currentCashBalance : (start ? start.cashBalance : 0),
     "#bankDifference": latest ? latest.totalDifference : 0,
     "#bankUnexplained": latest ? latest.unexplainedDifference : 0,
@@ -674,3 +669,30 @@ function renderReconciliationHistory() {
     container.appendChild(card);
   });
 }
+
+// Global Exports
+window.state = state;
+window.saveState = saveState;
+window.render = render;
+window.formatCurrency = formatCurrency;
+window.getActiveMonthKey = getActiveMonthKey;
+window.getMonthKey = getMonthKey;
+window.getGlobalAccountsTotal = getGlobalAccountsTotal;
+window.calculateBudget = calculateBudget;
+window.calculateSavingsRate = calculateSavingsRate;
+window.calculateFinancialRunway = calculateFinancialRunway;
+window.calculateEmergencyFundProgress = calculateEmergencyFundProgress;
+window.getLeakageStatus = getLeakageStatus;
+window.getNetExpenseAmount = getNetExpenseAmount;
+window.getDailySpendingData = getDailySpendingData;
+window.getCalendarSlices = getCalendarSlices;
+window.getFlexibleSpentInPeriod = getFlexibleSpentInPeriod;
+window.calculateObligationsStatus = calculateObligationsStatus;
+window.getRealSpentEfficiency = getRealSpentEfficiency;
+window.getReconciliationHistory = getReconciliationHistory;
+window.getItemMonthKey = getItemMonthKey;
+window.sumIncomes = sumIncomes;
+window.sumVariableExpenses = sumVariableExpenses;
+window.sumFixedMonthlyExpenses = sumFixedMonthlyExpenses;
+window.getActiveMonthParts = getActiveMonthParts;
+window.getToday = getToday;
