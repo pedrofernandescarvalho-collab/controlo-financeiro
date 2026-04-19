@@ -2491,6 +2491,72 @@ function getNetExpenseAmount(expense) {
   return Math.max(0, base - repayment);
 }
 
+// Divide o mês em fatias semanais com base em state.weeks
+function getCalendarSlices() {
+  const { year, month } = getActiveMonthParts();
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const numSlices = Number(state.weeks) || 4;
+  const daysPerSlice = Math.floor(daysInMonth / numSlices);
+  const slices = [];
+  let currentDay = 1;
+  for (let i = 0; i < numSlices; i++) {
+    const start = currentDay;
+    const end = (i === numSlices - 1) ? daysInMonth : currentDay + daysPerSlice - 1;
+    slices.push({ start, end });
+    currentDay = end + 1;
+    if (currentDay > daysInMonth) break;
+  }
+  return slices;
+}
+
+// Gasto variável entre dois dias do mês ativo
+function getFlexibleSpentInPeriod(startDay, endDay) {
+  const activeKey = getActiveMonthKey();
+  return state.expenses
+    .filter(e => {
+      if (e.kind === 'fixed') return false;
+      if (getItemMonthKey(e) !== activeKey) return false;
+      const day = Number(e.day);
+      return day >= startDay && day <= endDay;
+    })
+    .reduce((sum, e) => sum + getNetExpenseAmount(e), 0);
+}
+
+// Array de gastos diários do mês ativo (para o gráfico de performance diária)
+function getDailySpendingData() {
+  const { year, month } = getActiveMonthParts();
+  const activeKey = getActiveMonthKey();
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const result = new Array(daysInMonth).fill(0);
+  state.expenses
+    .filter(e => e.kind !== 'fixed' && getItemMonthKey(e) === activeKey)
+    .forEach(e => {
+      const dayIdx = Number(e.day) - 1;
+      if (dayIdx >= 0 && dayIdx < daysInMonth) {
+        result[dayIdx] += getNetExpenseAmount(e);
+      }
+    });
+  return result;
+}
+
+// Estado das obrigações fixas do mês (pago vs. por pagar)
+function calculateObligationsStatus() {
+  const activeKey = getActiveMonthKey();
+  const totalProvision = sumFixedMonthlyExpenses();
+  const paidAmount = state.expenses
+    .filter(e => e.kind === 'fixed' && getItemMonthKey(e) === activeKey)
+    .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  const pendingAmount = Math.max(totalProvision - paidAmount, 0);
+  const progressPercent = totalProvision > 0 ? Math.min((paidAmount / totalProvision) * 100, 100) : 0;
+  return { pendingAmount, paidAmount, totalProvision, progressPercent };
+}
+
+// Total real gasto no mês (variável + fixo pago)
+function getRealSpentEfficiency() {
+  const budget = calculateBudget();
+  return (budget.variableExpenses || 0) + (budget.fixedExpensesReal || 0);
+}
+
 const state = loadState();
 
 if (typeof window !== 'undefined') {
@@ -2513,6 +2579,11 @@ if (typeof window !== 'undefined') {
   window.sumIncomes = sumIncomes;
   window.sumFixedMonthlyExpenses = sumFixedMonthlyExpenses;
   window.sumVariableExpenses = sumVariableExpenses;
+  window.getCalendarSlices = getCalendarSlices;
+  window.getFlexibleSpentInPeriod = getFlexibleSpentInPeriod;
+  window.getDailySpendingData = getDailySpendingData;
+  window.calculateObligationsStatus = calculateObligationsStatus;
+  window.getRealSpentEfficiency = getRealSpentEfficiency;
 }
 
 
