@@ -222,9 +222,8 @@ function calculateBudget() {
   // Orçamento base usa o provisionamento para que o disponível diário não varie conforme o mês
   const disposableMonthlyBudget = Math.max(salary + extraIncomes - monthlyProvision, 0);
   const { daysInCycle } = getCycleWindow();
-  const weeksInCycle = Math.max(Math.ceil(daysInCycle / 7), 1);
-  const weeklyBudget = disposableMonthlyBudget / weeksInCycle;
   const dailyBudget = disposableMonthlyBudget / Math.max(daysInCycle, 1);
+  const weeklyBudget = dailyBudget * 7; // Semana de calendário: 7 dias fixos
   const shareTotal = (Number(state.revolutShare) || 0) + (Number(state.xtbShare) || 0);
   const normalizedRevolutShare = shareTotal > 0 ? (Number(state.revolutShare) || 0) / shareTotal : 0.5;
   
@@ -2491,20 +2490,17 @@ function getNetExpenseAmount(expense) {
   return Math.max(0, base - repayment);
 }
 
-// Divide o mês em fatias semanais com base em state.weeks
+// Divide o mês em fatias de semanas de calendário (7 dias fixos, última fatia parcial)
 function getCalendarSlices() {
   const { year, month } = getActiveMonthParts();
   const daysInMonth = new Date(year, month, 0).getDate();
-  const numSlices = Number(state.weeks) || 4;
-  const daysPerSlice = Math.floor(daysInMonth / numSlices);
   const slices = [];
   let currentDay = 1;
-  for (let i = 0; i < numSlices; i++) {
+  while (currentDay <= daysInMonth) {
     const start = currentDay;
-    const end = (i === numSlices - 1) ? daysInMonth : currentDay + daysPerSlice - 1;
+    const end = Math.min(currentDay + 6, daysInMonth); // 7 dias ou até ao fim do mês
     slices.push({ start, end });
     currentDay = end + 1;
-    if (currentDay > daysInMonth) break;
   }
   return slices;
 }
