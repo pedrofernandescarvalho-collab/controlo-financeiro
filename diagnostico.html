@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<title>Diagnóstico · Controlo Financeiro</title>
+<style>
+  body { font-family: monospace; background: #0f172a; color: #e2e8f0; padding: 2rem; }
+  h1 { color: #7c3aed; }
+  h2 { color: #38bdf8; border-bottom: 1px solid #334155; padding-bottom: .5rem; }
+  .block { background: #1e293b; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
+  .ok { color: #10b981; }
+  .warn { color: #f59e0b; }
+  .err { color: #ef4444; }
+  table { border-collapse: collapse; width: 100%; }
+  td, th { border: 1px solid #334155; padding: 6px 10px; text-align: left; }
+  th { background: #1e293b; color: #94a3b8; font-size: .75rem; text-transform: uppercase; }
+  td:nth-child(2) { color: #fbbf24; }
+</style>
+</head>
+<body>
+<h1>🔍 Diagnóstico do Estado</h1>
+<div id="output">A ler dados...</div>
+
+<script>
+const raw = localStorage.getItem('finance-control-app');
+const out = document.getElementById('output');
+
+if (!raw) {
+  out.innerHTML = '<p class="err">❌ Nenhum dado em localStorage. A app não foi carregada neste browser.</p>';
+} else {
+  try {
+    const s = JSON.parse(raw);
+
+    // Calcular totais
+    const aprInc = (s.incomes || []).filter(i => (i.monthKey || '') === '2026-04');
+    const aprExp = (s.expenses || []).filter(e => (e.monthKey || '') === '2026-04');
+    const aprFixed = (s.recurringFixed || []);
+    const totalInc = aprInc.reduce((t,i) => t + (+i.amount||0), 0);
+    const totalVar = aprExp.filter(e => e.kind !== 'fixed').reduce((t,e) => t + (+e.amount||0), 0);
+    const totalFix = aprExp.filter(e => e.kind === 'fixed').reduce((t,e) => t + (+e.amount||0), 0);
+    const provMensal = aprFixed.reduce((t,rf) => {
+      const a = +rf.amount||0;
+      if (!rf.frequency || rf.frequency==='monthly') return t+a;
+      if (rf.frequency==='semi-annual') return t+(a/6);
+      if (rf.frequency==='annual') return t+(a/12);
+      return t+a;
+    }, 0);
+    const disposable = (+s.salary||0) + totalInc - provMensal;
+    const daily = disposable / 30;
+
+    out.innerHTML = `
+<div class="block">
+  <h2>📊 Valores Chave de Orçamento (Abril 2026)</h2>
+  <table>
+    <tr><th>Campo</th><th>Valor</th><th>Nota</th></tr>
+    <tr><td>state.salary</td><td>${s.salary ?? 'NULL'}</td><td>${s.salary ? '✅' : '❌ Salário não definido'}</td></tr>
+    <tr><td>Rendimentos Abril (state.incomes)</td><td>${totalInc.toFixed(2)} €</td><td>${aprInc.length} registo(s)</td></tr>
+    <tr><td>Provisionamento fixo mensal</td><td>${provMensal.toFixed(2)} €</td><td>média mensal das obrigações</td></tr>
+    <tr><td><strong>Disponível Mensal calculado</strong></td><td><strong>${disposable.toFixed(2)} €</strong></td><td>salary + incomes - provision</td></tr>
+    <tr><td><strong>Orçamento diário calculado</strong></td><td><strong>${daily.toFixed(2)} €</strong></td><td>disposable / 30</td></tr>
+    <tr><td>Despesas variáveis Abril</td><td>${totalVar.toFixed(2)} €</td><td>${aprExp.filter(e=>e.kind!=='fixed').length} registos</td></tr>
+    <tr><td>Despesas fixas pagas Abril</td><td>${totalFix.toFixed(2)} €</td><td>${aprExp.filter(e=>e.kind==='fixed').length} registos</td></tr>
+  </table>
+</div>
+
+<div class="block">
+  <h2>💶 Rendimentos de Abril (state.incomes)</h2>
+  <table>
+    <tr><th>#</th><th>Nome</th><th>Valor</th><th>Dia</th><th>monthKey</th></tr>
+    ${aprInc.length === 0 ? '<tr><td colspan="5" class="warn">⚠️ Nenhum rendimento registado em Abril.</td></tr>' : ''}
+    ${aprInc.map((i,idx) => `<tr><td>${idx+1}</td><td>${i.name||'?'}</td><td>${(+i.amount||0).toFixed(2)} €</td><td>${i.day||'?'}</td><td>${i.monthKey||'?'}</td></tr>`).join('')}
+    ${(s.incomes||[]).filter(i=>(i.monthKey||'')!=='2026-04').length > 0 ? 
+      `<tr><td colspan="5" class="warn">⚠️ Outros meses: ${(s.incomes||[]).filter(i=>(i.monthKey||'')!=='2026-04').map(i=>i.monthKey+':'+i.name+'='+i.amount+'€').join(', ')}</td></tr>` : ''}
+  </table>
+</div>
+
+<div class="block">
+  <h2>📋 Obrigações Fixas (state.recurringFixed)</h2>
+  <table>
+    <tr><th>#</th><th>Nome</th><th>Valor</th><th>Frequência</th><th>Contribuição Mensal</th></tr>
+    ${aprFixed.map((rf,idx) => {
+      const a = +rf.amount||0;
+      let contrib = a;
+      if (rf.frequency==='semi-annual') contrib = a/6;
+      if (rf.frequency==='annual') contrib = a/12;
+      return `<tr><td>${idx+1}</td><td>${rf.name||'?'}</td><td>${a.toFixed(2)} €</td><td>${rf.frequency||'monthly'}</td><td>${contrib.toFixed(2)} €/mês</td></tr>`;
+    }).join('')}
+    <tr><td colspan="4"><strong>TOTAL PROVISIONAMENTO</strong></td><td><strong>${provMensal.toFixed(2)} €/mês</strong></td></tr>
+  </table>
+</div>
+
+<div class="block">
+  <h2>📸 Snapshots (state.snapshots filtrados Abril)</h2>
+  <table>
+    <tr><th>Dia</th><th>Conta</th><th>Banco</th><th>Cash</th><th>monthKey</th></tr>
+    ${(s.snapshots||[]).filter(sn=>(sn.monthKey||'')==='2026-04').slice(0,20).map(sn=>`<tr><td>${sn.day}</td><td>${sn.accountName||sn.accountId||'legacy'}</td><td>${(+sn.bankBalance||0).toFixed(2)} €</td><td>${(+sn.cashBalance||0).toFixed(2)} €</td><td>${sn.monthKey}</td></tr>`).join('')}
+  </table>
+</div>
+
+<div class="block">
+  <h2>🔄 Firebase Sync</h2>
+  <table>
+    <tr><th>Campo</th><th>Valor</th></tr>
+    <tr><td>last_firebase_sync</td><td>${localStorage.getItem('last_firebase_sync') || 'não definido'}</td></tr>
+    <tr><td>last_firebase_sync (data)</td><td>${localStorage.getItem('last_firebase_sync') ? new Date(+localStorage.getItem('last_firebase_sync')).toISOString() : 'N/A'}</td></tr>
+  </table>
+</div>
+    `;
+  } catch(e) {
+    out.innerHTML = `<p class="err">❌ Erro ao ler estado: ${e.message}</p>`;
+  }
+}
+</script>
+</body>
+</html>
