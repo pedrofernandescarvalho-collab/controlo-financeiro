@@ -1286,7 +1286,7 @@ function renderReceivables() {
   container.innerHTML = "";
   const receivables = state.receivables
     .slice()
-    .sort((a, b) => (a.dateLabel || "").localeCompare(b.dateLabel || ""));
+    .sort((a, b) => (b.dateLabel || "").localeCompare(a.dateLabel || "")); // DESC: mais recente primeiro
   const pendingTotal = receivables
     .filter((item) => item.status !== "received")
     .reduce((total, item) => total + Number(item.amount || 0), 0);
@@ -1421,7 +1421,7 @@ function renderExpenses() {
 
   const allMonthExpenses = state.expenses
     .filter((expense) => activePeriodKeys.includes(normalize(getItemMonthKey(expense))))
-    .sort((a, b) => (getItemMonthKey(a) + String(a.day).padStart(2,'0')).localeCompare(getItemMonthKey(b) + String(b.day).padStart(2,'0')));
+    .sort((a, b) => (getItemMonthKey(b) + String(b.day).padStart(2,'0')).localeCompare(getItemMonthKey(a) + String(a.day).padStart(2,'0'))); // DESC: mais recente primeiro
 
   if (allMonthExpenses.length === 0) {
     if (variableContainer) {
@@ -1540,7 +1540,7 @@ function renderSnapshots() {
     return;
   }
   container.innerHTML = "";
-  const snapshots = getSnapshotsForMonth();
+  const snapshots = getSnapshotsForMonth().slice().sort((a, b) => (b.day || 0) - (a.day || 0)); // DESC: mais recente primeiro
 
   if (!snapshots.length) {
     container.className = "item-list empty-state";
@@ -1584,7 +1584,7 @@ function renderTransfers() {
   const transfers = state.transfers
     .slice()
     .filter((transfer) => activePeriodKeys.includes(normalize(getItemMonthKey(transfer))))
-    .sort((a, b) => (getItemMonthKey(a) + String(a.day).padStart(2,'0')).localeCompare(getItemMonthKey(b) + String(b.day).padStart(2,'0')));
+    .sort((a, b) => (getItemMonthKey(b) + String(b.day).padStart(2,'0')).localeCompare(getItemMonthKey(a) + String(a.day).padStart(2,'0'))); // DESC: mais recente primeiro
 
   if (!transfers.length) {
     container.className = "item-list empty-state";
@@ -1618,7 +1618,7 @@ function renderIncomes() {
   const incomes = state.incomes
     .slice()
     .filter((income) => activePeriodKeys.includes(normalize(getItemMonthKey(income))))
-    .sort((a, b) => (getItemMonthKey(a) + String(a.day).padStart(2,'0')).localeCompare(getItemMonthKey(b) + String(b.day).padStart(2,'0')));
+    .sort((a, b) => (getItemMonthKey(b) + String(b.day).padStart(2,'0')).localeCompare(getItemMonthKey(a) + String(a.day).padStart(2,'0'))); // DESC: mais recente primeiro
 
   if (!incomes.length) {
     container.className = "item-list empty-state";
@@ -2583,9 +2583,23 @@ if (typeof window !== 'undefined') {
 }
 
 
+// Define a data de hoje como valor padrão em todos os campos de data do formulário
+function initDateFields() {
+  const today = getToday();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const todayStr = `${yyyy}-${mm}-${dd}`;
+  ['snapshotDate', 'incomeDate', 'expenseDate', 'transferDate', 'receivableDate'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el && !el.value) el.value = todayStr;
+  });
+}
+
 if (typeof render === 'function' && typeof document !== 'undefined' && document.querySelector) {
   render();
   initAutofillBanner();
+  initDateFields();
 }
 
 // ── Lógica de Recuperação de Emergência ─────────────────────────
