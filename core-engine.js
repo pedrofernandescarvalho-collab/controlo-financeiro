@@ -71,6 +71,7 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  window.dispatchEvent(new CustomEvent('stateUpdated', { detail: state }));
 }
 
 function getToday() { return new Date(); }
