@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<title>Limpeza de Rendimentos · Controlo Financeiro</title>
+<style>
+  body { font-family: monospace; background: #0f172a; color: #e2e8f0; padding: 2rem; }
+  h1 { color: #7c3aed; }
+  .block { background: #1e293b; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
+  table { border-collapse: collapse; width: 100%; }
+  td, th { border: 1px solid #334155; padding: 8px 12px; }
+  th { background: #0f172a; color: #94a3b8; font-size: .75rem; text-transform: uppercase; }
+  button { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+  .btn-del { background: #dc2626; color: white; }
+  .btn-del:hover { background: #b91c1c; }
+  .btn-save { background: #10b981; color: white; margin-top: 1rem; padding: 12px 24px; font-size: 16px; display: none; }
+  .ok { color: #10b981; }
+  .warn { color: #f59e0b; font-weight: bold; }
+  #status { margin-top: 1rem; padding: 1rem; border-radius: 8px; }
+</style>
+</head>
+<body>
+<h1>🧹 Limpeza de Rendimentos</h1>
+<p>Mostra todos os rendimentos registados. Apaga os que são de teste ou incorretos e guarda.</p>
+
+<div class="block">
+  <h2 style="color:#38bdf8">Todos os Rendimentos (estado atual)</h2>
+  <table id="tbl">
+    <thead><tr><th>#</th><th>Nome</th><th>Valor</th><th>Mês</th><th>Dia</th><th>Ação</th></tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+  <button class="btn-save" id="btnSave" onclick="guardar()">💾 Guardar alterações e sincronizar</button>
+</div>
+
+<div id="status"></div>
+
+<script>
+const raw = localStorage.getItem('finance-control-app');
+if (!raw) {
+  document.getElementById('tbl').innerHTML = '<p style="color:red">❌ Nenhum dado no localStorage.</p>';
+} else {
+  const state = JSON.parse(raw);
+  window._state = state;
+
+  render();
+
+  function render() {
+    const tbody = document.getElementById('tbody');
+    const incomes = state.incomes || [];
+    if (incomes.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="color:#94a3b8">Nenhum rendimento registado.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = incomes.map((inc, idx) => `
+      <tr id="row-${idx}" style="${idx % 2 === 0 ? '' : 'background:#1a2332'}">
+        <td>${idx + 1}</td>
+        <td><strong>${inc.name || '?'}</strong></td>
+        <td style="color:#fbbf24">${Number(inc.amount || 0).toFixed(2)} €</td>
+        <td>${inc.monthKey || '<em style="color:#ef4444">sem mês</em>'}</td>
+        <td>${inc.day || '?'}</td>
+        <td><button class="btn-del" onclick="remover(${idx})">🗑️ Apagar</button></td>
+      </tr>
+    `).join('');
+  }
+
+  window.remover = function(idx) {
+    const nome = state.incomes[idx]?.name;
+    const valor = state.incomes[idx]?.amount;
+    if (!confirm(`Apagar rendimento: "${nome}" (${valor}€)?\n\nEsta ação remove-o do estado local.`)) return;
+    state.incomes.splice(idx, 1);
+    render();
+    document.getElementById('btnSave').style.display = 'inline-block';
+    document.getElementById('status').innerHTML = `<p style="color:#f59e0b">⚠️ Rendimentos atualizados localmente. Clica "Guardar" para persistir.</p>`;
+  };
+
+  window.guardar = function() {
+    localStorage.setItem('finance-control-app', JSON.stringify(state));
+    document.getElementById('status').innerHTML = `
+      <div style="background:#14532d;padding:1rem;border-radius:8px">
+        <p class="ok">✅ Estado guardado com sucesso em localStorage!</p>
+        <p>Total de rendimentos: <strong>${state.incomes.length}</strong></p>
+        <p>Redirecionar em 3 segundos para o dashboard…</p>
+      </div>`;
+    // Tentar sincronizar com Firebase se a função estiver disponível
+    if (typeof window.syncToFirebase === 'function') {
+      window.syncToFirebase(state);
+    }
+    setTimeout(() => {
+      window.location.href = 'dashboard.html';
+    }, 3000);
+  };
+}
+</script>
+</body>
+</html>
