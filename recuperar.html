@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<title>Recuperação de Dados · Controlo Financeiro</title>
+<style>
+  body { font-family: monospace; background: #0f172a; color: #e2e8f0; padding: 2rem; }
+  h1 { color: #7c3aed; }
+  h2 { color: #38bdf8; border-bottom: 1px solid #334155; padding-bottom: .5rem; margin-top: 1.5rem; }
+  .block { background: #1e293b; border-radius: 8px; padding: 1rem; margin: 1rem 0; }
+  .ok  { color: #10b981; font-weight: bold; }
+  .warn{ color: #f59e0b; font-weight: bold; }
+  .err { color: #ef4444; font-weight: bold; }
+  button { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; margin: 4px; }
+  .btn-restore { background: #7c3aed; color: white; font-size: 16px; padding: 14px 28px; }
+  .btn-firebase { background: #ea580c; color: white; }
+  .btn-local { background: #0891b2; color: white; }
+  table { border-collapse: collapse; width: 100%; margin-top: .5rem; }
+  td, th { border: 1px solid #334155; padding: 6px 10px; }
+  th { background: #0f172a; color: #94a3b8; font-size: .75rem; text-transform: uppercase; }
+  .phase { background: #0f172a; border-left: 3px solid #7c3aed; padding: .75rem 1rem; margin: .5rem 0; }
+</style>
+</head>
+<body>
+<h1>🔧 Centro de Recuperação</h1>
+
+<div class="block">
+  <div class="phase" id="phase1">⏳ Fase 1: A ler estado local (localStorage)...</div>
+  <div class="phase" id="phase2">⏳ Fase 2: A ligar à Firebase...</div>
+  <div class="phase" id="phase3">⏳ Fase 3: A comparar estados...</div>
+</div>
+
+<div id="local-summary"></div>
+<div id="firebase-summary"></div>
+<div id="comparison"></div>
+<div id="actions"></div>
+<div id="result"></div>
+
+<script src="firebase-config.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+function set(id, html) { document.getElementById(id).innerHTML = html; }
+function phase(id, html) { document.getElementById(id).innerHTML = html; }
+
+// ─── FASE 1: Local ───────────────────────────────────────────────────────────
+const rawLocal = localStorage.getItem('finance-control-app');
+const lastSync = localStorage.getItem('last_firebase_sync');
+let localState = null;
+
+if (rawLocal) {
+  localState = JSON.parse(rawLocal);
+  const aprExp = (localState.expenses || []).filter(e => (e.monthKey || e.dateLabel?.slice(0,7).replace('-','') || '') === '2026-04' || (e.monthKey === '2026-04'));
+  const aprInc = (localState.incomes || []).filter(i => i.monthKey === '2026-04');
+  const aprSnap = (localState.snapshots || []).filter(s => s.monthKey === '2026-04');
+  phase('phase1', `✅ Fase 1: localStorage tem dados.`);
+  set('local-summary', `
+    <div class="block">
+      <h2>📱 Estado LOCAL (localStorage)</h2>
+      <table>
+        <tr><th>Campo</th><th>Valor</th></tr>
+        <tr><td>state.salary</td><td>${localState.salary ?? 'N/D'} €</td></tr>
+        <tr><td>Despesas Abril</td><td>${aprExp.length} registos</td></tr>
+        <tr><td>Rendimentos Abril</td><td>${aprInc.length} (${aprInc.map(i=>i.name+':'+i.amount+'€').join(', ') || 'nenhum'})</td></tr>
+        <tr><td>Snapshots Abril</td><td>${aprSnap.length} registos</td></tr>
+        <tr><td>last_firebase_sync</td><td>${lastSync ? new Date(+lastSync).toLocaleString('pt-PT') : 'nunca'}</td></tr>
+      </table>
+      <p><button class="btn-local" id="btnSeeLocal">📄 Ver todas as despesas locais de Abril</button></p>
+      <div id="localDetail" style="display:none; margin-top:1rem;">
+        <table>
+          <tr><th>Dia</th><th>Nome</th><th>Valor</th><th>Categoria</th></tr>
+          ${aprExp.map(e=>`<tr><td>${e.day||'?'}</td><td>${e.name||'?'}</td><td>${(+e.amount||0).toFixed(2)}€</td><td>${e.category||e.kind||'?'}</td></tr>`).join('') || '<tr><td colspan="4">Sem despesas</td></tr>'}
+        </table>
+      </div>
+    </div>
+  `);
+  document.getElementById('btnSeeLocal').addEventListener('click', function() {
+    const d = document.getElementById('localDetail');
+    d.style.display = d.style.display === 'none' ? 'block' : 'none';
+  });
+} else {
+  phase('phase1', `❌ Fase 1: localStorage vazio.`);
+}
+
+// ─── FASE 2: Firebase ────────────────────────────────────────────────────────
+phase('phase2', '⏳ Fase 2: A ligar à Firebase...');
+
+try {
+  if (!window.firebaseConfig || window.firebaseConfig.apiKey === 'COLA_AQUI') throw new Error('Firebase não configurado');
+  
+  const app = initializeApp(window.firebaseConfig);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
+  
+  await signInAnonymously(auth);
+  phase('phase2', '✅ Fase 2: Autenticado. A ler Firestore...');
+
+  const docRef = doc(db, 'user_data', 'main_state');
+  const snap = await getDoc(docRef);
+
+  if (!snap.exists()) {
+    phase('phase2', '⚠️ Fase 2: Firestore vazio — sem dados na nuvem.');
+    set('firebase-summary', '<div class="block"><p class="warn">Firestore não tem dados guardados.</p></div>');
+    showActions(null, db, docRef, auth);
+  } else {
+    const cloudData = snap.data();
+    const cloudState = cloudData.state;
+    const cloudTs = cloudData.updatedAt;
+
+    const cAprExp = (cloudState?.expenses || []).filter(e => e.monthKey === '2026-04');
+    const cAprInc = (cloudState?.incomes || []).filter(i => i.monthKey === '2026-04');
+    const cAprSnap = (cloudState?.snapshots || []).filter(s => s.monthKey === '2026-04');
+
+    phase('phase2', `✅ Fase 2: Firebase lido com sucesso.`);
+    set('firebase-summary', `
+      <div class="block">
+        <h2>☁️ Estado FIREBASE (Firestore)</h2>
+        <table>
+          <tr><th>Campo</th><th>Valor</th></tr>
+          <tr><td>Guardado em</td><td>${cloudTs ? new Date(cloudTs).toLocaleString('pt-PT') : 'desconhecido'}</td></tr>
+          <tr><td>state.salary</td><td>${cloudState?.salary ?? 'N/D'} €</td></tr>
+          <tr><td>Despesas Abril</td><td>${cAprExp.length} registos</td></tr>
+          <tr><td>Rendimentos Abril</td><td>${cAprInc.length} (${cAprInc.map(i=>i.name+':'+i.amount+'€').join(', ') || 'nenhum'})</td></tr>
+          <tr><td>Snapshots Abril</td><td>${cAprSnap.length} registos</td></tr>
+        </table>
+        <p><button class="btn-firebase" id="btnSeeCloud">📄 Ver todas as despesas Firebase de Abril</button></p>
+        <div id="cloudDetail" style="display:none; margin-top:1rem;">
+          <table>
+            <tr><th>Dia</th><th>Nome</th><th>Valor</th><th>Categoria</th></tr>
+            ${cAprExp.map(e=>`<tr><td>${e.day||'?'}</td><td>${e.name||'?'}</td><td>${(+e.amount||0).toFixed(2)}€</td><td>${e.category||e.kind||'?'}</td></tr>`).join('') || '<tr><td colspan="4">Sem despesas</td></tr>'}
+          </table>
+        </div>
+      </div>
+    `);
+    document.getElementById('btnSeeCloud').addEventListener('click', function() {
+      const d = document.getElementById('cloudDetail');
+      d.style.display = d.style.display === 'none' ? 'block' : 'none';
+    });
+
+    showActions(cloudState, db, docRef, cloudTs, localState, lastSync);
+  }
+} catch(e) {
+  phase('phase2', `❌ Fase 2: Erro Firebase — ${e.message}`);
+  showActions(null, null, null, null, localState, lastSync);
+}
+
+function showActions(cloudState, db, docRef, cloudTs, localState, lastSync) {
+  const localTs = lastSync ? +lastSync : 0;
+  const cloudIsNewer = cloudTs > localTs;
+  const localApr = (localState?.expenses || []).filter(e => e.monthKey === '2026-04').length;
+  const cloudApr = (cloudState?.expenses || []).filter(e => e.monthKey === '2026-04').length;
+
+  phase('phase3', `✅ Fase 3: Local tem ${localApr} despesas, Firebase tem ${cloudApr} despesas em Abril.`);
+
+  let recommendation = '';
+  if (cloudApr > localApr) {
+    recommendation = `<p class="ok">✅ Firebase tem MAIS dados (${cloudApr} vs ${localApr}). Recomendado: restaurar do Firebase.</p>`;
+  } else if (localApr > cloudApr) {
+    recommendation = `<p class="ok">✅ Local tem MAIS dados (${localApr} vs ${cloudApr}). Os dados locais estão mais completos.</p>`;
+  } else {
+    recommendation = `<p class="warn">⚠️ Ambos têm ${localApr} despesas. Datas: Local=${new Date(localTs).toLocaleTimeString('pt-PT')} | Firebase=${cloudTs ? new Date(cloudTs).toLocaleTimeString('pt-PT') : '?'}</p>`;
+  }
+
+  set('comparison', `<div class="block"><h2>🔍 Comparação</h2>${recommendation}</div>`);
+
+  set('actions', `
+    <div class="block">
+      <h2>🛠️ Ações de Recuperação</h2>
+      ${cloudState ? `<button class="btn-restore" id="btnFromFirebase">☁️ Restaurar do Firebase (${cloudApr} despesas)</button>` : ''}
+      ${localState ? `<button class="btn-local" id="btnKeepLocal">📱 Manter Local (${localApr} despesas)</button>` : ''}
+    </div>
+  `);
+
+  if (cloudState && document.getElementById('btnFromFirebase')) {
+    document.getElementById('btnFromFirebase').addEventListener('click', async () => {
+      localStorage.setItem('finance-control-app', JSON.stringify(cloudState));
+      localStorage.setItem('last_firebase_sync', cloudTs || Date.now());
+      set('result', '<div class="block"><p class="ok">✅ Estado restaurado do Firebase! A redirecionar...</p></div>');
+      setTimeout(() => window.location.href = 'dashboard.html', 2000);
+    });
+  }
+
+  if (localState && document.getElementById('btnKeepLocal')) {
+    document.getElementById('btnKeepLocal').addEventListener('click', async () => {
+      // Forçar sync do local para Firebase
+      if (db && docRef) {
+        const ts = Date.now();
+        localStorage.setItem('last_firebase_sync', ts);
+        await setDoc(docRef, { state: localState, updatedAt: ts }, { merge: true });
+        set('result', '<div class="block"><p class="ok">✅ Estado local enviado para Firebase! A redirecionar...</p></div>');
+      } else {
+        set('result', '<div class="block"><p class="warn">⚠️ Sem Firebase disponível, a manter só o local.</p></div>');
+      }
+      setTimeout(() => window.location.href = 'dashboard.html', 2000);
+    });
+  }
+}
+</script>
+</body>
+</html>
