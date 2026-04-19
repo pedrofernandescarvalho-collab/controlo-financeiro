@@ -149,6 +149,58 @@ function sumIncomes(excludeReimbursements = false) {
   }).reduce((s, i) => s + Number(i.amount || 0), 0);
 }
 
+// Funções de Suporte para Filtros por Data/Período
+function sumFixedExpensesUntil(day) {
+  const { month } = getActiveMonthParts();
+  const mk = getMonthKey();
+  return state.recurringFixed
+    .filter(rf => {
+      if (rf.endDate && rf.endDate < mk) return false;
+      const rfDay = Number(rf.day) || 1;
+      if (rfDay > day) return false;
+      if (!rf.frequency || rf.frequency === 'monthly') return true;
+      const sm = Number(rf.startMonth) || 1;
+      if (rf.frequency === 'annual') return month === sm;
+      if (rf.frequency === 'semi-annual') return month === sm || month === (sm + 6 > 12 ? sm - 6 : sm + 6);
+      return false;
+    })
+    .reduce((s, rf) => s + Number(rf.amount || 0), 0);
+}
+
+function sumExpensesUntil(day) {
+  const mk = getMonthKey();
+  return state.expenses
+    .filter(e => getItemMonthKey(e) === mk && e.kind !== 'fixed' && Number(e.day) <= day)
+    .reduce((s, e) => s + getNetExpenseAmount(e), 0);
+}
+
+function sumExpensesBetween(start, end) {
+  const mk = getMonthKey();
+  return state.expenses
+    .filter(e => getItemMonthKey(e) === mk && e.kind !== 'fixed' && Number(e.day) > start && Number(e.day) <= end)
+    .reduce((s, e) => s + getNetExpenseAmount(e), 0);
+}
+
+function sumTransfersBetween(start, end) {
+  return state.transfers
+    .filter(t => getItemMonthKey(t) === getMonthKey() && Number(t.day) > start && Number(t.day) <= end)
+    .reduce((s, t) => s + Number(t.amount || 0), 0);
+}
+
+function sumIncomesBetween(start, end, excludeReimbursements = false) {
+  return state.incomes
+    .filter(i => {
+      if (getItemMonthKey(i) !== getMonthKey()) return false;
+      if (Number(i.day) <= start || Number(i.day) > end) return false;
+      if (excludeReimbursements && i.linkedReceivableId) {
+        const rec = state.receivables.find(r => r.id === i.linkedReceivableId);
+        if (rec && rec.linkedExpenseId) return false;
+      }
+      return true;
+    })
+    .reduce((s, i) => s + Number(i.amount || 0), 0);
+}
+
 function calculateBudget() {
   const startSnap = getStartingSnapshot();
   const startBal = startSnap ? (Number(startSnap.bankBalance) + Number(startSnap.cashBalance)) : 0;
@@ -344,7 +396,14 @@ function renderCategorySelects() {
 
 function render() {
   renderCategorySelects();
-  renderNetWorth(); renderSummary(); renderExpenses(); renderRecurring(); renderIncomes(); renderReceivables();
+  renderNetWorth(); 
+  renderSummary(); 
+  renderExpenses(); 
+  renderRecurring(); 
+  renderIncomes(); 
+  renderReceivables();
+  renderBankReconciliation();
+  renderReconciliationHistory();
   const s = document.querySelector("#snapshotAccountsInputs");
   if (s) {
     s.innerHTML = "";
@@ -414,3 +473,203 @@ window.formatCurrency = formatCurrency;
 window.getActiveMonthKey = getActiveMonthKey;
 window.getMonthKey = getMonthKey;
 window.getGlobalAccountsTotal = getGlobalAccountsTotal;
+window.calculateBudget = calculateBudget;
+window.calculateSavingsRate = calculateSavingsRate;
+window.calculateFinancialRunway = calculateFinancialRunway;
+window.calculateEmergencyFundProgress = calculateEmergencyFundProgress;
+window.getLeakageStatus = getLeakageStatus;
+window.getNetExpenseAmount = getNetExpenseAmount;
+window.getDailySpendingData = getDailySpendingData;
+window.getCalendarSlices = getCalendarSlices;
+window.getFlexibleSpentInPeriod = getFlexibleSpentInPeriod;
+window.calculateObligationsStatus = calculateObligationsStatus;
+window.getRealSpentEfficiency = getRealSpentEfficiency;
+window.getReconciliationHistory = getReconciliationHistory;
+window.getItemMonthKey = getItemMonthKey;
+window.sumIncomes = sumIncomes;
+window.sumVariableExpenses = sumVariableExpenses;
+window.sumFixedMonthlyExpenses = sumFixedMonthlyExpenses;
+window.getActiveMonthParts = getActiveMonthParts;
+window.getToday = getToday;
+
+// ════════════════════════════════════════════════════════════
+// BI & ANALYTICS ENGINE
+// ════════════════════════════════════════════════════════════
+
+function calculateSavingsRate() {
+  const b = calculateBudget();
+  const incTotal = (Number(state.salary) || 0) + sumIncomes();
+  const saved = sumTransfers() + b.leftover;
+  if (incTotal <= 0) return 0;
+  return Math.min(Math.max((saved / incTotal) * 100, 0), 100);
+}
+
+function calculateFinancialRunway() {
+  const netWorth = getGlobalAccountsTotal();
+  const b = calculateBudget();
+  const monthlyCost = b.fixedExpenses + b.variableExpenses;
+  if (monthlyCost <= 0) {
+    const salaryCost = Number(state.salary) || 0;
+    if (salaryCost <= 0) return null;
+    return { months: netWorth / salaryCost, monthlyCost: salaryCost, netWorth, basedOn: "Salário" };
+  }
+  return { months: netWorth / monthlyCost, monthlyCost, netWorth, basedOn: "Gasto Real" };
+}
+
+function calculateEmergencyFundProgress(targetMonths = 6) {
+  const runway = calculateFinancialRunway();
+  if (!runway) return { pct: 0, months: 0, target: targetMonths, ok: false };
+  const pct = Math.min((runway.months / targetMonths) * 100, 100);
+  return { pct, months: runway.months, target: targetMonths, ok: runway.months >= targetMonths };
+}
+
+function getLeakageStatus() {
+  const snaps = getSnapshotsForMonth();
+  if (snaps.length < 2) return null;
+  const last = snaps[snaps.length - 1];
+  const hist = getReconciliationHistory();
+  const currentInterval = hist.find(h => h.currentDay === last.day);
+  if (!currentInterval) return null;
+  const gap = currentInterval.unexplainedDifference;
+  if (Math.abs(gap) <= 0.01) return { type: 'success', message: 'Contas batem certo.' };
+  if (gap > 0) return { type: 'warning', message: `Fuga de Capital: ${formatCurrency(gap)} por registar.` };
+  return { type: 'info', message: `Excesso Registado: ${formatCurrency(Math.abs(gap))} a mais.` };
+}
+
+function getNetExpenseAmount(expense) {
+  if (!expense) return 0;
+  const gross = Number(expense.amount) || 0;
+  const splits = state.receivables.filter(r => r.linkedExpenseId === expense.id);
+  const splitTotal = splits.reduce((sum, r) => sum + Number(r.amount || 0), 0);
+  return Math.max(0, gross - splitTotal);
+}
+
+function getDailySpendingData() {
+  const { year, month } = getActiveMonthParts();
+  const days = new Date(year, month, 0).getDate();
+  const mk = getMonthKey();
+  const result = new Array(days).fill(0);
+  state.expenses.forEach(e => {
+    if (getItemMonthKey(e) !== mk || e.kind === 'fixed') return;
+    const d = Math.min(Math.max(Number(e.day) || 1, 1), days) - 1;
+    result[d] += getNetExpenseAmount(e);
+  });
+  return result;
+}
+
+function getCalendarSlices() {
+  const { year, month } = getActiveMonthParts();
+  const days = new Date(year, month, 0).getDate();
+  const slices = [];
+  let start = 1;
+  while (start <= days) {
+    let end = start + 6;
+    if (end > days) end = days;
+    slices.push({ start, end });
+    start = end + 1;
+  }
+  return slices;
+}
+
+function getFlexibleSpentInPeriod(start, end) {
+  return sumExpensesBetween(start - 1, end) + sumTransfersBetween(start - 1, end);
+}
+
+function calculateObligationsStatus() {
+  const total = sumFixedMonthlyExpenses();
+  const paid = sumFixedExpensesUntil(31);
+  return { 
+    totalProvision: total, 
+    paidAmount: paid, 
+    pendingAmount: Math.max(0, total - paid), 
+    progressPercent: total > 0 ? (paid / total) * 100 : 0 
+  };
+}
+
+function getRealSpentEfficiency() {
+  return sumVariableExpenses() + sumTransfers();
+}
+
+function getReconciliationHistory() {
+  const snaps = getSnapshotsForMonth();
+  const history = [];
+  for (let i = 1; i < snaps.length; i++) {
+    const prev = snaps[i-1];
+    const curr = snaps[i];
+    const prevTotal = prev.bankBalance + prev.cashBalance;
+    const currTotal = curr.bankBalance + curr.cashBalance;
+    const diff = prevTotal - currTotal;
+    const exp = sumExpensesBetween(prev.day, curr.day);
+    const trans = sumTransfersBetween(prev.day, curr.day);
+    const inc = sumIncomesBetween(prev.day, curr.day, false);
+    const reconciled = exp + trans - inc;
+    history.push({
+      previousDay: prev.day,
+      currentDay: curr.day,
+      previousBankBalance: prev.bankBalance,
+      currentBankBalance: curr.bankBalance,
+      previousCashBalance: prev.cashBalance,
+      currentCashBalance: curr.cashBalance,
+      totalDifference: diff,
+      expenseTotal: exp,
+      transferTotal: trans,
+      reconciledTotal: reconciled,
+      unexplainedDifference: diff - reconciled,
+      currentTotalBalance: currTotal
+    });
+  }
+  return history;
+}
+
+function renderBankReconciliation() {
+  const hist = getReconciliationHistory();
+  const start = getStartingSnapshot();
+  const latest = hist.length ? hist[hist.length - 1] : null;
+  
+  const map = {
+    "#bankStartBalance": latest ? latest.previousBankBalance : (start ? start.bankBalance : 0),
+    "#bankCurrentBalance": latest ? latest.currentBankBalance : (start ? start.bankBalance : 0),
+    "#cashStartBalance": latest ? latest.previousCashBalance : (start ? start.cashBalance : 0),
+    "#cashCurrentBalance": latest ? latest.currentCashBalance : (start ? start.cashBalance : 0),
+    "#bankDifference": latest ? latest.totalDifference : 0,
+    "#bankUnexplained": latest ? latest.unexplainedDifference : 0,
+    "#bankExpenseTotal": latest ? latest.expenseTotal : 0,
+    "#bankTransferTotal": latest ? latest.transferTotal : 0,
+    "#bankReconciledTotal": latest ? latest.reconciledTotal : 0,
+    "#currentTotalBalance": latest ? latest.currentTotalBalance : (start ? (start.bankBalance + start.cashBalance) : 0),
+    "#netCurrentBalance": latest ? (latest.currentTotalBalance - calculateObligationsStatus().pendingAmount) : 0
+  };
+  
+  for (let id in map) {
+    const el = document.querySelector(id);
+    if (el) el.textContent = formatCurrency(map[id]);
+  }
+}
+
+function renderReconciliationHistory() {
+  const container = document.querySelector("#reconciliationHistoryList");
+  if (!container) return;
+  const hist = getReconciliationHistory().slice().reverse();
+  if (!hist.length) {
+    container.className = "item-list empty-state";
+    container.textContent = "Aguardando segunda entrada de saldos...";
+    return;
+  }
+  container.className = "item-list";
+  container.innerHTML = "";
+  hist.forEach(h => {
+    const card = document.createElement("div");
+    card.className = "item-card";
+    const status = Math.abs(h.unexplainedDifference) < 0.01 ? "✅ OK" : (h.unexplainedDifference > 0 ? "⚠️ Fuga" : "ℹ️ Excesso");
+    card.innerHTML = `
+      <div>
+        <strong class="item-title">Dia ${h.previousDay} → Dia ${h.currentDay}</strong>
+        <p class="item-subtitle">Variação Real: ${formatCurrency(h.totalDifference)} | Registado: ${formatCurrency(h.reconciledTotal)}</p>
+      </div>
+      <div class="item-actions">
+        <span class="item-value" style="color: ${h.unexplainedDifference > 0 ? '#ef4444' : (h.unexplainedDifference < 0 ? '#f59e0b' : 'var(--success)')}">${formatCurrency(h.unexplainedDifference)} ${status}</span>
+      </div>
+    `;
+    container.appendChild(card);
+  });
+}
