@@ -157,6 +157,36 @@
         </div>
       </section>
 
+      <!-- KPIs de Ritmo Diário -->
+      <section class="panel config-panel span-all" style="padding: 30px;">
+        <div class="panel-heading compact-heading">
+          <h2>📈 Ritmo Financeiro Diário</h2>
+          <p>Médias calculadas com base nos dias decorridos do mês atual. Quanto estás a gastar e a poupar por dia, na prática.</p>
+        </div>
+        <div class="summary-grid mb-20" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
+          <article class="summary-card" id="dailySpendCard">
+            <span>Gasto Médio/Dia</span>
+            <strong id="dailyAvgSpendDisplay" style="color:#ef4444;">—</strong>
+            <p class="hero-copy" style="font-size:0.75rem;" id="dailySpendDetail">Despesas variáveis ÷ dias decorridos</p>
+          </article>
+          <article class="summary-card" id="dailySaveCard" style="border-color: var(--primary);">
+            <span>Poupança Média/Dia</span>
+            <strong id="dailyAvgSaveDisplay" style="color: var(--primary);">—</strong>
+            <p class="hero-copy" style="font-size:0.75rem;" id="dailySaveDetail">Excedente acumulado das fatias ÷ dias decorridos</p>
+          </article>
+          <article class="summary-card accent strong-card" id="totalSavedCard">
+            <span>Total Poupado até Hoje</span>
+            <strong id="totalSavedDisplay">—</strong>
+            <p class="hero-copy" style="font-size:0.75rem;" id="totalSavedDetail">Soma do excedente de todas as fatias concluídas</p>
+          </article>
+          <article class="summary-card" id="projectedSavingsCard">
+            <span>Projeção Poupança (Fim do Mês)</span>
+            <strong id="projectedSavingsDisplay">—</strong>
+            <p class="hero-copy" style="font-size:0.75rem;" id="projectedSavingsDetail">Se continuar ao ritmo atual até ao fim do mês</p>
+          </article>
+        </div>
+      </section>
+
       <!-- Radar de Saúde Financeira -->
       <section class="panel config-panel span-all" style="padding: 30px;">
         <div class="panel-heading compact-heading">

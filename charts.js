@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderWeeklyApanhado();
     drawDailyPerformanceChart();
     renderObligationsReserves();
+    renderDailyRhythm();
 
   } catch (e) {
     console.error('Dashboard error:', e);
@@ -59,6 +60,7 @@ window.addEventListener('stateUpdated', () => {
         drawBurnRateChart();
         drawNetWorthChart();
         _renderGlobalAnalyticTable();
+        renderDailyRhythm();
         // Recarregar outras visualizações se necessário
     } catch (e) {
         console.warn('Erro ao atualizar gráficos via evento:', e);
@@ -630,4 +632,100 @@ function renderObligationsReserves() {
             </div>
         `;
     }
+}
+
+// ════════════════════════════════════════════════════════════
+// RITMO FINANCEIRO DIÁRIO
+// ════════════════════════════════════════════════════════════
+
+function renderDailyRhythm() {
+  const spendEl   = document.getElementById('dailyAvgSpendDisplay');
+  const saveEl    = document.getElementById('dailyAvgSaveDisplay');
+  const totalEl   = document.getElementById('totalSavedDisplay');
+  const projEl    = document.getElementById('projectedSavingsDisplay');
+  if (!spendEl) return; // não estamos no dashboard
+
+  const fmt = typeof formatCurrency === 'function' ? formatCurrency : v => v.toFixed(2) + '€';
+
+  // Dias decorridos: se for o mês atual usa o dia de hoje, senão usa o total do mês
+  const isCurrent = typeof isActiveMonthCurrent === 'function' ? isActiveMonthCurrent() : true;
+  const today = typeof getToday === 'function' ? getToday() : new Date();
+  const { year, month } = typeof getActiveMonthParts === 'function' ? getActiveMonthParts() : { year: today.getFullYear(), month: today.getMonth() + 1 };
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const daysElapsed = isCurrent ? Math.max(today.getDate(), 1) : daysInMonth;
+
+  // --- Gasto diário médio ---
+  const totalVariableSpent = typeof sumVariableExpenses === 'function' ? sumVariableExpenses() : 0;
+  const dailyAvgSpend = daysElapsed > 0 ? totalVariableSpent / daysElapsed : 0;
+  if (spendEl) spendEl.textContent = fmt(dailyAvgSpend);
+
+  // --- Excedente acumulado pelas fatias semanais ---
+  // É o que "sobrou" do orçamento em cada fatia até ao dia de hoje
+  const slices = typeof getCalendarSlices === 'function' ? getCalendarSlices() : [];
+  const budget = typeof calculateBudget === 'function' ? calculateBudget() : null;
+  const daysInM = daysInMonth;
+  const dailyBudget = budget ? (budget.disposableMonthlyBudget / daysInM) : 0;
+  const currentDay = isCurrent ? today.getDate() : daysInMonth;
+
+  let totalSurplusToday = 0;
+  let totalSurplusFullMonth = 0;
+
+  slices.forEach(slice => {
+    const sliceDays = slice.end - slice.start + 1;
+    const sliceBudget = dailyBudget * sliceDays;
+    const sliceSpent = typeof getFlexibleSpentInPeriod === 'function'
+      ? getFlexibleSpentInPeriod(slice.start, slice.end)
+      : 0;
+    const sliceSurplus = sliceBudget - sliceSpent;
+
+    // Para "total poupado até hoje": considera fatias totalmente decorridas + parcial da atual
+    if (slice.end <= currentDay) {
+      // Fatia totalmente concluída
+      totalSurplusToday += sliceSurplus;
+    } else if (slice.start <= currentDay) {
+      // Fatia em curso — calcular só os dias decorridos dentro dela
+      const daysElapsedInSlice = currentDay - slice.start + 1;
+      const partialBudget = dailyBudget * daysElapsedInSlice;
+      const partialSpent = typeof getFlexibleSpentInPeriod === 'function'
+        ? getFlexibleSpentInPeriod(slice.start, currentDay)
+        : 0;
+      totalSurplusToday += partialBudget - partialSpent;
+    }
+
+    // Para projeção: excedente total de todas as fatias
+    totalSurplusFullMonth += sliceSurplus;
+  });
+
+  // --- Poupança diária média ---
+  const dailyAvgSave = daysElapsed > 0 ? totalSurplusToday / daysElapsed : 0;
+  if (saveEl) {
+    saveEl.textContent = fmt(dailyAvgSave);
+    saveEl.style.color = dailyAvgSave >= 0 ? 'var(--primary)' : '#ef4444';
+  }
+
+  // --- Total poupado até hoje ---
+  if (totalEl) {
+    totalEl.textContent = fmt(totalSurplusToday);
+    totalEl.style.color = totalSurplusToday >= 0 ? '' : '#ef4444';
+    const detailEl = document.getElementById('totalSavedDetail');
+    if (detailEl) detailEl.textContent = `Excedente acumulado em ${daysElapsed} dias do mês (gasto ${fmt(totalVariableSpent)})`;
+  }
+
+  // --- Projeção até ao fim do mês ---
+  if (projEl) {
+    projEl.textContent = fmt(totalSurplusFullMonth);
+    projEl.style.color = totalSurplusFullMonth >= 0 ? 'var(--primary)' : '#ef4444';
+    const detailEl = document.getElementById('projectedSavingsDetail');
+    if (detailEl) {
+      const remaining = daysInMonth - currentDay;
+      detailEl.textContent = `Faltam ${remaining} dias · Projeção: ${fmt(dailyAvgSave * daysInMonth)}`;
+    }
+  }
+
+  // Detalhe do gasto diário
+  const spendDetailEl = document.getElementById('dailySpendDetail');
+  if (spendDetailEl) spendDetailEl.textContent = `${fmt(totalVariableSpent)} ÷ ${daysElapsed} dias`;
+
+  const saveDetailEl = document.getElementById('dailySaveDetail');
+  if (saveDetailEl) saveDetailEl.textContent = `${fmt(totalSurplusToday)} ÷ ${daysElapsed} dias`;
 }
