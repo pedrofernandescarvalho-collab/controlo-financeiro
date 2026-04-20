@@ -114,15 +114,16 @@
   </div>
 
   
+  <script src="core-engine.js"></script>
+  <script src="firebase-config.js"></script>
+  <script type="module" src="firebase-sync.js"></script>
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('service-worker.js');
       });
     }
-  </script>
-  <script>
-    // Inicializar filtros globais se necessário
+
     document.addEventListener('DOMContentLoaded', () => {
       const filters = document.querySelectorAll('.extract-filters .period-btn');
       filters.forEach(btn => {
@@ -133,19 +134,17 @@
           if (typeof renderGlobalExtract === 'function') renderGlobalExtract();
         });
       });
-      
-      // Filtro inicial
+
       window.activeExtractFilter = 'all';
-      
-      // Delay curto para carregar o state inicial
-      setTimeout(() => {
-        if (typeof renderGlobalExtract === 'function') renderGlobalExtract();
-        if (typeof renderNetWorth === 'function') renderNetWorth();
-      }, 50);
+      if (typeof renderGlobalExtract === 'function') renderGlobalExtract();
+      if (typeof renderNetWorth === 'function') renderNetWorth();
+    });
+
+    // Atualizar quando Firebase sincronizar dados da cloud
+    window.addEventListener('stateUpdated', () => {
+      if (typeof renderGlobalExtract === 'function') renderGlobalExtract();
+      if (typeof renderNetWorth === 'function') renderNetWorth();
     });
   </script>
-  <script src="core-engine.js"></script>
-  <script src="firebase-config.js"></script>
-  <script type="module" src="firebase-sync.js"></script>
 </body>
-</html>
+</html>

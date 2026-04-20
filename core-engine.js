@@ -677,7 +677,103 @@ function renderReconciliationHistory() {
   });
 }
 
-// Global Exports
+// ════════════════════════════════════════════════════════════
+// EXTRATO GLOBAL
+// ════════════════════════════════════════════════════════════
+
+function renderGlobalExtract() {
+  const tbody = document.getElementById('extractTableBody');
+  if (!tbody) return;
+
+  const activeFilter = (typeof window !== 'undefined' && window.activeExtractFilter) ? window.activeExtractFilter : 'all';
+
+  // Agregar todos os movimentos
+  const allMovements = [];
+
+  state.incomes.forEach(i => {
+    allMovements.push({
+      date: i.dateLabel || `${i.monthKey || getMonthKey()}-${String(i.day || 1).padStart(2,'0')}`,
+      monthKey: i.monthKey || getItemMonthKey(i),
+      day: i.day || 1,
+      name: i.name,
+      category: i.linkedReceivableId ? 'Reembolso' : 'Rendimento',
+      type: 'income',
+      amount: Number(i.amount || 0),
+      sign: +1
+    });
+  });
+
+  state.expenses.forEach(e => {
+    if (e.kind === 'fixed') return; // despesas fixas são provisões, não movimentos reais
+    allMovements.push({
+      date: e.dateLabel || `${e.monthKey || getMonthKey()}-${String(e.day || 1).padStart(2,'0')}`,
+      monthKey: e.monthKey || getItemMonthKey(e),
+      day: e.day || 1,
+      name: e.name,
+      category: e.category || 'Geral',
+      type: 'variable',
+      amount: getNetExpenseAmount(e),
+      sign: -1
+    });
+  });
+
+  state.transfers.forEach(t => {
+    allMovements.push({
+      date: t.dateLabel || `${t.monthKey || getMonthKey()}-${String(t.day || 1).padStart(2,'0')}`,
+      monthKey: t.monthKey || getItemMonthKey(t),
+      day: t.day || 1,
+      name: t.name || 'Transferência / Poupança',
+      category: 'Transferência',
+      type: 'transfer',
+      amount: Number(t.amount || 0),
+      sign: -1
+    });
+  });
+
+  // Ordenar cronologicamente (mais recente primeiro)
+  allMovements.sort((a, b) => {
+    if (a.date !== b.date) return b.date.localeCompare(a.date);
+    return (b.day || 0) - (a.day || 0);
+  });
+
+  // Filtrar conforme tipo
+  const filtered = activeFilter === 'all'
+    ? allMovements
+    : allMovements.filter(m => m.type === activeFilter);
+
+  if (!filtered.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--text-muted);font-style:italic;">
+      ${activeFilter === 'all' ? 'Ainda não tens movimentos registados.' : 'Sem movimentos deste tipo.'}
+    </td></tr>`;
+    return;
+  }
+
+  // Calcular saldo acumulado (de trás para frente = mais antigo primeiro)
+  let runningBalance = 0;
+  const withBalance = [...filtered].reverse().map(m => {
+    runningBalance += m.sign * m.amount;
+    return { ...m, runningBalance };
+  });
+  withBalance.reverse(); // voltar a mais recente primeiro
+
+  const typeLabels = { income: 'Entrada', variable: 'Saída', transfer: 'Poupança/Transf.' };
+  const typeColors = { income: 'badge-income', variable: 'badge-expense', transfer: 'badge-transfer' };
+
+  tbody.innerHTML = withBalance.map(m => {
+    const signStr = m.sign > 0 ? '+' : '-';
+    const amtColor = m.sign > 0 ? 'color:#10b981;font-weight:700;' : 'color:#ef4444;font-weight:700;';
+    const balColor = m.runningBalance >= 0 ? 'color:#10b981;' : 'color:#ef4444;';
+    return `<tr>
+      <td style="white-space:nowrap">${m.date}</td>
+      <td>${m.name}</td>
+      <td><span style="opacity:0.7;font-size:0.85em">${m.category}</span></td>
+      <td><span class="${typeColors[m.type] || ''}">${typeLabels[m.type] || m.type}</span></td>
+      <td class="text-right" style="${amtColor}">${signStr}${formatCurrency(m.amount)}</td>
+      <td class="text-right extract-balance" style="${balColor}">${formatCurrency(m.runningBalance)}</td>
+    </tr>`;
+  }).join('');
+}
+
 window.state = state;
 window.saveState = saveState;
 window.render = render;
@@ -704,5 +800,7 @@ window.sumFixedMonthlyExpenses = sumFixedMonthlyExpenses;
 window.getActiveMonthParts = getActiveMonthParts;
 window.getToday = getToday;
 window.isActiveMonthCurrent = isActiveMonthCurrent;
+window.renderGlobalExtract = renderGlobalExtract;
 window.renderAnalyticTable = function() { /* alias - renderizado pelo charts.js */ };
+
 
