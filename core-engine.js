@@ -48,11 +48,10 @@ const monthlyContainer = document.querySelector("#fixedExpensesList");
 
 function loadState() {
   const raw = localStorage.getItem(STORAGE_KEY);
-  console.log("[Engine] Carregando estado do localStorage...", raw ? "Dados encontrados" : "Vazio");
   if (!raw) return JSON.parse(JSON.stringify(defaultState));
   try {
     const parsed = JSON.parse(raw);
-    const s = {
+    return {
       ...JSON.parse(JSON.stringify(defaultState)),
       ...parsed,
       categories: Array.isArray(parsed.categories) && parsed.categories.length ? parsed.categories : defaultState.categories,
@@ -64,38 +63,36 @@ function loadState() {
       snapshots: Array.isArray(parsed.snapshots) ? parsed.snapshots : [],
       recurringFixed: Array.isArray(parsed.recurringFixed) ? parsed.recurringFixed : []
     };
-    return s;
   } catch (e) {
-    console.error("[Engine] Erro ao carregar dados:", e);
+    console.error("Erro ao carregar dados:", e);
     return JSON.parse(JSON.stringify(defaultState));
   }
 }
 
-// ⚡ INICIALIZAÇÃO GLOBAL DO ESTADO
-var state = loadState();
-window.state = state;
+const state = loadState();
 
-// ⚡ EXPORTAÇÕES GLOBAIS IMEDIATAS
-window.formatCurrency = (value) => new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(Number(value) || 0);
-window.getToday = () => new Date();
-window.getActiveMonthKey = () => {
-    if (typeof window !== 'undefined' && window.dashboardMonthKey) return window.dashboardMonthKey;
-    if (window.state && window.state.analysisMonth) return window.state.analysisMonth;
-    const now = new Date();
-    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-};
-window.saveState = () => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(window.state));
-    window.dispatchEvent(new CustomEvent('stateUpdated', { detail: window.state }));
-};
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  window.dispatchEvent(new CustomEvent('stateUpdated', { detail: state }));
+}
 
-function saveState() { window.saveState(); }
+function getToday() { return new Date(); }
+
+function getActiveMonthKey() {
+  if (typeof window !== 'undefined' && window.dashboardMonthKey) return window.dashboardMonthKey;
+  if (state.analysisMonth) return state.analysisMonth;
+  const today = getToday();
+  return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+}
 
 function getActiveMonthParts() {
   const [year, month] = getActiveMonthKey().split("-").map(Number);
   return { year, month };
 }
 
+function formatCurrency(value) {
+  return new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(Number(value) || 0);
+}
 
 function getMonthKey() { return getActiveMonthKey(); }
 
@@ -676,8 +673,10 @@ function renderReconciliationHistory() {
 
 // Global Exports
 window.state = state;
-// Link local saveState
+window.saveState = saveState;
 window.render = render;
+window.formatCurrency = formatCurrency;
+window.getActiveMonthKey = getActiveMonthKey;
 window.getMonthKey = getMonthKey;
 window.getGlobalAccountsTotal = getGlobalAccountsTotal;
 window.calculateBudget = calculateBudget;
@@ -697,3 +696,4 @@ window.sumIncomes = sumIncomes;
 window.sumVariableExpenses = sumVariableExpenses;
 window.sumFixedMonthlyExpenses = sumFixedMonthlyExpenses;
 window.getActiveMonthParts = getActiveMonthParts;
+window.getToday = getToday;
