@@ -712,13 +712,17 @@ function renderDailyRhythm() {
   }
 
   // --- Projeção até ao fim do mês ---
+  // Assume que continuas a gastar ao mesmo ritmo dos dias já decorridos
+  const remainingDays = Math.max(daysInMonth - currentDay, 0);
+  const projectedExtraSurplus = remainingDays * (dailyBudget - dailyAvgSpend);
+  const projectedTotal = totalSurplusToday + projectedExtraSurplus;
+
   if (projEl) {
-    projEl.textContent = fmt(totalSurplusFullMonth);
-    projEl.style.color = totalSurplusFullMonth >= 0 ? 'var(--primary)' : '#ef4444';
+    projEl.textContent = fmt(projectedTotal);
+    projEl.style.color = projectedTotal >= 0 ? 'var(--primary)' : '#ef4444';
     const detailEl = document.getElementById('projectedSavingsDetail');
     if (detailEl) {
-      const remaining = daysInMonth - currentDay;
-      detailEl.textContent = `Faltam ${remaining} dias · Projeção: ${fmt(dailyAvgSave * daysInMonth)}`;
+      detailEl.textContent = `Hoje: ${fmt(totalSurplusToday)} + ${remainingDays} dias × (${fmt(dailyBudget)}/dia − ${fmt(dailyAvgSpend)}/dia)`;
     }
   }
 
