@@ -171,20 +171,19 @@
 
         <form id="api-settings-form" class="stack">
           <label>
-            Finnhub API Key (Ações/ETFs)
+            Finnhub API Key (Acoes/ETFs)
             <input id="finnhubApiKey" name="finnhubApiKey" type="password" placeholder="Cola aqui a tua chave da Finnhub">
-            <small style="opacity: 0.6; font-size: 0.75rem;">Obtém uma chave gratuita em <a href="https://finnhub.io/" target="_blank" style="color: var(--primary);">finnhub.io</a></small>
+            <small style="opacity: 0.6; font-size: 0.75rem;">Obtem uma chave gratuita em <a href="https://finnhub.io/" target="_blank" style="color: var(--primary);">finnhub.io</a></small>
           </label>
 
-          
           <label style="margin-top: 8px;">
             Gemini API Key (IA de Analise)
             <input id="geminiApiKey" name="geminiApiKey" type="password" placeholder="Cola aqui a tua chave do Google AI Studio">
-            <small style="opacity: 0.6; font-size: 0.75rem;">Chave gratuita em <a href="https://aistudio.google.com/apikey" target="_blank" style="color: var(--primary);">aistudio.google.com</a> - activa analises reais por IA nos investimentos</small>
+            <small style="opacity: 0.6; font-size: 0.75rem;">Chave gratuita em <a href="https://aistudio.google.com/apikey" target="_blank" style="color: var(--primary);">aistudio.google.com</a> - activa analises reais por IA nos teus investimentos</small>
           </label>
 
           <div style="padding: 12px; background: rgba(16, 185, 129, 0.05); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">
-            <p style="margin: 0; font-size: 0.8rem; color: var(--success);"><strong>-S CoinGecko (Cripto)</strong> ativo via rede pública (sem necessidade de chave).</p>
+            <p style="margin: 0; font-size: 0.8rem; color: var(--success);"><strong>CoinGecko (Cripto)</strong> activo via rede publica (sem necessidade de chave).</p>
           </div>
 
           <button type="submit" class="primary-btn">Guardar chaves</button>
@@ -258,23 +257,22 @@
   </script>
 
 <script>
-// ---- Guardar Chave API (inline, sem depender de cache) ----
-(function() {
+// ---- (function() {
   const apiForm = document.getElementById('api-settings-form');
   if (!apiForm) return;
 
-  // Pré-preencher os campos se já existirem chaves guardadas
+  // Pre-preencher se ja existirem chaves guardadas
   try {
     const raw = localStorage.getItem('finance-control-app');
     if (raw) {
       const parsed = JSON.parse(raw);
       if (parsed.finnhubApiKey) {
-        const input = document.getElementById('finnhubApiKey');
-        if (input) input.value = parsed.finnhubApiKey;
+        const el = document.getElementById('finnhubApiKey');
+        if (el) el.value = parsed.finnhubApiKey;
       }
       if (parsed.geminiApiKey) {
-        const input = document.getElementById('geminiApiKey');
-        if (input) input.value = parsed.geminiApiKey;
+        const el = document.getElementById('geminiApiKey');
+        if (el) el.value = parsed.geminiApiKey;
       }
     }
   } catch(e) {}
@@ -302,9 +300,9 @@
       }
 
       const btn = apiForm.querySelector('button[type="submit"]');
-      if (btn) { btn.textContent = '✅ Chaves Guardadas!'; btn.style.background = '#10b981'; btn.disabled = true; }
+      if (btn) { btn.textContent = 'Chaves Guardadas!'; btn.style.background = '#10b981'; btn.disabled = true; }
       const status = document.getElementById('apiStatus');
-      if (status) { status.textContent = '✅ Chaves guardadas. A redirecionar...'; status.style.color = '#10b981'; status.style.fontWeight = '700'; }
+      if (status) { status.textContent = 'Chaves guardadas com sucesso. A redirecionar...'; status.style.color = '#10b981'; status.style.fontWeight = '700'; }
 
       setTimeout(function() { window.location.href = 'pro360.html'; }, 1000);
     } catch(err) {
