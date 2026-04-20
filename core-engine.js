@@ -90,6 +90,12 @@ function getActiveMonthParts() {
   return { year, month };
 }
 
+function isActiveMonthCurrent() {
+  const today = getToday();
+  const { year, month } = getActiveMonthParts();
+  return year === today.getFullYear() && month === (today.getMonth() + 1);
+}
+
 function formatCurrency(value) {
   return new Intl.NumberFormat("pt-PT", { style: "currency", currency: "EUR" }).format(Number(value) || 0);
 }
@@ -105,9 +111,9 @@ function getItemMonthKey(item) {
   return `${parts[0]}-${parts[1].padStart(2, "0")}`;
 }
 
-function sumFixedMonthlyExpenses() {
-  const monthKey = getMonthKey();
-  const { month } = getActiveMonthParts();
+function sumFixedMonthlyExpenses(forMonthKey) {
+  const monthKey = forMonthKey || getMonthKey();
+  const month = Number(monthKey.split('-')[1]);
   return state.recurringFixed
     .filter(rf => {
       if (rf.endDate && rf.endDate < monthKey) return false;
@@ -697,3 +703,6 @@ window.sumVariableExpenses = sumVariableExpenses;
 window.sumFixedMonthlyExpenses = sumFixedMonthlyExpenses;
 window.getActiveMonthParts = getActiveMonthParts;
 window.getToday = getToday;
+window.isActiveMonthCurrent = isActiveMonthCurrent;
+window.renderAnalyticTable = function() { /* alias - renderizado pelo charts.js */ };
+
