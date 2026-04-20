@@ -176,6 +176,13 @@
             <small style="opacity: 0.6; font-size: 0.75rem;">Obtém uma chave gratuita em <a href="https://finnhub.io/" target="_blank" style="color: var(--primary);">finnhub.io</a></small>
           </label>
 
+          
+          <label style="margin-top: 8px;">
+            Gemini API Key (IA de Analise)
+            <input id="geminiApiKey" name="geminiApiKey" type="password" placeholder="Cola aqui a tua chave do Google AI Studio">
+            <small style="opacity: 0.6; font-size: 0.75rem;">Chave gratuita em <a href="https://aistudio.google.com/apikey" target="_blank" style="color: var(--primary);">aistudio.google.com</a> - activa analises reais por IA nos investimentos</small>
+          </label>
+
           <div style="padding: 12px; background: rgba(16, 185, 129, 0.05); border-radius: 8px; border: 1px solid rgba(16, 185, 129, 0.2);">
             <p style="margin: 0; font-size: 0.8rem; color: var(--success);"><strong>-S CoinGecko (Cripto)</strong> ativo via rede pública (sem necessidade de chave).</p>
           </div>
@@ -256,7 +263,7 @@
   const apiForm = document.getElementById('api-settings-form');
   if (!apiForm) return;
 
-  // Pré-preencher o campo se já existir chave guardada
+  // Pré-preencher os campos se já existirem chaves guardadas
   try {
     const raw = localStorage.getItem('finance-control-app');
     if (raw) {
@@ -265,50 +272,41 @@
         const input = document.getElementById('finnhubApiKey');
         if (input) input.value = parsed.finnhubApiKey;
       }
+      if (parsed.geminiApiKey) {
+        const input = document.getElementById('geminiApiKey');
+        if (input) input.value = parsed.geminiApiKey;
+      }
     }
   } catch(e) {}
 
   apiForm.addEventListener('submit', function(e) {
     e.preventDefault();
     e.stopPropagation();
-    
-    const input = document.getElementById('finnhubApiKey');
-    const apiKey = (input ? input.value : '').trim();
-    
-    if (!apiKey) {
-      alert('-a-️ Introduza uma chave API válida.');
-      return;
-    }
 
-    // Guardar directamente no localStorage
+    const finnhubInput = document.getElementById('finnhubApiKey');
+    const geminiInput  = document.getElementById('geminiApiKey');
+    const finnhubKey   = (finnhubInput ? finnhubInput.value : '').trim();
+    const geminiKey    = (geminiInput  ? geminiInput.value  : '').trim();
+
     try {
       const STORAGE_KEY = 'finance-control-app';
       const raw = localStorage.getItem(STORAGE_KEY);
       const data = raw ? JSON.parse(raw) : {};
-      data.finnhubApiKey = apiKey;
+      if (finnhubKey) data.finnhubApiKey = finnhubKey;
+      if (geminiKey)  data.geminiApiKey  = geminiKey;
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 
-      // Atualizar estado em memória se existir
-      if (window.state) window.state.finnhubApiKey = apiKey;
+      if (window.state) {
+        if (finnhubKey) window.state.finnhubApiKey = finnhubKey;
+        if (geminiKey)  window.state.geminiApiKey  = geminiKey;
+      }
 
-      // Feedback visual
       const btn = apiForm.querySelector('button[type="submit"]');
-      if (btn) {
-        btn.textContent = '-S& Chave Guardada!';
-        btn.style.background = '#10b981';
-        btn.disabled = true;
-      }
+      if (btn) { btn.textContent = '✅ Chaves Guardadas!'; btn.style.background = '#10b981'; btn.disabled = true; }
       const status = document.getElementById('apiStatus');
-      if (status) {
-        status.textContent = '-S& Chave Finnhub persistida com sucesso. A redirecionar...';
-        status.style.color = '#10b981';
-        status.style.fontWeight = '700';
-      }
+      if (status) { status.textContent = '✅ Chaves guardadas. A redirecionar...'; status.style.color = '#10b981'; status.style.fontWeight = '700'; }
 
-      // Redirecionar para o terminal após 1s
-      setTimeout(function() {
-        window.location.href = 'pro360.html';
-      }, 1000);
+      setTimeout(function() { window.location.href = 'pro360.html'; }, 1000);
     } catch(err) {
       alert('Erro ao guardar: ' + err.message);
     }

@@ -101,14 +101,29 @@ window.viewFullStudy = async function(ticker) {
     `;
     modal.style.display = 'flex';
 
-    // Obter dados em paralelo
+    // Obter dados em paralelo (métricas + notícias + IA Gemini)
     const [metrics, globalNews] = await Promise.all([
         fetchFinancialMetrics(ticker),
         fetchMarketNews()
     ]);
 
     const sentiment = analyzeGlobalSentiment(globalNews);
-    const score     = calculateGrowthScore(metrics, asset.type, sentiment);
+    const newsHeadlines = (globalNews || []).slice(0, 8).map(n => n.headline).filter(Boolean);
+
+    // Chamar Gemini em paralelo (não bloqueia se não houver chave)
+    const geminiAnalysis = await callGeminiAnalysis(
+        ticker,
+        asset.name,
+        asset.type || 'Ativo',
+        metrics,
+        newsHeadlines
+    );
+
+    // Score: usa Gemini se disponível, senão usa regras
+    const rulesScore = calculateGrowthScore(metrics, asset.type, sentiment);
+    const score = geminiAnalysis?.score != null
+        ? { value: geminiAnalysis.score, color: geminiAnalysis.score >= 75 ? '#10b981' : geminiAnalysis.score >= 55 ? '#0d9488' : '#f43f5e', verdict: geminiAnalysis.verdict || rulesScore.verdict, action: '' }
+        : rulesScore;
 
     const isETF    = metrics?._type === 'ETF'    || asset.type === 'ETF';
     const isCrypto  = metrics?._type === 'Crypto'  || asset.type === 'Crypto';
@@ -260,11 +275,19 @@ window.viewFullStudy = async function(ticker) {
 
         <div style="background:#fff;padding:25px;border-radius:16px;border-left:6px solid ${score.color};border:1px solid var(--border-subtle);box-shadow:var(--shadow-sm);">
             <header style="display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;">
-                <strong style="color:${score.color};font-size:1.1rem;text-transform:uppercase;letter-spacing:.05em;">Veredito Final da IA</strong>
-                <span style="font-size:.75rem;color:var(--text-muted);">Horizonte: Longo Prazo</span>
+                <strong style="color:${score.color};font-size:1.1rem;text-transform:uppercase;letter-spacing:.05em;">
+                    ${geminiAnalysis ? '🤖 Análise por IA (Gemini)' : 'Veredito Final da IA'}
+                </strong>
+                <span style="font-size:.75rem;color:var(--text-muted);">
+                    ${geminiAnalysis ? `<span style="background:rgba(16,185,129,0.1);color:#10b981;padding:3px 10px;border-radius:99px;font-weight:700;font-size:0.65rem;">GEMINI AI</span>` : 'Horizonte: Longo Prazo'}
+                </span>
             </header>
-            <p style="font-size:1.05rem;line-height:1.6;color:var(--text-main);margin-bottom:25px;">${score.action}</p>
-            <button class="primary-btn" style="width:100%;padding:18px;font-size:1.1rem;font-weight:700;border-radius:12px;" onclick="window.fillAssetForm('${asset.ticker}', '${asset.name}', '${asset.type === 'REIT' ? 'reit' : (asset.type === 'ETF' ? 'dividends' : 'growth')}')">  
+            ${geminiAnalysis
+                ? `<div style="font-size:0.95rem;line-height:1.7;color:var(--text-main);margin-bottom:25px;">${formatGeminiResponse(geminiAnalysis.text)}</div>`
+                : `<p style="font-size:1.05rem;line-height:1.6;color:var(--text-main);margin-bottom:25px;">${score.action}</p>`
+            }
+            ${!window.state?.geminiApiKey ? `<div style="background:#fef3c7;border:1px solid #f59e0b;border-radius:10px;padding:14px;margin-bottom:20px;font-size:0.85rem;">💡 <strong>Activa a IA real:</strong> Vai a <a href="configuracao.html" style="color:var(--trading-blue);font-weight:700;">Configuração</a> e adiciona a tua <strong>Gemini API Key</strong> (gratuita em aistudio.google.com) para receberes análises geradas por IA com os dados reais deste ativo.</div>` : ''}
+            <button class="primary-btn" style="width:100%;padding:18px;font-size:1.1rem;font-weight:700;border-radius:12px;" onclick="window.fillAssetForm('${asset.ticker}', '${asset.name}', '${asset.type === 'REIT' ? 'reit' : (asset.type === 'ETF' ? 'dividends' : 'growth')}')">
                 Executar Decisão: Registar Ativo no Portfólio
             </button>
         </div>
@@ -273,7 +296,106 @@ window.viewFullStudy = async function(ticker) {
 
 // ── MOTOR DE INTELIGÊNCIA E MÉTRICAS ──────────────────────────
 
-async function fetchFinancialMetrics(ticker) {
+// ── GEMINI AI: ANÁLISE REAL ────────────────────────────────────
+
+async function callGeminiAnalysis(ticker, assetName, assetType, metrics, newsHeadlines) {
+  const geminiKey = window.state?.geminiApiKey;
+  if (!geminiKey) return null;
+
+  // Construir contexto financeiro real para o prompt
+  const priceStr    = metrics?.currPrice != null ? `€${Number(metrics.currPrice).toFixed(2)}` : 'indisponível';
+  const changeStr   = metrics?.changePercent != null ? `${Number(metrics.changePercent).toFixed(2)}%` : 'N/D';
+  const highStr     = metrics?.high52 != null ? `€${Number(metrics.high52).toFixed(2)}` : 'N/D';
+  const lowStr      = metrics?.low52  != null ? `€${Number(metrics.low52).toFixed(2)}`  : 'N/D';
+  const vsHighStr   = metrics?.vsHigh != null ? `${Number(metrics.vsHigh).toFixed(1)}%`  : 'N/D';
+  const peStr       = metrics?.pe     != null ? Number(metrics.pe).toFixed(1)   : 'N/D';
+  const yieldStr    = metrics?.yield  != null ? `${Number(metrics.yield).toFixed(2)}%`   : 'N/D';
+  const rsiStr      = metrics?.rsi    != null ? Number(metrics.rsi).toFixed(0)   : 'N/D';
+  const ret1YStr    = metrics?.return1Y != null ? `${Number(metrics.return1Y).toFixed(1)}%` : 'N/D';
+  const marketCapStr = metrics?.marketCap != null ? `${Number(metrics.marketCap).toFixed(0)}M€` : 'N/D';
+
+  const newsContext = (newsHeadlines || []).slice(0, 5).join(' | ') || 'Sem notícias recentes disponíveis.';
+
+  const prompt = `És um analista financeiro especializado em mercados europeus e globais. Analisa o seguinte ativo de forma objetiva e concisa.
+
+ATIVO: ${assetName} (${ticker})
+TIPO: ${assetType}
+
+DADOS DE MERCADO REAIS:
+- Preço atual: ${priceStr}
+- Variação (24h): ${changeStr}
+- Máximo 52 semanas: ${highStr}
+- Mínimo 52 semanas: ${lowStr}
+- Desvio vs máximos: ${vsHighStr}
+- P/E Ratio: ${peStr}
+- Dividend Yield: ${yieldStr}
+- RSI (14d): ${rsiStr}
+- Retorno 1 Ano: ${ret1YStr}
+- Market Cap: ${marketCapStr}
+
+NOTÍCIAS RECENTES DO MERCADO:
+${newsContext}
+
+Fornece uma análise estruturada com:
+1. VEREDITO (1 linha): Compra Forte / Acumular / Neutro / Aguardar / Vender
+2. SCORE (0-100): Baseado nos dados reais acima
+3. RACIONAL (2-3 parágrafos): Por que este ativo, agora, com estes dados. Menciona o RSI, o desvio vs máximos, e qualquer risco ou oportunidade específica.
+4. PONTO DE ENTRADA: Nível de preço ou condição técnica para entrada ideal
+5. RISCO PRINCIPAL: O maior risco para este ativo no contexto atual
+
+Responde em português europeu. Sê direto e objetivo, sem linguagem genérica.`;
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.4,
+            maxOutputTokens: 800,
+            topP: 0.8
+          }
+        })
+      }
+    );
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      console.warn('[Gemini] API error:', response.status, err?.error?.message);
+      return null;
+    }
+
+    const data = await response.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) return null;
+
+    // Parsear resposta para extrair score e veredito
+    const scoreMatch   = text.match(/SCORE[^:]*:\s*(\d+)/i);
+    const verdictMatch = text.match(/VEREDITO[^:]*:\s*([^\n]+)/i);
+    const score  = scoreMatch  ? Math.min(100, Math.max(0, parseInt(scoreMatch[1])))  : null;
+    const verdict = verdictMatch ? verdictMatch[1].trim() : null;
+
+    return { text, score, verdict, source: 'gemini' };
+  } catch (e) {
+    console.error('[Gemini] Erro:', e.message);
+    return null;
+  }
+}
+
+// Formatar resposta Gemini para HTML
+function formatGeminiResponse(geminiText) {
+  if (!geminiText) return '';
+  return geminiText
+    .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g, '<em>$1</em>')
+    .replace(/^(\d+\.\s*[A-ZÁÉÍÓÚ ]+:)/gm, '<br><strong style="color:var(--trading-blue);font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em;">$1</strong>')
+    .replace(/\n\n/g, '<br><br>')
+    .replace(/\n/g, '<br>');
+}
+
     // ── GESTÃO DE CACHE (15 MINUTOS) ──
     const CACHE_KEY = `metrics_cache_${ticker}`;
     const CACHE_TTL = 15 * 60 * 1000;

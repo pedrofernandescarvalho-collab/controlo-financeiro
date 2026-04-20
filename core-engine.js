@@ -28,7 +28,12 @@ const defaultState = {
   incomes: [],
   receivables: [],
   snapshots: [],
-  recurringFixed: []
+  recurringFixed: [],
+  investments: [],
+  priceCache: {},
+  finnhubApiKey: "",
+  geminiApiKey: "",
+  investmentTargets: { dividends: 40, growth: 40, crypto: 10, reit: 10 }
 };
 
 const settingsForm = document.querySelector("#settings-form");
