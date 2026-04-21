@@ -4,21 +4,50 @@
 const OPPORTUNITIES_CACHE_KEY = 'gemini_weekly_scan';
 const OPPORTUNITIES_TTL = 7 * 24 * 60 * 60 * 1000; // 7 dias
 
+// Função auxiliar para ler chave Gemini de qualquer fonte disponível
+function getGeminiKey() {
+    // 1. Tentar window.state primeiro
+    if (window.state && window.state.geminiApiKey && window.state.geminiApiKey.length > 10) {
+        return window.state.geminiApiKey;
+    }
+    // 2. Fallback directo ao localStorage (bypassa problemas de sync do state)
+    try {
+        var stored = localStorage.getItem('finance-control-app');
+        if (stored) {
+            var parsed = JSON.parse(stored);
+            if (parsed.geminiApiKey && parsed.geminiApiKey.length > 10) {
+                // Sincronizar com window.state se possível
+                if (window.state) window.state.geminiApiKey = parsed.geminiApiKey;
+                return parsed.geminiApiKey;
+            }
+        }
+    } catch(e) {}
+    return null;
+}
+
 async function generateAiOpportunities() {
-    const container = document.getElementById('aiDiscoveryList');
-    if (!container) return;
+    var container = document.getElementById('aiDiscoveryList');
+    if (!container) {
+        console.warn('[Gemini Scanner] aiDiscoveryList não encontrado - a tentar em 500ms');
+        setTimeout(function() { generateAiOpportunities(); }, 500);
+        return;
+    }
+
+    console.log('[Gemini Scanner] A iniciar scanner...');
 
     // 1. Verificar cache semanal
     try {
-        const cached = JSON.parse(localStorage.getItem(OPPORTUNITIES_CACHE_KEY) || 'null');
+        var cached = JSON.parse(localStorage.getItem(OPPORTUNITIES_CACHE_KEY) || 'null');
         if (cached && (Date.now() - cached.timestamp) < OPPORTUNITIES_TTL) {
+            console.log('[Gemini Scanner] Usando cache semanal');
             renderOpportunityCards(container, cached.data, false);
             return;
         }
     } catch(e) {}
 
-    // 2. Verificar chave Gemini
-    const geminiKey = window.state && window.state.geminiApiKey;
+    // 2. Verificar chave Gemini (lê de window.state OU localStorage directamente)
+    var geminiKey = getGeminiKey();
+    console.log('[Gemini Scanner] Chave encontrada?', !!geminiKey, '| length:', geminiKey ? geminiKey.length : 0);
     if (!geminiKey) {
         container.innerHTML = buildNoKeyMessage();
         return;
@@ -26,13 +55,14 @@ async function generateAiOpportunities() {
 
     // 3. Loading state
     container.innerHTML = buildLoadingState();
+    console.log('[Gemini Scanner] A chamar Gemini API...');
 
     // 4. Contexto do utilizador
-    const targets   = (window.state && window.state.investmentTargets) || { dividends: 40, growth: 40, crypto: 10, reit: 10 };
-    const portfolio = (window.state && window.state.investments) || [];
-    const today     = new Date().toLocaleDateString('pt-PT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-    const scanDate  = new Date().toISOString().slice(0, 10);
-    const existingList = portfolio.length > 0
+    var targets   = (window.state && window.state.investmentTargets) || { dividends: 40, growth: 40, crypto: 10, reit: 10 };
+    var portfolio = (window.state && window.state.investments) || [];
+    var today     = new Date().toLocaleDateString('pt-PT', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    var scanDate  = new Date().toISOString().slice(0, 10);
+    var existingList = portfolio.length > 0
         ? portfolio.map(function(i) { return i.ticker + ' (' + i.category + ')'; }).join(', ')
         : 'Nenhum ativo ainda';
 
@@ -57,7 +87,7 @@ async function generateAiOpportunities() {
 
     // 5. Chamar Gemini
     try {
-        const res = await fetch(
+        var res = await fetch(
             'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + geminiKey,
             {
                 method: 'POST',
@@ -79,18 +109,20 @@ async function generateAiOpportunities() {
             throw new Error('Gemini API ' + res.status + ': ' + (errData.error && errData.error.message || 'erro desconhecido'));
         }
 
-        const apiResp = await res.json();
-        const rawText = apiResp && apiResp.candidates && apiResp.candidates[0] &&
+        var apiResp = await res.json();
+        console.log('[Gemini Scanner] Resposta recebida:', JSON.stringify(apiResp).substring(0, 200));
+        var rawText = apiResp && apiResp.candidates && apiResp.candidates[0] &&
                         apiResp.candidates[0].content && apiResp.candidates[0].content.parts &&
                         apiResp.candidates[0].content.parts[0] && apiResp.candidates[0].content.parts[0].text;
 
         if (!rawText) throw new Error('Resposta vazia do Gemini');
 
-        const parsed = JSON.parse(rawText);
+        var parsed = JSON.parse(rawText);
         if (!parsed.recommendations || !Array.isArray(parsed.recommendations)) {
             throw new Error('Formato invalido');
         }
 
+        console.log('[Gemini Scanner] Sucesso!', parsed.recommendations.length, 'ativos recomendados');
         // Cache 7 dias
         localStorage.setItem(OPPORTUNITIES_CACHE_KEY, JSON.stringify({ data: parsed, timestamp: Date.now() }));
         renderOpportunityCards(container, parsed, true);
