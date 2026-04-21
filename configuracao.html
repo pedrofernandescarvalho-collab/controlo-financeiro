@@ -257,11 +257,20 @@
   </script>
 
 <script>
-// ---- (function() {
+// Inicialização service worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js');
+  });
+}
+
+// Botão de Sincronização na Nav
+
+(function() {
   const apiForm = document.getElementById('api-settings-form');
   if (!apiForm) return;
 
-  // Pre-preencher se ja existirem chaves guardadas
+  // Pré-preencher se já existirem chaves guardadas
   try {
     const raw = localStorage.getItem('finance-control-app');
     if (raw) {
@@ -288,10 +297,12 @@
 
     try {
       const STORAGE_KEY = 'finance-control-app';
-      const raw = localStorage.getItem(STORAGE_KEY);
-      const data = raw ? JSON.parse(raw) : {};
+      const stored = localStorage.getItem(STORAGE_KEY);
+      const data = stored ? JSON.parse(stored) : {};
+
       if (finnhubKey) data.finnhubApiKey = finnhubKey;
       if (geminiKey)  data.geminiApiKey  = geminiKey;
+
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 
       if (window.state) {
@@ -300,11 +311,21 @@
       }
 
       const btn = apiForm.querySelector('button[type="submit"]');
-      if (btn) { btn.textContent = 'Chaves Guardadas!'; btn.style.background = '#10b981'; btn.disabled = true; }
-      const status = document.getElementById('apiStatus');
-      if (status) { status.textContent = 'Chaves guardadas com sucesso. A redirecionar...'; status.style.color = '#10b981'; status.style.fontWeight = '700'; }
+      if (btn) {
+        btn.textContent = 'Chaves Guardadas!';
+        btn.style.background = '#10b981';
+        btn.disabled = true;
+      }
 
-      setTimeout(function() { window.location.href = 'pro360.html'; }, 1000);
+      const status = document.getElementById('apiStatus');
+      if (status) {
+        status.textContent = 'Chaves guardadas com sucesso. A redirecionar...';
+        status.style.color = '#10b981';
+        status.style.fontWeight = '700';
+      }
+
+      setTimeout(function() { window.location.href = 'pro360.html'; }, 1200);
+
     } catch(err) {
       alert('Erro ao guardar: ' + err.message);
     }
