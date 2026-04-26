@@ -549,6 +549,7 @@ function renderWeeklyApanhado() {
             const sMath = `${formatCurrency(sBudget)} - ${formatCurrency(sSpent)} = ${formatCurrency(sSurplus)}`;
             
             const surplusClass = sSurplus >= 0 ? 'color: var(--success, #10b981);' : 'color: #ef4444;';
+            const statusLabel = isPast ? 'Poupado (Final)' : (isCurrent ? 'Sobra p/ Gastar' : 'Orçamento Intacto');
 
             card.innerHTML = `
                 <div>
@@ -556,8 +557,9 @@ function renderWeeklyApanhado() {
                     <p class="item-subtitle" style="margin-bottom: 2px;">${isCurrent ? '⚡ Fatia em curso' : (isPast ? '✅ Concluída' : '⏳ Agendada')}</p>
                     <p style="font-size: 0.65rem; color: var(--text-muted); font-family: monospace;">${sMath}</p>
                 </div>
-                <div class="item-actions">
-                    <span class="item-value" style="${surplusClass} font-weight: 700;">${formatCurrency(sSurplus)}</span>
+                <div class="item-actions" style="text-align: right;">
+                    <span class="item-value" style="${surplusClass} font-weight: 700; display:block;">${formatCurrency(sSurplus)}</span>
+                    <span style="font-size: 0.65rem; color: var(--text-muted);">${statusLabel}</span>
                 </div>
             `;
             listDisp.appendChild(card);
