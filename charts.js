@@ -543,13 +543,24 @@ function renderWeeklyApanhado() {
             if (isPast) card.style.opacity = "0.7";
 
             // Cálculo do gasto e excedente específico desta fatia
-            const sBudget = dailyBudget * sliceDays;
-            const sSpent = typeof getFlexibleSpentInPeriod === 'function' ? getFlexibleSpentInPeriod(slice.start, slice.end) : 0;
-            const sSurplus = sBudget - sSpent;
-            const sMath = `${formatCurrency(sBudget)} - ${formatCurrency(sSpent)} = ${formatCurrency(sSurplus)}`;
+            let sBudget, sSpent, sSurplus, sMath;
+            if (isCurrent) {
+                // Fatia em curso: apenas os dias já decorridos (ex: dia 22 ao dia 26)
+                const daysElapsedInSlice = currentDay - slice.start + 1;
+                sBudget = dailyBudget * daysElapsedInSlice;
+                sSpent = typeof getFlexibleSpentInPeriod === 'function' ? getFlexibleSpentInPeriod(slice.start, currentDay) : 0;
+                sSurplus = sBudget - sSpent;
+                sMath = `${formatCurrency(sBudget)} - ${formatCurrency(sSpent)} = ${formatCurrency(sSurplus)} (Dias ${slice.start}–${currentDay})`;
+            } else {
+                // Fatia concluída ou futura: bloco completo
+                sBudget = dailyBudget * sliceDays;
+                sSpent = typeof getFlexibleSpentInPeriod === 'function' ? getFlexibleSpentInPeriod(slice.start, slice.end) : 0;
+                sSurplus = sBudget - sSpent;
+                sMath = `${formatCurrency(sBudget)} - ${formatCurrency(sSpent)} = ${formatCurrency(sSurplus)}`;
+            }
             
             const surplusClass = sSurplus >= 0 ? 'color: var(--success, #10b981);' : 'color: #ef4444;';
-            const statusLabel = isPast ? 'Poupado (Final)' : (isCurrent ? 'Sobra p/ Gastar' : 'Orçamento Intacto');
+            const statusLabel = isPast ? 'Poupado (Final)' : (isCurrent ? 'Poupado até Hoje' : 'Orçamento Intacto');
 
             card.innerHTML = `
                 <div>
