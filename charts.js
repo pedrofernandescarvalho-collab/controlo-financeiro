@@ -23,10 +23,12 @@ document.addEventListener('DOMContentLoaded', () => {
       
       const detailEl = document.getElementById('savingsRateDetail');
       if (detailEl) {
-        const income = typeof sumIncomes === 'function' ? sumIncomes() : 0;
-        const spent = typeof getRealSpentEfficiency === 'function' ? getRealSpentEfficiency() : (typeof sumVariableExpenses === 'function' ? sumVariableExpenses() : 0) + (typeof calculateBudget === 'function' && calculateBudget() ? calculateBudget().fixedExpenses || 0 : 0);
-        const saved = Math.max(income - spent, 0);
-        detailEl.innerHTML = `Poupado: ${formatCurrency(saved)} <br> (Ganho: ${formatCurrency(income)} | Gasto: ${formatCurrency(spent)})`;
+        const budget = typeof calculateBudget === 'function' ? calculateBudget() : null;
+        const totalIncome = (typeof state !== 'undefined' ? (Number(state.salary) || 0) : 0) + (typeof sumIncomes === 'function' ? sumIncomes() : 0);
+        const totalSaved = (typeof sumTransfers === 'function' ? sumTransfers() : 0) + (budget ? budget.leftover : 0);
+        const totalSpent = budget ? (budget.fixedExpenses + budget.variableExpenses) : 0;
+        
+        detailEl.innerHTML = `Poupado: ${formatCurrency(totalSaved)} <br> (Ganho: ${formatCurrency(totalIncome)} | Gasto: ${formatCurrency(totalSpent)})`;
       }
     }
 
@@ -53,6 +55,16 @@ window.addEventListener('stateUpdated', () => {
             const rate = calculateSavingsRate();
             const el = document.getElementById('savingsRateDisplay');
             if (el) el.textContent = rate.toFixed(1) + '%';
+            
+            const detailEl = document.getElementById('savingsRateDetail');
+            if (detailEl) {
+                const budget = typeof calculateBudget === 'function' ? calculateBudget() : null;
+                const totalIncome = (typeof state !== 'undefined' ? (Number(state.salary) || 0) : 0) + (typeof sumIncomes === 'function' ? sumIncomes() : 0);
+                const totalSaved = (typeof sumTransfers === 'function' ? sumTransfers() : 0) + (budget ? budget.leftover : 0);
+                const totalSpent = budget ? (budget.fixedExpenses + budget.variableExpenses) : 0;
+                
+                detailEl.innerHTML = `Poupado: ${formatCurrency(totalSaved)} <br> (Ganho: ${formatCurrency(totalIncome)} | Gasto: ${formatCurrency(totalSpent)})`;
+            }
         }
         renderRadar();
         renderTopExpenses();
@@ -696,8 +708,12 @@ function renderDailyRhythm() {
     totalSurplusFullMonth += sliceSurplus;
   });
 
+  // --- Poupança Efetiva Total ---
+  const totalTransfersToday = typeof sumTransfersBetween === 'function' ? sumTransfersBetween(0, currentDay) : 0;
+  const effectiveSavingsToday = totalSurplusToday + totalTransfersToday;
+
   // --- Poupança diária média ---
-  const dailyAvgSave = daysElapsed > 0 ? totalSurplusToday / daysElapsed : 0;
+  const dailyAvgSave = daysElapsed > 0 ? effectiveSavingsToday / daysElapsed : 0;
   if (saveEl) {
     saveEl.textContent = fmt(dailyAvgSave);
     saveEl.style.color = dailyAvgSave >= 0 ? 'var(--primary)' : '#ef4444';
@@ -705,24 +721,24 @@ function renderDailyRhythm() {
 
   // --- Total poupado até hoje ---
   if (totalEl) {
-    totalEl.textContent = fmt(totalSurplusToday);
-    totalEl.style.color = totalSurplusToday >= 0 ? '' : '#ef4444';
+    totalEl.textContent = fmt(effectiveSavingsToday);
+    totalEl.style.color = effectiveSavingsToday >= 0 ? '' : '#ef4444';
     const detailEl = document.getElementById('totalSavedDetail');
-    if (detailEl) detailEl.textContent = `Excedente acumulado em ${daysElapsed} dias do mês (gasto ${fmt(totalVariableSpent)})`;
+    if (detailEl) detailEl.textContent = `Excedente (${fmt(totalSurplusToday)}) + Transferências (${fmt(totalTransfersToday)})`;
   }
 
   // --- Projeção até ao fim do mês ---
   // Assume que continuas a gastar ao mesmo ritmo dos dias já decorridos
   const remainingDays = Math.max(daysInMonth - currentDay, 0);
   const projectedExtraSurplus = remainingDays * (dailyBudget - dailyAvgSpend);
-  const projectedTotal = totalSurplusToday + projectedExtraSurplus;
+  const projectedTotal = effectiveSavingsToday + projectedExtraSurplus;
 
   if (projEl) {
     projEl.textContent = fmt(projectedTotal);
     projEl.style.color = projectedTotal >= 0 ? 'var(--primary)' : '#ef4444';
     const detailEl = document.getElementById('projectedSavingsDetail');
     if (detailEl) {
-      detailEl.textContent = `Hoje: ${fmt(totalSurplusToday)} + ${remainingDays} dias × (${fmt(dailyBudget)}/dia − ${fmt(dailyAvgSpend)}/dia)`;
+      detailEl.textContent = `Hoje (${fmt(effectiveSavingsToday)}) + ${remainingDays} dias de excedente projetado`;
     }
   }
 
@@ -731,5 +747,5 @@ function renderDailyRhythm() {
   if (spendDetailEl) spendDetailEl.textContent = `${fmt(totalVariableSpent)} ÷ ${daysElapsed} dias`;
 
   const saveDetailEl = document.getElementById('dailySaveDetail');
-  if (saveDetailEl) saveDetailEl.textContent = `${fmt(totalSurplusToday)} ÷ ${daysElapsed} dias`;
+  if (saveDetailEl) saveDetailEl.textContent = `${fmt(effectiveSavingsToday)} ÷ ${daysElapsed} dias`;
 }
