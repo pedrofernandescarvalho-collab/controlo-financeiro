@@ -579,7 +579,7 @@ function getCalendarSlices() {
 }
 
 function getFlexibleSpentInPeriod(start, end) {
-  return sumExpensesBetween(start - 1, end) + sumTransfersBetween(start - 1, end);
+  return sumExpensesBetween(start - 1, end);
 }
 
 function calculateObligationsStatus() {

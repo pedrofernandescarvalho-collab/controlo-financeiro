@@ -709,8 +709,8 @@ function renderDailyRhythm() {
   });
 
   // --- Poupança Efetiva Total ---
-  const totalTransfersToday = typeof sumTransfersBetween === 'function' ? sumTransfersBetween(0, currentDay) : 0;
-  const effectiveSavingsToday = totalSurplusToday + totalTransfersToday;
+  // Como as transferências já não são descontadas nas fatias, totalSurplusToday = Poupança Efetiva
+  const effectiveSavingsToday = totalSurplusToday;
 
   // --- Poupança diária média ---
   const dailyAvgSave = daysElapsed > 0 ? effectiveSavingsToday / daysElapsed : 0;
@@ -724,7 +724,7 @@ function renderDailyRhythm() {
     totalEl.textContent = fmt(effectiveSavingsToday);
     totalEl.style.color = effectiveSavingsToday >= 0 ? '' : '#ef4444';
     const detailEl = document.getElementById('totalSavedDetail');
-    if (detailEl) detailEl.textContent = `Excedente (${fmt(totalSurplusToday)}) + Transferências (${fmt(totalTransfersToday)})`;
+    if (detailEl) detailEl.textContent = `Poupança acumulada em ${daysElapsed} dias`;
   }
 
   // --- Projeção até ao fim do mês ---
@@ -738,7 +738,7 @@ function renderDailyRhythm() {
     projEl.style.color = projectedTotal >= 0 ? 'var(--primary)' : '#ef4444';
     const detailEl = document.getElementById('projectedSavingsDetail');
     if (detailEl) {
-      detailEl.textContent = `Hoje (${fmt(effectiveSavingsToday)}) + ${remainingDays} dias de excedente projetado`;
+      detailEl.textContent = `Hoje (${fmt(effectiveSavingsToday)}) + ${remainingDays} dias de poupança projetada`;
     }
   }
 
