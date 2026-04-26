@@ -191,13 +191,23 @@ function sumExpensesUntil(day) {
 function sumExpensesBetween(start, end) {
   const mk = getMonthKey();
   return state.expenses
-    .filter(e => getItemMonthKey(e) === mk && e.kind !== 'fixed' && Number(e.day) > start && Number(e.day) <= end)
+    .filter(e => {
+      if (getItemMonthKey(e) !== mk || e.kind === 'fixed') return false;
+      let d = Number(e.day);
+      if (isNaN(d) || d < 1) d = 1;
+      return d > start && d <= end;
+    })
     .reduce((s, e) => s + getNetExpenseAmount(e), 0);
 }
 
 function sumTransfersBetween(start, end) {
   return state.transfers
-    .filter(t => getItemMonthKey(t) === getMonthKey() && Number(t.day) > start && Number(t.day) <= end)
+    .filter(t => {
+      if (getItemMonthKey(t) !== getMonthKey()) return false;
+      let d = Number(t.day);
+      if (isNaN(d) || d < 1) d = 1;
+      return d > start && d <= end;
+    })
     .reduce((s, t) => s + Number(t.amount || 0), 0);
 }
 
