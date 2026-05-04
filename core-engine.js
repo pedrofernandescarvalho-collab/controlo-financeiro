@@ -476,7 +476,8 @@ if (typeof document !== 'undefined') {
           if (id) { const idx = state.recurringFixed.findIndex(x => x.id === id); if(idx>=0) state.recurringFixed[idx] = rf; }
           else state.recurringFixed.push(rf);
         } else {
-          const exp = { id: id || generateUUID(), name, amount: amt, day, monthKey: getMonthKey(), dateLabel: date, category: document.querySelector("#expenseCategory")?.value || "Geral" };
+          const itemMonthKey = date.length >= 7 ? date.substring(0, 7) : getMonthKey();
+          const exp = { id: id || generateUUID(), name, amount: amt, day, monthKey: itemMonthKey, dateLabel: date, category: document.querySelector("#expenseCategory")?.value || "Geral" };
           if (id) { const idx = state.expenses.findIndex(x => x.id === id); if(idx>=0) state.expenses[idx] = exp; }
           else state.expenses.push(exp);
         }
@@ -484,12 +485,15 @@ if (typeof document !== 'undefined') {
         const date = document.querySelector("#snapshotDate").value; const day = Number(date.split('-')[2]) || 1;
         document.querySelectorAll(".dyn-bank-input").forEach(inp => {
           const accId = inp.dataset.accId; const val = Number(inp.value) || 0;
-          state.snapshots = state.snapshots.filter(s => !(s.monthKey === getMonthKey() && s.day === day && s.accountId === accId));
-          state.snapshots.push({ id: generateUUID(), monthKey: getMonthKey(), day, date, accountId: accId, bankBalance: val, cashBalance: 0 });
+          const snapMonthKey = date.length >= 7 ? date.substring(0, 7) : getMonthKey();
+          state.snapshots = state.snapshots.filter(s => !(s.monthKey === snapMonthKey && s.day === day && s.accountId === accId));
+          state.snapshots.push({ id: generateUUID(), monthKey: snapMonthKey, day, date, accountId: accId, bankBalance: val, cashBalance: 0 });
           const acc = state.accounts.find(a => a.id === accId); if(acc) acc.balance = val;
         });
       } else if (f.id === "income-form") {
-        state.incomes.push({ id: generateUUID(), name: document.querySelector("#incomeName").value, amount: Number(document.querySelector("#incomeAmount").value), day: Number(document.querySelector("#incomeDate").value.split('-')[2]) || 1, monthKey: getMonthKey(), dateLabel: document.querySelector("#incomeDate").value });
+        const incDate = document.querySelector("#incomeDate").value;
+        const incMonthKey = incDate.length >= 7 ? incDate.substring(0, 7) : getMonthKey();
+        state.incomes.push({ id: generateUUID(), name: document.querySelector("#incomeName").value, amount: Number(document.querySelector("#incomeAmount").value), day: Number(incDate.split('-')[2]) || 1, monthKey: incMonthKey, dateLabel: incDate });
       } else if (f.id === "receivable-form") {
         state.receivables.push({ id: generateUUID(), name: document.querySelector("#receivableName").value, amount: Number(document.querySelector("#receivableAmount").value), status: "pending", dateLabel: document.querySelector("#receivableDate").value });
       } else if (f.id === "settings-form") {
