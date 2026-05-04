@@ -338,6 +338,9 @@
           const el = document.getElementById('savingsRateDisplay');
           if (el) el.textContent = calculateSavingsRate().toFixed(1) + '%';
         }
+        // ← Apanhado Semanal e Ritmo Diário — actualizar para o mês seleccionado
+        if (typeof renderWeeklyApanhado === 'function') renderWeeklyApanhado();
+        if (typeof renderDailyRhythm === 'function') renderDailyRhythm();
       }
 
       if (prevBtn) prevBtn.addEventListener('click', () => {
