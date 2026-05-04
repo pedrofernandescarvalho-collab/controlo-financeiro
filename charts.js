@@ -72,8 +72,8 @@ window.addEventListener('stateUpdated', () => {
         drawBurnRateChart();
         drawNetWorthChart();
         _renderGlobalAnalyticTable();
-        renderDailyRhythm();
-        // Recarregar outras visualizações se necessário
+        renderWeeklyApanhado();   // ← necessário ao mudar de mês
+        renderDailyRhythm();      // ← necessário ao mudar de mês
     } catch (e) {
         console.warn('Erro ao atualizar gráficos via evento:', e);
     }
@@ -499,8 +499,9 @@ function renderWeeklyApanhado() {
     const budget = calculateBudget();
     const slices = typeof getCalendarSlices === 'function' ? getCalendarSlices() : [];
     const { year, month } = getActiveMonthParts();
-    const currentDay = isActiveMonthCurrent() ? getToday().getDate() : 31;
     const daysInMonth = new Date(year, month, 0).getDate();
+    // Para meses passados, considerar o mês como completo (último dia real do mês)
+    const currentDay = isActiveMonthCurrent() ? getToday().getDate() : daysInMonth;
     
     const dailyBudget = budget.disposableMonthlyBudget / daysInMonth;
     dailyDisp.textContent = formatCurrency(dailyBudget);
