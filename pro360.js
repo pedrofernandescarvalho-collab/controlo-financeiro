@@ -396,6 +396,9 @@ function formatGeminiResponse(geminiText) {
     .replace(/\n/g, '<br>');
 }
 
+
+// ── MÉTRICAS FINANCEIRAS (Finnhub + Yahoo + CoinGecko) ─────────
+async function fetchFinancialMetrics(ticker) {
     // ── GESTÃO DE CACHE (15 MINUTOS) ──
     const CACHE_KEY = `metrics_cache_${ticker}`;
     const CACHE_TTL = 15 * 60 * 1000;
@@ -750,7 +753,7 @@ window.removeAsset = function(index) {
         window.state.investments.splice(index, 1);
         if (typeof saveState === 'function') saveState();
         renderAssets();
-        generateAiOpportunities();
+        if (typeof generateAiOpportunities === 'function') generateAiOpportunities();
     }
 };
 
@@ -771,7 +774,7 @@ function initInvestments() {
 
     renderXtbBalance();
     renderAssets();
-    generateAiOpportunities();
+    if (typeof generateAiOpportunities === 'function') generateAiOpportunities();
     updateAllocationTargets();
     
     // Tentar atualizar preços e notícias se houver chave API
@@ -1015,7 +1018,7 @@ document.addEventListener('submit', (e) => {
         
         if (typeof saveState === 'function') saveState();
         renderAssets();
-        generateAiOpportunities();
+        if (typeof generateAiOpportunities === 'function') generateAiOpportunities();
         window.closeAssetModal();
         e.target.reset();
     }
