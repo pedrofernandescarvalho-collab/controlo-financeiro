@@ -492,8 +492,19 @@ if (typeof document !== 'undefined') {
         state.incomes.push({ id: generateUUID(), name: document.querySelector("#incomeName").value, amount: Number(document.querySelector("#incomeAmount").value), day: Number(document.querySelector("#incomeDate").value.split('-')[2]) || 1, monthKey: getMonthKey(), dateLabel: document.querySelector("#incomeDate").value });
       } else if (f.id === "receivable-form") {
         state.receivables.push({ id: generateUUID(), name: document.querySelector("#receivableName").value, amount: Number(document.querySelector("#receivableAmount").value), status: "pending", dateLabel: document.querySelector("#receivableDate").value });
+      } else if (f.id === "settings-form") {
+        const salEl = document.querySelector("#salary");
+        const revEl = document.querySelector("#revolutShare");
+        const xtbEl = document.querySelector("#xtbShare");
+        const goalEl = document.querySelector("#revolutGoal");
+        if (salEl)  state.salary       = Number(salEl.value)  || 0;
+        if (revEl)  state.revolutShare = Number(revEl.value)  || 0;
+        if (xtbEl)  state.xtbShare     = Number(xtbEl.value)  || 0;
+        if (goalEl) state.revolutGoal  = goalEl.value.trim();
+        const statusEl = document.querySelector("#settingsStatus");
+        if (statusEl) { statusEl.textContent = "✅ Configuração guardada com sucesso!"; statusEl.style.color = "var(--success)"; setTimeout(() => { statusEl.textContent = "A base do mês usa sempre o saldo do dia 1."; statusEl.style.color = ""; }, 3000); }
       }
-      saveState(); render(); f.reset(); delete f.dataset.editingId; delete f.dataset.editingType; initDateFields();
+      saveState(); render(); if (f.id !== "settings-form") { f.reset(); delete f.dataset.editingId; delete f.dataset.editingType; } initDateFields();
     });
   });
   

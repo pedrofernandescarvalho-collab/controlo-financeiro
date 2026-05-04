@@ -264,6 +264,20 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// Pré-preencher campos de configuração a partir do estado guardado
+(function() {
+  try {
+    const raw = localStorage.getItem('finance-control-app');
+    if (raw) {
+      const s = JSON.parse(raw);
+      const salEl  = document.getElementById('salary');       if (salEl  && s.salary)       salEl.value  = s.salary;
+      const revEl  = document.getElementById('revolutShare'); if (revEl  && s.revolutShare) revEl.value  = s.revolutShare;
+      const xtbEl  = document.getElementById('xtbShare');     if (xtbEl  && s.xtbShare)     xtbEl.value  = s.xtbShare;
+      const goalEl = document.getElementById('revolutGoal');  if (goalEl && s.revolutGoal)  goalEl.value = s.revolutGoal;
+    }
+  } catch(e) { console.warn('Erro ao pré-preencher configurações:', e); }
+})();
+
 // Botão de Sincronização na Nav
 
 (function() {
