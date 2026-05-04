@@ -85,32 +85,70 @@ async function generateAiOpportunities() {
         + '"opportunity":"janela de oportunidade especifica","risk":"risco principal","suggested_weight":12,'
         + '"confidence":82,"priority":"Alta|Media|Baixa","dividend_yield":"3.2%|N/A"}]}';
 
-    // 5. Chamar Gemini
-    try {
-        var res = await fetch(
-            'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + geminiKey,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: {
-                        temperature: 0.25,
-                        maxOutputTokens: 3000,
-                        topP: 0.8,
-                        responseMimeType: 'application/json'
-                    }
-                })
-            }
-        );
+    // 5. Chamar Gemini (com retry automático em caso de quota excedida)
+    var MODELS = [
+        'gemini-1.5-flash',
+        'gemini-2.0-flash',
+        'gemini-1.5-flash-8b'
+    ];
+
+    async function tryModel(modelName, retryCount) {
+        retryCount = retryCount || 0;
+        var url = 'https://generativelanguage.googleapis.com/v1beta/models/' + modelName + ':generateContent?key=' + geminiKey;
+        console.log('[Gemini Scanner] A tentar modelo:', modelName, '(tentativa ' + (retryCount + 1) + ')');
+
+        var res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    temperature: 0.25,
+                    maxOutputTokens: 3000,
+                    topP: 0.8,
+                    responseMimeType: 'application/json'
+                }
+            })
+        });
+
+        if (res.status === 429) {
+            // Quota excedida — tentar próximo modelo
+            console.warn('[Gemini Scanner] Quota excedida em', modelName, '- a tentar próximo modelo...');
+            return null; // sinaliza para tentar o próximo
+        }
 
         if (!res.ok) {
-            const errData = await res.json().catch(function() { return {}; });
+            var errData = await res.json().catch(function() { return {}; });
             throw new Error('Gemini API ' + res.status + ': ' + (errData.error && errData.error.message || 'erro desconhecido'));
         }
 
-        var apiResp = await res.json();
-        console.log('[Gemini Scanner] Resposta recebida:', JSON.stringify(apiResp).substring(0, 200));
+        return await res.json();
+    }
+
+    try {
+        var apiResp = null;
+        var usedModel = null;
+
+        for (var mi = 0; mi < MODELS.length; mi++) {
+            apiResp = await tryModel(MODELS[mi]);
+            if (apiResp !== null) {
+                usedModel = MODELS[mi];
+                break;
+            }
+        }
+
+        if (!apiResp) {
+            // Todos os modelos com quota excedida — mostrar mensagem amigável com retry automático
+            container.innerHTML = buildQuotaState();
+            setTimeout(function() {
+                console.log('[Gemini Scanner] A tentar novamente após 30 segundos...');
+                localStorage.removeItem(OPPORTUNITIES_CACHE_KEY);
+                generateAiOpportunities();
+            }, 30000);
+            return;
+        }
+
+        console.log('[Gemini Scanner] Resposta recebida via', usedModel, ':', JSON.stringify(apiResp).substring(0, 200));
         var rawText = apiResp && apiResp.candidates && apiResp.candidates[0] &&
                         apiResp.candidates[0].content && apiResp.candidates[0].content.parts &&
                         apiResp.candidates[0].content.parts[0] && apiResp.candidates[0].content.parts[0].text;
@@ -123,7 +161,6 @@ async function generateAiOpportunities() {
         }
 
         console.log('[Gemini Scanner] Sucesso!', parsed.recommendations.length, 'ativos recomendados');
-        // Cache 7 dias
         localStorage.setItem(OPPORTUNITIES_CACHE_KEY, JSON.stringify({ data: parsed, timestamp: Date.now() }));
         renderOpportunityCards(container, parsed, true);
 
@@ -164,6 +201,17 @@ function buildErrorState(msg) {
         + '<button onclick="window.forceRefreshOpportunities()" style="background:var(--primary);color:white;border:none;padding:10px 24px;border-radius:10px;cursor:pointer;font-weight:700;font-size:0.85rem;">↻ Tentar Novamente</button>'
         + '</div>';
 }
+
+function buildQuotaState() {
+    return '<div style="background:rgba(245,158,11,0.06);border:1px dashed #f59e0b;border-radius:16px;padding:32px;text-align:center;">'
+        + '<div style="font-size:2.5rem;margin-bottom:12px;">⏳</div>'
+        + '<h3 style="color:#f59e0b;margin:0 0 10px;font-size:1rem;">Quota temporária atingida</h3>'
+        + '<p style="font-size:0.85rem;color:var(--text-muted);margin:0 0 8px;">A tua chave Gemini está ativa mas atingiu o limite de pedidos por minuto.</p>'
+        + '<p style="font-size:0.82rem;color:var(--text-muted);margin:0 0 20px;opacity:0.8;">🔄 A tentar novamente automaticamente em <strong>30 segundos</strong>...</p>'
+        + '<button onclick="window.forceRefreshOpportunities()" style="background:#f59e0b;color:white;border:none;padding:10px 24px;border-radius:10px;cursor:pointer;font-weight:700;font-size:0.85rem;">↻ Tentar Agora</button>'
+        + '</div>';
+}
+
 
 function renderOpportunityCards(container, data, isLive) {
     var recs       = data.recommendations || [];
