@@ -86,9 +86,10 @@ async function generateAiOpportunities() {
         + '"confidence":82,"priority":"Alta|Media|Baixa","dividend_yield":"3.2%|N/A"}]}';
 
     // 5. Chamar Gemini (com retry automático em caso de quota excedida)
+    // Nomes correctos dos modelos conforme Google AI API v1beta
     var MODELS = [
-        'gemini-1.5-flash',
         'gemini-2.0-flash',
+        'gemini-1.5-flash-latest',
         'gemini-1.5-flash-8b'
     ];
 
@@ -141,10 +142,10 @@ async function generateAiOpportunities() {
             // Todos os modelos com quota excedida — mostrar mensagem amigável com retry automático
             container.innerHTML = buildQuotaState();
             setTimeout(function() {
-                console.log('[Gemini Scanner] A tentar novamente após 30 segundos...');
+                console.log('[Gemini Scanner] A tentar novamente após 60 segundos...');
                 localStorage.removeItem(OPPORTUNITIES_CACHE_KEY);
                 generateAiOpportunities();
-            }, 30000);
+            }, 60000);
             return;
         }
 
